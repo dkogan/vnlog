@@ -49,13 +49,14 @@ while(<STDIN>)
         next;
     }
 
-    if( /^#/p )
+    if( !@indices && /^#/p )
     {
         chomp;
 
         # we got a legend line
         my @cols_all = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
-        my @cols_all_orig = @cols_all;
+        my @colnames_output;
+
 
         # grab all the column indices
         foreach my $col (@cols_want)
@@ -79,6 +80,8 @@ while(<STDIN>)
             my @indices_here;
             my $accept = sub
             {
+                push @colnames_output, @cols_all[@indices_here];
+
                 if( @funcs )
                 {
                     # This loop is important. It is possible to push it to later
@@ -96,6 +99,11 @@ while(<STDIN>)
                     foreach my $idx (0..$#indices_here)
                     {
                         push @transforms, [$idx + @indices, parse_transform_funcs(@funcs) ];
+
+                        $colnames_output[$idx + @indices] =
+                          join('', map { "$_("} reverse @funcs) .
+                          $colnames_output[$idx + @indices] .
+                          ')' x scalar(@funcs);
                     }
                 }
 
@@ -137,10 +145,7 @@ while(<STDIN>)
         }
 
         # print out the new legend
-        if(@indices)
-        { print "# @cols_all_orig[@indices]\n"; }
-        else
-        { print "# @cols_all_orig\n"; }
+        print "# @colnames_output\n";
 
         next;
     }
