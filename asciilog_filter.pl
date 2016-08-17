@@ -233,3 +233,122 @@ sub parse_transform_funcs
     my @funcs = @_;
     return map { parse_transform_func($_) } @funcs;
 }
+
+__END__
+
+=head1 NAME
+
+asciilog-filter.pl - filters ascii logs to select particular fields
+
+=head1 SYNOPSIS
+
+    # Read log data, filter out the timestamps, and post-process some of them
+    $ raw-log-read-ins /tmp/stereo_lump_log |
+      asciilog_filter.pl '.*time' 'us2s(time)' 'rel(time)' 'rel(us2s(.*time))'
+
+    # frame_time time us2s(time) rel(time) rel(us2s(frame_time)) rel(us2s(time))
+    1434662133270338 1434662131279978 1434662131.27998 0 0 0
+    1434662133270338 1434662131289978 1434662131.28998 10000 0 0.00999999046325684
+    1434662133270338 1434662131299978 1434662131.29998 20000 0 0.0199999809265137
+    1434662133270338 1434662131309978 1434662131.30998 30000 0 0.0299999713897705
+    ...
+
+    # Read log data, filter out the lat/lon, and make a plot
+    $ raw-log-read-ins /tmp/stereo_lump_log |
+      asciilog_filter.pl lat lon |
+      feedgnuplot --domain --lines
+
+    [ plot pops up]
+
+
+=head1 DESCRIPTION
+
+This tool reads in an ASCII data stream, and allows easy filtering to select
+particular data from this stream. Many common post-processing operations are
+available.
+
+This is a UNIX-style tool, so the input/output of this tool is strictly
+STDIN/STDOUT.
+
+This tool is convenient both to filter stored data, or to filter live data that
+can then be plotted to produce realtime telemetry.
+
+This tool takes a list of fields on the commandline. These are the only fields
+that are selected for output. The requested field names are compared with the
+fields listed in the legend of the data. If an exact match is found, we select
+that column. Otherwise we run a regex search, and take all matching columns.
+
+The user often wants to apply unit conversions to data, or to look at the data
+relative to the initial point, or to differentiate the input. These filters can
+be easily applied by this tool.
+
+=head2 Input/output data format
+
+The input/output data is simply an ASCII table of values. Any lines beginning
+with C<##> are treated as comments, and are passed through. The first line that
+begins with C<#> but not C<##> is a I<legend> line. After the C<#>, follow
+whitespace-separated ASCII field names. Each subsequent line is
+whitespace-separated values matching this legend. For instance, this is a valid
+data file:
+
+    ## log version: 3 ins_type: RAW_LOG_INS_440 camera_type: Unknown camera_type id: 5
+    ## camera 0: serial 0,1 cols/rows: 3904 3904 channels: 1 depth: 8
+    ## camera 1: serial 2,3 cols/rows: 3904 3904 channels: 1 depth: 8
+    ## camera 2: serial 4,0 cols/rows: 3904 3904 channels: 1 depth: 8
+    ## camera 3: serial 0,0 cols/rows: 0 0 channels: 0 depth: 0
+    # x_rate y_rate z_rate
+    -0.016107 0.004362 0.005369
+    -0.017449 0.006711 0.006711
+    -0.018456 0.014093 0.006711
+    -0.017449 0.018791 0.006376
+
+This is the format for both the input and the output. This tool makes sure to
+update the legend to reflect which columns have been selected.
+
+=head2 Filters
+
+We can post-process our data with filters. To apply filter =f= and then filter
+=g= to column =x=, pass in =g(f(x))=. The filters currently available are
+
+=over
+
+=item C<us2s>
+
+convert microseconds to seconds
+
+=item C<deg2rad>
+
+convert degrees to radians
+
+=item C<rad2deg>
+
+convert radians to degrees
+
+=item C<rel>
+
+report data relative to first value
+
+=item C<diff>
+
+report data relative to previous value
+
+=back
+
+=head1 ARGUMENTS
+
+=head2 --dumpindices
+
+This option exists only for debugging. If given, prints out the indices of all
+the selected columns, and exits.
+
+=head1 REPOSITORY
+
+https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <Dmitriy.Kogan@jpl.nasa.gov> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Proprietary. Copyright 2016 California Institute of Technology
