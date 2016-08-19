@@ -18,11 +18,11 @@ We provide tools to manipulate ASCII logged data.
 %setup -q
 
 %build
-pod2man -r '' --section 1 --center "ASCII-log filter tool" asciilog_filter.pl asciilog_filter.1
+pod2man -r '' --section 1 --center "ASCII-log filter tool" asciilog-filter asciilog-filter.1
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-cp asciilog_filter.pl %{buildroot}%{_bindir}
+cp asciilog-filter %{buildroot}%{_bindir}
 
 mkdir -p %{buildroot}%{_mandir}/man1
 cp *.1 %{buildroot}%{_mandir}/man1/
