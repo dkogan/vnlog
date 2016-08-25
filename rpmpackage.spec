@@ -2,7 +2,7 @@
 Name:           xxx
 Version:        xxx
 Release:        1%{?dist}
-Summary:        Tools to manipulate ASCII logs
+Summary:        Tools to manipulate whitespace-separated ASCII logs
 BuildArch:      noarch
 
 License:        Proprietary
@@ -12,7 +12,11 @@ Source0:        https://github.jpl.nasa.gov/maritime-robotics/asciilog/archive/%
 BuildRequires:  /usr/bin/pod2man
 
 %description
-We provide tools to manipulate ASCII logged data.
+We want to manipulate data logged in a very simple whitespace-separated ASCII
+format. The format in compatible with the usual UNIX tools, and thus can be
+processed with a multitude of existing methods. Some convenience tools and
+library interfaces are provided to create new data in this format and manipulate
+existing data
 
 %prep
 %setup -q
