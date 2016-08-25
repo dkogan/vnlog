@@ -6,7 +6,7 @@ use Getopt::Long;
 use feature qw(say state);
 
 
-my $usage = "$0 [--dumpindices] col0 col1 col2 f(col0) g(col1)....\n";
+my $usage = "$0 [--dumpindices] [--has c0,c1,...] [--has c2] ... c3 c4 f(c0) g(c1) ...\n";
 if(! @ARGV)
 {
     die $usage;
@@ -14,6 +14,7 @@ if(! @ARGV)
 
 my %options;
 GetOptions(\%options,
+           "has=s@",
            "dumpindices!",
            "help") or die($usage);
 
@@ -27,9 +28,18 @@ if( defined $options{help} )
 autoflush STDOUT;
 
 my @cols_want = @ARGV;
+my @must_have_col_indices;
+
+# parse the , in $options{has}
+my @must_have_col_names;
+$options{has} //= [];
+for my $c (@{$options{has}})
+{
+    push @must_have_col_names, split(/,/,$c)
+}
 
 # if no columns requested, just print everything
-if(!@cols_want)
+if( !@cols_want && !@must_have_col_names )
 {
     while(<STDIN>)
     { print; }
@@ -41,6 +51,7 @@ my @indices = ();
 
 my @transforms;
 
+RECORD:
 while(<STDIN>)
 {
     if(/^##/p)
@@ -55,6 +66,11 @@ while(<STDIN>)
 
         # we got a legend line
         my @cols_all = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
+
+        # If we weren't asked for particular columns, take them all. This isn't
+        # a no-op because we can have --has
+        @cols_want = @cols_all unless @cols_want;
+
         my @colnames_output;
 
 
@@ -80,7 +96,10 @@ while(<STDIN>)
             my @indices_here;
             my $accept = sub
             {
+                my $Nindices = @indices;
+
                 push @colnames_output, @cols_all[@indices_here];
+                push @indices,         @indices_here;
 
                 if( @funcs )
                 {
@@ -98,16 +117,14 @@ while(<STDIN>)
                     # The indices here index the OUTPUT columns list
                     foreach my $idx (0..$#indices_here)
                     {
-                        push @transforms, [$idx + @indices, parse_transform_funcs(@funcs) ];
+                        push @transforms, [$idx + $Nindices, parse_transform_funcs(@funcs) ];
 
-                        $colnames_output[$idx + @indices] =
+                        $colnames_output[$idx + $Nindices] =
                           join('', map { "$_("} reverse @funcs) .
-                          $colnames_output[$idx + @indices] .
+                          $colnames_output[$idx + $Nindices] .
                           ')' x scalar(@funcs);
                     }
                 }
-
-                push @indices, @indices_here;
             };
 
 
@@ -147,6 +164,21 @@ while(<STDIN>)
         # print out the new legend
         print "# @colnames_output\n";
 
+
+        if( @must_have_col_names )
+        {
+            my %colindices;
+            foreach my $idx (0..$#cols_all)
+            {
+                $colindices{$cols_all[$idx]} = $idx;
+            }
+
+            foreach my $col (@must_have_col_names)
+            {
+                push @must_have_col_indices, $colindices{$col};
+            }
+        }
+
         next;
     }
 
@@ -156,8 +188,16 @@ while(<STDIN>)
     # select the columns we want
     chomp;
     my @f = split;
-    @f = @f[@indices];
 
+    if(@must_have_col_indices)
+    {
+        for my $idx (@must_have_col_indices)
+        {
+            next RECORD if '-' eq $f[$idx];
+        }
+    }
+
+    @f = @f[@indices];
 
     for my $transform (@transforms)
     {
@@ -238,7 +278,7 @@ __END__
 
 =head1 NAME
 
-asciilog-filter.pl - filters ascii logs to select particular fields
+asciilog-filter.pl - filters ascii logs to select particular rows, fields
 
 =head1 SYNOPSIS
 
@@ -258,7 +298,7 @@ asciilog-filter.pl - filters ascii logs to select particular fields
       asciilog_filter.pl lat lon |
       feedgnuplot --domain --lines
 
-    [ plot pops up]
+    [ plot pops up ]
 
 
 =head1 DESCRIPTION
@@ -268,7 +308,8 @@ particular data from this stream. Many common post-processing operations are
 available.
 
 This is a UNIX-style tool, so the input/output of this tool is strictly
-STDIN/STDOUT.
+STDIN/STDOUT. Furthermore, this tool is a filter, so the format of the output is
+E<exactly> the same as the format of the input.
 
 This tool is convenient both to filter stored data, or to filter live data that
 can then be plotted to produce realtime telemetry.
@@ -305,6 +346,9 @@ data file:
 This is the format for both the input and the output. This tool makes sure to
 update the legend to reflect which columns have been selected.
 
+A string C<-> is used to indicate that a record does not have a value for this
+field. Other records (lines) may have such a value.
+
 =head2 Filters
 
 We can post-process our data with filters. To apply filter =f= and then filter
@@ -335,6 +379,16 @@ report data relative to previous value
 =back
 
 =head1 ARGUMENTS
+
+=head2 --has a,b,c,...
+
+A I<null> value in a column is designated with a single C<->. This means that
+this particular field value does not exist in this record. If we want to select
+only records that I<do> have a column named C<x>, we can pass C<--has x>. The
+C<--has> option can be repeated to request multiple columns, or the multiple
+columns can be given in a whitespace-less comma-separated list. For instance if
+we want only recors that have both columns C<x> and C<y> we can pass in C<--has
+x,y>.
 
 =head2 --dumpindices
 
