@@ -278,13 +278,13 @@ __END__
 
 =head1 NAME
 
-asciilog-filter.pl - filters ascii logs to select particular rows, fields
+asciilog-filter - filters ascii logs to select particular rows, fields
 
 =head1 SYNOPSIS
 
     # Read log data, filter out the timestamps, and post-process some of them
     $ raw-log-read-ins /tmp/stereo_lump_log |
-      asciilog_filter.pl '.*time' 'us2s(time)' 'rel(time)' 'rel(us2s(.*time))'
+      asciilog-filter '.*time' 'us2s(time)' 'rel(time)' 'rel(us2s(.*time))'
 
     # frame_time time us2s(time) rel(time) rel(us2s(frame_time)) rel(us2s(time))
     1434662133270338 1434662131279978 1434662131.27998 0 0 0
@@ -295,7 +295,7 @@ asciilog-filter.pl - filters ascii logs to select particular rows, fields
 
     # Read log data, filter out the lat/lon, and make a plot
     $ raw-log-read-ins /tmp/stereo_lump_log |
-      asciilog_filter.pl lat lon |
+      asciilog-filter lat lon |
       feedgnuplot --domain --lines
 
     [ plot pops up ]
