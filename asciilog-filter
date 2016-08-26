@@ -309,7 +309,7 @@ available.
 
 This is a UNIX-style tool, so the input/output of this tool is strictly
 STDIN/STDOUT. Furthermore, this tool is a filter, so the format of the output is
-E<exactly> the same as the format of the input.
+I<exactly> the same as the format of the input.
 
 This tool is convenient both to filter stored data, or to filter live data that
 can then be plotted to produce realtime telemetry.
