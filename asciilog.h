@@ -7,7 +7,7 @@ This is an interface to produce asciilog output from C programs. Common usage:
 
   In a shell:
 
-    $ asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
+    asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
 
   In a C program test.c:
 
