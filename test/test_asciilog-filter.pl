@@ -90,6 +90,8 @@ check( <<'EOF', qw(--has b --has c a) );
 10
 EOF
 
+1;
+
 
 
 
