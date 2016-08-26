@@ -3,13 +3,13 @@ Name:           xxx
 Version:        xxx
 Release:        1%{?dist}
 Summary:        Tools to manipulate whitespace-separated ASCII logs
-BuildArch:      noarch
 
 License:        Proprietary
 URL:            https://github.jpl.nasa.gov/maritime-robotics/asciilog/
 Source0:        https://github.jpl.nasa.gov/maritime-robotics/asciilog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildRequires:  /usr/bin/pod2man
+BuildRequires:  mrbuild
 
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII
@@ -18,22 +18,31 @@ processed with a multitude of existing methods. Some convenience tools and
 library interfaces are provided to create new data in this format and manipulate
 existing data
 
+%package devel
+Requires:       %{name}%{_isa} = %{version}-%{release}
+Summary:        Development files and tools for asciilog
+%description devel
+The library needed for the asciilog C interface and the asciilog-gen-header
+tool needed to define the fields
+
 %prep
 %setup -q
 
 %build
-pod2man -r '' --section 1 --center "ASCII-log filter tool" asciilog-filter asciilog-filter.1
+make %{?_smp_mflags} all doc
 
 %install
-mkdir -p %{buildroot}%{_bindir}
-cp asciilog-filter %{buildroot}%{_bindir}
-
-mkdir -p %{buildroot}%{_mandir}/man1
-cp *.1 %{buildroot}%{_mandir}/man1/
+%make_install
 
 %clean
-rm *.1
+make clean
 
 %files
+%doc
+%{_libdir}/*.so.*
+
+%files devel
+%{_libdir}/*.so
+%{_includedir}/*
 %{_bindir}/*
 %doc %{_mandir}
