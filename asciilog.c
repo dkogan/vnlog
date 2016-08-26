@@ -21,8 +21,6 @@ typedef struct { char c[MAX_FIELD_LEN]; } field_t;
 static field_t* fields = NULL;
 
 
-// Writes out the given \0-terminated string. Does not look at the string, does
-// not append a trailing \n and so on.
 void asciilog_emit_string(const char* string)
 {
     if(!fp)
@@ -92,7 +90,7 @@ void _asciilog_set_field_value(const char* fieldname, int idx,
     va_end(ap);
 }
 
-void _asciilog_emit_and_finish_record(int Nfields)
+void _asciilog_emit_record(int Nfields)
 {
     if(!legend_finished)
         ERR("need a legend to do this");
