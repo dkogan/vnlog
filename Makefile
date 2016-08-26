@@ -17,7 +17,7 @@ man1/%.1: % | man1/
 	pod2man -r '' --section 1 --center "asciilog" $< $@
 EXTRA_CLEAN += man1
 
-CCXXFLAGS := -I.
+CCXXFLAGS := -I. -std=gnu99
 
 test/test.o: test/asciilog_fields_generated.h
 test/asciilog_fields_generated.h:
