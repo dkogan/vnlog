@@ -36,6 +36,9 @@ tool needed to define the fields
 %build
 make %{?_smp_mflags} all doc
 
+%check
+make check
+
 %install
 %make_install
 

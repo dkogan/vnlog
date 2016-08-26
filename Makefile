@@ -19,6 +19,17 @@ EXTRA_CLEAN += man1
 
 CCXXFLAGS := -I.
 
+test/test.o: test/asciilog_fields_generated.h
+test/asciilog_fields_generated.h:
+	./asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > $@
+EXTRA_CLEAN += test/asciilog_fields_generated.h test/test.got
+
+
+check: all
+	test/test_asciilog-filter.pl
+	test/test > test/test.got
+	diff test/test.want test/test.got
+
 DIST_INCLUDE := *.h
 DIST_BIN     := $(TOOLS)
 
