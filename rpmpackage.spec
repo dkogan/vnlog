@@ -9,7 +9,7 @@ URL:            https://github.jpl.nasa.gov/maritime-robotics/asciilog/
 Source0:        https://github.jpl.nasa.gov/maritime-robotics/asciilog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildRequires: /usr/bin/pod2man
-BuildRequires: mrbuild
+BuildRequires: mrbuild >= 0.26
 BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 
