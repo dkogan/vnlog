@@ -6,10 +6,6 @@ use feature ':5.10';
 use String::ShellQuote;
 
 
-my $template_set_field_value = <<'EOF';
-#define asciilog_set_field_value__##fieldname##(x) _asciilog_set_field_value("##fieldname##", ##fieldidx##, ##fmt##, x)
-EOF
-
 
 
 my $argstring = shell_quote(@ARGV);
@@ -20,7 +16,7 @@ say <<EOF;
 
 #pragma once
 
-#include "asciilog.h"
+#include <asciilog.h>
 
 EOF
 
@@ -82,12 +78,11 @@ sub gen_field
     $type =~ s/ +/ /g;   # replace all consecutive ' ' with a single space
     $type =~ s/ \*/\*/g; # ' *' -> '*'. so 'const char *' -> 'const char*'
 
-    my $fmt = $fmt_type{$type} or die "Unknown type '$type'";
+    my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
 
-    my $set_field_value = $template_set_field_value;
-    $set_field_value =~ s/##fieldname##/$name/g;
-    $set_field_value =~ s/##fieldidx##/$idx/g;
-    $set_field_value =~ s/##fmt##/$fmt/g;
+    my $set_field_value = <<EOF;
+#define asciilog_set_field_value__$name(x) _asciilog_set_field_value("$name", $idx, $fmt, x)
+EOF
 
     $idx++;
 
@@ -98,42 +93,41 @@ __END__
 
 =head1 NAME
 
-asciilog_gen_header - create templates for asciilog output
+asciilog-gen-header - create definition for asciilog output from C
 
 =head1 SYNOPSIS
 
- $ ./asciilog_gen_header 'int w' 'uint8_t x' 'char* y' 'double z'
+ $ asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
 
 =head1 DESCRIPTION
 
-This does various things.
+We provide a simple C library to produce asciilog output. The fields this
+library outputs must be known at compile time, and are specified in a header
+created by this tool. Please see the asciilog documentation for instructions on
+how to use the library
 
 =head1 REQUIRED ARGUMENTS
 
-=over
+Each commandline argument represents a single output field. Each such field spec
+in a C-style variable declaration with a type followed by a name. Note that
+these field specs contain whitespace, so each one must be quoted before being
+passed to the shell.
 
-=item <input>
+The types can be basic scalars, possibly with set widths (C<char>, C<double>,
+C<int>, C<uint32_t>, C<unsigned int>, ...), or a NULL-terminated string
+(C<char*>).
 
-File to read the input from
+The names must consist entirely of letters, numbers or C<_>, like variables in
+C.
 
-=for Euclid:
-  input.type: readable
+=head1 REPOSITORY
 
-=back
-
-=head1 OPTIONS
-
-=over
-
-=item --col[umn] <column>
-
-column for things
-
-=for Euclid:
-  column.type: integer, column >= 0 && column <= 2
-
-=back
+https://github.jpl.nasa.gov/maritime-robotics/asciilog/
 
 =head1 AUTHOR
 
-Dima Kogan, C<< <dima@secretsauce.net> >>
+Dima Kogan C<< <Dmitriy.Kogan@jpl.nasa.gov> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Proprietary. Copyright 2016 California Institute of Technology
