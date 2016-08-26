@@ -8,8 +8,10 @@ License:        Proprietary
 URL:            https://github.jpl.nasa.gov/maritime-robotics/asciilog/
 Source0:        https://github.jpl.nasa.gov/maritime-robotics/asciilog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
-BuildRequires:  /usr/bin/pod2man
-BuildRequires:  mrbuild
+BuildRequires: /usr/bin/pod2man
+BuildRequires: mrbuild
+BuildRequires: perl-IPC-Run
+BuildRequires: perl-Text-Diff
 
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII
@@ -21,6 +23,9 @@ existing data
 %package devel
 Requires:       %{name}%{_isa} = %{version}-%{release}
 Summary:        Development files and tools for asciilog
+
+Requires: perl-String-ShellQuote
+
 %description devel
 The library needed for the asciilog C interface and the asciilog-gen-header
 tool needed to define the fields
