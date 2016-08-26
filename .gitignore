@@ -1,0 +1,10 @@
+*~
+*.s
+*.i
+*.o
+*.d
+*.so
+*.so.*
+cscope*
+*_generated.h
+test/test
