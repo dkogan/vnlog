@@ -7,6 +7,10 @@ use String::ShellQuote;
 
 
 
+if(!@ARGV)
+{
+    die "Need at least one field spec on the cmdline";
+}
 
 my $argstring = shell_quote(@ARGV);
 
@@ -71,6 +75,11 @@ sub gen_field
                                    \s+   # Some space
                                    (.+?) # A non-greedy string (no spaces)
                                   /x;
+    if( !defined $type || !defined $name )
+    {
+        die "Couldn't parse field spec '$field'";
+    }
+
     if( $name =~ /[^a-zA-Z0-9_]/ )
     {
         die "Name can only have [a-zA-Z0-9_], but got '$name'";
