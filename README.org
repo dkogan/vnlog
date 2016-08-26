@@ -1,0 +1,127 @@
+* Summary
+In a shell:
+
+#+BEGIN_EXAMPLE
+asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
+#+END_EXAMPLE
+
+In a C program test.c:
+
+#+BEGIN_SRC C
+#include "asciilog_fields_generated.h"
+
+int main()
+{
+    asciilog_emit_legend();
+
+    asciilog_set_field_value__w(-10);
+    asciilog_set_field_value__x(40);
+    asciilog_set_field_value__y("asdf");
+    asciilog_emit_record();
+
+    asciilog_set_field_value__z(0.3);
+    asciilog_set_field_value__x(50);
+    asciilog_set_field_value__w(-20);
+    asciilog_emit_record();
+
+    asciilog_set_field_value__w(-30);
+    asciilog_set_field_value__x(10);
+    asciilog_set_field_value__y("whoa");
+    asciilog_set_field_value__z(0.5);
+    asciilog_emit_record();
+
+    return 0;
+}
+#+END_SRC
+
+Then we build and run, and we get
+
+#+BEGIN_EXAMPLE
+$ cc -o test test.c -lasciilog
+
+$ ./test
+
+# w x y z
+-10 40 asdf -
+-20 50 - 0.300000
+-30 10 whoa 0.500000
+#+END_EXAMPLE
+
+Hot damn! Let's look only at the =w= and =x= columns, but I want =w= relative
+from the first point
+
+#+BEGIN_EXAMPLE
+$ .test | asciilog-filter 'rel(w) x'
+
+# rel(w) x
+0 40
+-10 50
+-20 10
+#+END_EXAMPLE
+
+Let me plot those
+
+#+BEGIN_EXAMPLE
+$ ./test | asciilog-filter 'rel(w) x' | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
+                                                                                
+                                                                                
+  50 +-+---------------+--------------********------------+---------------+-+   
+     +                 +            **   +    *********   +                 +   
+  45 +-+                         ***                   ********           +-+   
+     |                         **                              *********    |   
+  40 +-+                    ***                                         *****   
+     |                    **                                                |   
+  35 +-+                **                                                +-+   
+  30 +-+             ***                                                  +-+   
+     |             **                                                       |   
+  25 +-+        ***                                                       +-+   
+     |        **                                                            |   
+  20 +-+    **                                                            +-+   
+     |   ***                                                                |   
+  15 +-**                                                                 +-+   
+     +*                +                 +                +                 +   
+  10 *-+---------------+-----------------+----------------+---------------+-+   
+    -20               -15               -10              -5                 0   
+#+END_EXAMPLE
+
+I only want to see records with a valid =z=
+
+#+BEGIN_EXAMPLE
+./test | asciilog-filter --has z
+# w x y z
+-20 50 - 0.300000
+-30 10 whoa 0.500000
+#+END_EXAMPLE
+
+* Description
+Asciilog is a trivially-simple log-file format that is tailored to work well
+with standard UNIXy tools with common UNIXy workflows.
+
+The log is composed of ASCII text with one data record per line and each record
+composed of whitespace-separated fields, i.e. exactly like awk expects. Each
+field has some specific meaning for all rows. Lines beginning with # are
+comments. The first line that begins with # (but not ##) is a legend line: past
+the #, each field is a label for that field.
+
+Common workflows include processing with awk or perl, plotting with feedgnuplot
+or analyzing with numpy. Since this is extremely simple and standard, many
+things are possible and easy.
+
+This all can be trivially generated with printf and processed with awk, but we
+provide a few tools for convenience:
+
+- =asciilog-filter=
+selects specific rows, fields possibly with some very simple postprocessing
+
+- =asciilog.[hc]=
+a C interface so produce asciilog output. Useful because the fields can be
+populated by name, one at a time without the user needing to think about their
+ordering
+
+See [[file:asciilog.h][=asciilog.h=]] for the (trivially-simple) API. And see the manpages for each
+specific tool to get more details about usage.
+
+* Maintainer
+This is maintained by Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>. Please let Dima
+know if something is unclear/broken/missing
+
