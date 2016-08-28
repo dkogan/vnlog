@@ -71,9 +71,10 @@ sub gen_field
        'char*'        => '"%s"'
       );
 
-    my ($type, $name) = $field =~ /(.+)  # A greedy string (may have spaces)
+    my ($type, $name) = $field =~ /\s*
+                                   (.+?) # A maximal string. May have space in the middle
                                    \s+   # Some space
-                                   (.+?) # A non-greedy string (no spaces)
+                                   (\S+) # A maximal string with no spaces
                                   /x;
     if( !defined $type || !defined $name )
     {
