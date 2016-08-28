@@ -20,7 +20,7 @@ say <<EOF;
 
 #pragma once
 
-#include <asciilog.h>
+#include <asciilog/asciilog.h>
 #include <inttypes.h>
 
 EOF
