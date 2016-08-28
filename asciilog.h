@@ -74,9 +74,10 @@ void _asciilog_set_field_value(const char* fieldname, int idx,
 // record. Any fields not set get written as -
 void _asciilog_emit_record(int Nfields);
 
-// Writes out the given \0-terminated string. Does not look at the string, does
-// not append a trailing \n. Useful for comments.
-void asciilog_emit_string(const char* string);
+// Writes out the given printf-style format to the asciilog. Generally this is a
+// comment string, so it should start with a '#' and end in a '\n', but I do not
+// check or enforce this.
+void asciilog_printf(const char* fmt, ...);
 
 
 #ifdef __cplusplus

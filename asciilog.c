@@ -21,11 +21,22 @@ typedef struct { char c[MAX_FIELD_LEN]; } field_t;
 static field_t* fields = NULL;
 
 
-void asciilog_emit_string(const char* string)
+static void emit(const char* string)
 {
     if(!fp)
         asciilog_set_output_FILE(stdout);
     fprintf(fp, "%s", string);
+}
+
+void asciilog_printf(const char* fmt, ...)
+{
+    if(!fp)
+        asciilog_set_output_FILE(stdout);
+
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(fp, fmt, ap);
+    va_end(ap);
 }
 
 void asciilog_set_output_FILE(FILE* _fp)
@@ -58,7 +69,7 @@ void _asciilog_emit_legend(const char* legend, int Nfields)
     if( legend_finished )
         ERR("already have a legend");
 
-    asciilog_emit_string(legend);
+    emit(legend);
     flush();
 
     fields = malloc(Nfields * sizeof(fields[0]));
@@ -100,11 +111,11 @@ void _asciilog_emit_record(int Nfields)
 
     for(int i=0; i<Nfields-1; i++)
     {
-        asciilog_emit_string(fields[i].c);
-        asciilog_emit_string(" ");
+        emit(fields[i].c);
+        emit(" ");
     }
-    asciilog_emit_string(fields[Nfields-1].c);
-    asciilog_emit_string("\n");
+    emit(fields[Nfields-1].c);
+    emit("\n");
 
     // I want to be able to process streaming data, so I flush the buffer now
     flush();
