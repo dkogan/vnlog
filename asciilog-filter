@@ -175,6 +175,10 @@ while(<STDIN>)
 
             foreach my $col (@must_have_col_names)
             {
+                if( !defined $colindices{$col})
+                {
+                    die "I don't have column '$col'";
+                }
                 push @must_have_col_indices, $colindices{$col};
             }
         }
