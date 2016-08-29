@@ -65,40 +65,28 @@ while(<STDIN>)
         chomp;
 
         # we got a legend line
-        my @cols_all = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
+        my @cols_all_legend = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
 
         # If we weren't asked for particular columns, take them all. This isn't
         # a no-op because we can have --has
-        @cols_want = @cols_all unless @cols_want;
+        @cols_want = @cols_all_legend unless @cols_want;
 
         my @colnames_output;
 
 
         # grab all the column indices
-        foreach my $col (@cols_want)
+      COLUMN:
+        foreach my $col_want (@cols_want)
         {
-            # First off, I look for any requested functions. These all look like
-            # "f(x)" and may be nested. f(g(h(x))) is allowed.
-
             my @funcs;
-            while($col =~ /^           # start
-                           ( [^\(]+ )  # Function name. Non-( characters
-                           \( (.+) \)  # Function arg
-                           $           # End
-                          /x)
-            {
-                unshift @funcs, $1;
-                $col = $2;
-            }
 
-            # OK. Done looking for transformations. Let's match the columns
-
-            my @indices_here;
             my $accept = sub
             {
+                my @indices_here = @_;
+
                 my $Nindices = @indices;
 
-                push @colnames_output, @cols_all[@indices_here];
+                push @colnames_output, @cols_all_legend[@indices_here];
                 push @indices,         @indices_here;
 
                 if( @funcs )
@@ -128,31 +116,60 @@ while(<STDIN>)
             };
 
 
+            my @indices_here;
 
-            # I want to find the requested column in the legend. First I look
-            # for an exact string match, and if that doesn't work, I try to
-            # match as a regex.
-
-            @indices_here = grep {$col eq $cols_all[$_]} 0..$#cols_all;
+            # do I have an exact column match?
+            @indices_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
             if ( @indices_here > 1 )
             {
-                die "Found more than one column that string-matched '$col' exactly";
+                die "Found more than one column that string-matched '$col_want' exactly";
             }
-            if( @indices_here == 1 )
+            if ( @indices_here == 1 )
             {
-                $accept->();
+                $accept->(@indices_here);
                 next;
             }
 
-            # No exact match found. Try a regex
-            @indices_here = grep {$cols_all[$_] =~ qr/$col/} 0..$#cols_all;
+            # I look for any requested functions. These all look like "f(x)" and
+            # may be nested. f(g(h(x))) is allowed. At each function level, I
+            # look for exact matching columns. I.e. if I'm asked about
+            # "diff(rel(x))" it is possible that I should find a column "x" and
+            # then rel() it and then diff() it; it's also possible that I should
+            # find a column "rel(x)" and then diff() it
+            while($col_want =~ /^           # start
+                                ( [^\(]+ )  # Function name. Non-( characters
+                                \( (.+) \)  # Function arg
+                                $           # End
+                               /x)
+            {
+                unshift @funcs, $1;
+                $col_want = $2;
+
+                # do I have an exact column match now?
+                @indices_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
+                if ( @indices_here > 1 )
+                {
+                    die "Found more than one column that string-matched '$col_want' exactly";
+                }
+                if ( @indices_here == 1 )
+                {
+                    $accept->(@indices_here);
+                    next COLUMN;
+                }
+
+            }
+
+            # I'm done looking for transformations, and no exact matches were
+            # found. I know there aren't any more '()' in the string, so I try a
+            # regex
+            @indices_here = grep {$cols_all_legend[$_] =~ qr/$col_want/} 0..$#cols_all_legend;
             if( @indices_here >= 1 )
             {
-                $accept->();
+                $accept->(@indices_here);
                 next;
             }
 
-            die "Couldn't find requested column '$col' in the legend line '$_'";
+            die "Couldn't find requested column '$col_want' in the legend line '$_'";
         }
 
         if ( $options{dumpindices} )
@@ -168,9 +185,9 @@ while(<STDIN>)
         if( @must_have_col_names )
         {
             my %colindices;
-            foreach my $idx (0..$#cols_all)
+            foreach my $idx (0..$#cols_all_legend)
             {
-                $colindices{$cols_all[$idx]} = $idx;
+                $colindices{$cols_all_legend[$idx]} = $idx;
             }
 
             foreach my $col (@must_have_col_names)
