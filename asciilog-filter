@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 use Getopt::Long;
+use List::Util 'max';
 
 use feature qw(say state);
 
@@ -47,6 +48,7 @@ if( !@cols_want && !@must_have_col_names )
 
 # script to read intersense logs and to only select particular columns
 my @indices = ();
+my $indices_max;
 
 
 my @transforms;
@@ -172,6 +174,8 @@ while(<STDIN>)
             die "Couldn't find requested column '$col_want' in the legend line '$_'";
         }
 
+        $indices_max = max @indices;
+
         if ( $options{dumpindices} )
         {
             print "@indices\n";
@@ -209,6 +213,10 @@ while(<STDIN>)
     # select the columns we want
     chomp;
     my @f = split;
+
+    # skip incomplete lines. Can happen if a log line at the end of a file was
+    # cut off in the middle
+    next unless $indices_max <= $#f;
 
     if(@must_have_col_indices)
     {
