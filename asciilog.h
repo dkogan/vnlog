@@ -102,6 +102,9 @@ void _asciilog_emit_record(int Nfields);
 // check or enforce this.
 void asciilog_printf(const char* fmt, ...);
 
+// Flushes the output buffer. Useful in conjunction with asciilog_printf()
+void asciilog_flush(void);
+
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. The user should call
 //
 //     asciilog_stash(ctx)

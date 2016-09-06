@@ -33,6 +33,13 @@ void asciilog_printf(const char* fmt, ...)
     va_end(ap);
 }
 
+void asciilog_flush(void)
+{
+    if(!fp)
+        asciilog_set_output_FILE(stdout);
+    fflush(fp);
+}
+
 void asciilog_set_output_FILE(FILE* _fp)
 {
     if(fp)
