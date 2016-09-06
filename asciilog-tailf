@@ -1,11 +1,23 @@
-#!/bin/sh
-if ! [ -r "$1" ]; then
-    echo "Need a logfile as the argument"
+#!/bin/bash
+
+usage="Usage: $0 [arguments passed to tail] logfile"
+
+if [[ $# < 1 ]]; then
+    echo "Need at least one argument" > /dev/stderr
+    echo $usage > /dev/stderr
+    exit 1
+fi
+# this is a bash-ism. Will not work in sh or in zsh
+logfile="${!#}"
+
+if ! [[ -r "$logfile" ]]; then # last argument not readable
+    echo "Last argument should be readable (assumed to be the log file)" > /dev/stderr
+    echo $usage > /dev/stderr
     exit 1
 fi
 
-head -n1 $1
-tail -f  $1
+head -n1 $logfile
+tail -f  $@
 
 
 # POD documentation that will become a manpage
@@ -24,8 +36,12 @@ asciilog-tailf - tails a log file, preserving the legend
 
 =head1 DESCRIPTION
 
-A common use case is to run a data-generating process, tee the output to a log
-file, while plotting some of the results:
+The basic usage is
+
+ asciilog-tailf [arguments passed to tail] logfile
+
+A common asciilog use case is to run a data-generating process, tee the output
+to a log file, while plotting some of the results:
 
  $ run_widget | tee /tmp/log | asciilog-filter quality | feedgnuplot --stream
 
@@ -39,6 +55,15 @@ this, we can use this tool instead of C<tail -f>. This tool simply prints the
 first log line, and then runs the C<tail -f> as usual. So we can do
 
  $ asciilog-tailf /tmp/log | asciilog-filter x y z | feedgnuplot --stream --3d --lines
+
+This usage will start printing out all the data written to the log file as it
+comes in. Thus all data that is I<already> in the log is ignored. Fortunately,
+this tool is a very thin wrapper around the C<tail> utility, and all aruments
+are passed to C<tail> verbatim. It is possible to ask C<tail> to print out all
+lines except the first (so that we don't print the legend twice) and I<then> to
+output new data:
+
+ $ asciilog-tailf -n+2 /tmp/log | ....
 
 =head1 REQUIRED ARGUMENTS
 
