@@ -1,7 +1,7 @@
 PROJECT_NAME := asciilog
 
 ABI_VERSION  := 0
-TAIL_VERSION := 6
+TAIL_VERSION := 7
 
 LIB_SOURCES := *.c*
 BIN_SOURCES := test/test.c
