@@ -45,6 +45,8 @@ say <<EOF;
 
 #define asciilog_emit_legend()    _asciilog_emit_legend(\"$legend\\n\", ASCIILOG_N_FIELDS)
 #define asciilog_emit_record()    _asciilog_emit_record(ASCIILOG_N_FIELDS)
+#define asciilog_stash(ctx)       _asciilog_stash(ctx, ASCIILOG_N_FIELDS)
+#define asciilog_stash_apply(ctx) _asciilog_stash_apply(ctx, ASCIILOG_N_FIELDS)
 EOF
 
 

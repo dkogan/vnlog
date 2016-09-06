@@ -117,3 +117,20 @@ void _asciilog_emit_record(int Nfields)
 
     clear(Nfields);
 }
+
+void _asciilog_stash(struct asciilog_context_t* ctx, int Nfields)
+{
+    ctx->line_has_any_values = line_has_any_values;
+    memcpy(ctx->fields, fields, sizeof(fields[0])*Nfields);
+
+    clear(Nfields);
+}
+
+void _asciilog_stash_apply(const struct asciilog_context_t* ctx, int Nfields)
+{
+    if(line_has_any_values)
+        ERR("Tried to apply a stash, but I already have a record in progress");
+
+    line_has_any_values = ctx->line_has_any_values;
+    memcpy(fields, ctx->fields, sizeof(fields[0])*Nfields);
+}

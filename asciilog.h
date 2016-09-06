@@ -102,6 +102,21 @@ void _asciilog_emit_record(int Nfields);
 // check or enforce this.
 void asciilog_printf(const char* fmt, ...);
 
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. The user should call
+//
+//     asciilog_stash(ctx)
+//
+// saves the current record-in-progress to the given context structure, and
+// clears out the current record with clear()
+void _asciilog_stash(             struct asciilog_context_t* ctx, int Nfields);
+
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. The user should call
+//
+//     asciilog_apply_stash(ctx)
+//
+// applies a stashed record made with asciilog_stash(). Can only be called if
+// the current record is empty
+void _asciilog_stash_apply (const struct asciilog_context_t* ctx, int Nfields);
 
 #ifdef __cplusplus
 }
