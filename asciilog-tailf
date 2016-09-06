@@ -6,3 +6,54 @@ fi
 
 head -n1 $1
 tail -f  $1
+
+
+# POD documentation that will become a manpage
+: <<=cut
+
+=head1 NAME
+
+asciilog-tailf - tails a log file, preserving the legend
+
+=head1 SYNOPSIS
+
+ $ asciilog-tailf /tmp/log
+ # x y z
+ 1 2 3
+ ...
+
+=head1 DESCRIPTION
+
+A common use case is to run a data-generating process, tee the output to a log
+file, while plotting some of the results:
+
+ $ run_widget | tee /tmp/log | asciilog-filter quality | feedgnuplot --stream
+
+As this runs, maybe we want to make a realtime plot of some other fields in teh
+log. We thus need to create a pipe that produces the data as it comes in.
+Generall the C<tail> tool can do this if invoked with the C<-f> option. But this
+would just print the trailing log lines as they come in, and it would I<not>
+print the legend, which is at the start of the file. This legend is needed to
+keep our column labels, so that we can process the log with other tools. To do
+this, we can use this tool instead of C<tail -f>. This tool simply prints the
+first log line, and then runs the C<tail -f> as usual. So we can do
+
+ $ asciilog-tailf /tmp/log | asciilog-filter x y z | feedgnuplot --stream --3d --lines
+
+=head1 REQUIRED ARGUMENTS
+
+We need the log file as the only argument
+
+=head1 REPOSITORY
+
+https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <Dmitriy.Kogan@jpl.nasa.gov> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Proprietary. Copyright 2016 California Institute of Technology
+
+=cut
