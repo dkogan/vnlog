@@ -13,6 +13,7 @@ BuildRequires: mrbuild >= 0.26
 BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
+BuildRequires: perl-List-MoreUtils
 
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII

@@ -3,11 +3,12 @@ use strict;
 use warnings;
 use Getopt::Long;
 use List::Util 'max';
+use List::MoreUtils 'all';
 
 use feature qw(say state);
 
 
-my $usage = "$0 [--dumpindices] [--has c0,c1,...] [--has c2] ... c3 c4 f(c0) g(c1) ...\n";
+my $usage = "$0 [--dumpindices] [--has c0,c1,...] [--has c2] [--skipempty] ... c3 c4 f(c0) g(c1) ...\n";
 if(! @ARGV)
 {
     die $usage;
@@ -16,6 +17,7 @@ if(! @ARGV)
 my %options;
 GetOptions(\%options,
            "has=s@",
+           "skipempty!",
            "dumpindices!",
            "help") or die($usage);
 
@@ -228,6 +230,8 @@ while(<STDIN>)
 
     @f = @f[@indices];
 
+    next if $options{skipempty} && all {$_ eq '-' } @f;
+
     for my $transform (@transforms)
     {
         # The indices here index the OUTPUT columns list
@@ -418,6 +422,10 @@ C<--has> option can be repeated to request multiple columns, or the multiple
 columns can be given in a whitespace-less comma-separated list. For instance if
 we want only recors that have both columns C<x> and C<y> we can pass in C<--has
 x,y>.
+
+=head2 --skipempty
+
+Don't output records where all fields are blank.
 
 =head2 --dumpindices
 
