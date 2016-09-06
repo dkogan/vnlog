@@ -1,0 +1,8 @@
+#!/bin/sh
+if ! [ -r "$1" ]; then
+    echo "Need a logfile as the argument"
+    exit 1
+fi
+
+head -n1 $1
+tail -f  $1
