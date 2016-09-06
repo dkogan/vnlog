@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <stdbool.h>
 
 /*
 This is an interface to produce asciilog output from C programs. Common usage:
@@ -37,7 +38,29 @@ This is an interface to produce asciilog output from C programs. Common usage:
   # w x y z
   -10 40 asdf -
   -20 50 - 0.300000
+
+
+Note that THIS FILE IS NOT MEANT TO BE #include-ed BY THE USER. IT SHOULD BE
+INCLUDED BY THE GENERATED asciilog_fieldss_generated.h
  */
+
+
+#define ASCIILOG_MAX_FIELD_LEN 32
+
+// If we're building the LIBRARY, we don't know how many fields we'll have, so
+// asciilog_context_t will be a non-instantiatable array
+#ifndef ASCIILOG_N_FIELDS
+    #define ASCIILOG_N_FIELDS
+#endif
+
+typedef struct { char c[ASCIILOG_MAX_FIELD_LEN]; } asciilog_field_t;
+struct asciilog_context_t
+{
+    bool                 legend_finished     : 1;
+    bool                 line_has_any_values : 1;
+    asciilog_field_t     fields[ASCIILOG_N_FIELDS];
+};
+
 
 
 #ifdef __cplusplus

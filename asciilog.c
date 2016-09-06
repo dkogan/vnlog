@@ -1,24 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdarg.h>
 
 #include "asciilog.h"
-
-#define MAX_FIELD_LEN            32
-#define MAX_NUM_FIELDS_ESTIMATED 128
-
 
 #define ERR(fmt, ...) do {                                              \
   fprintf(stderr, "FATAL ERROR! %s: %s(): " fmt "\n", __FILE__, __func__, ## __VA_ARGS__); \
   exit(1);                                                              \
 } while(0)
 
-static FILE*         fp                          = NULL;
-static bool          legend_finished             = false;
-static bool          line_has_any_values         = false;
-typedef struct { char c[MAX_FIELD_LEN]; } field_t;
-static field_t* fields = NULL;
+static FILE*             fp                  = NULL;
+static bool              legend_finished     = false;
+static bool              line_has_any_values = false;
+static asciilog_field_t* fields              = NULL;
 
 
 static void emit(const char* string)
