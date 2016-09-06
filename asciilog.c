@@ -10,7 +10,7 @@
 
 
 #define ERR(fmt, ...) do {                                              \
-  fprintf(stderr, "%s: %s(): " fmt, __FILE__, __func__, ## __VA_ARGS__); \
+  fprintf(stderr, "FATAL ERROR! %s: %s(): " fmt "\n", __FILE__, __func__, ## __VA_ARGS__); \
   exit(1);                                                              \
 } while(0)
 
