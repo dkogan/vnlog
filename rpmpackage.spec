@@ -50,9 +50,11 @@ make clean
 %files
 %doc
 %{_libdir}/*.so.*
+%{_bindir}/asciilog-filter
+%{_bindir}/asciilog-tailf
 
 %files devel
 %{_libdir}/*.so
 %{_includedir}/*
-%{_bindir}/*
+%{_bindir}/asciilog-gen-header
 %doc %{_mandir}
