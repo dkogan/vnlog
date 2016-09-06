@@ -57,6 +57,7 @@ static void flush(void)
 
 static void clear(int Nfields)
 {
+    line_has_any_values = false;
     for(int i=0; i<Nfields; i++)
     {
         fields[i].c[0] = '-';
@@ -120,6 +121,5 @@ void _asciilog_emit_record(int Nfields)
     // I want to be able to process streaming data, so I flush the buffer now
     flush();
 
-    line_has_any_values = false;
     clear(Nfields);
 }
