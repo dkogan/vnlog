@@ -113,10 +113,12 @@ provide a few tools for convenience:
 - =asciilog-filter=
 selects specific rows, fields possibly with some very simple postprocessing
 
-- =asciilog.[hc]=
-a C interface so produce asciilog output. Useful because the fields can be
-populated by name, one at a time without the user needing to think about their
-ordering
+- =asciilog-tailf=
+Works like =tail -f=, but makes sure to output the legend
+
+- =asciilog.c=, - =asciilog-gen-header=
+a C interface so produce asciilog output. Allows the fields to be populated by
+name, one at a time without the user needing to think about their column index
 
 See [[file:asciilog.h][=asciilog.h=]] for the (trivially-simple) API. And see the manpages for each
 specific tool to get more details about usage.
