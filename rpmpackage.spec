@@ -27,13 +27,21 @@ existing data
 
 %package devel
 Requires:       %{name}%{_isa} = %{version}-%{release}
-Summary:        Development files and tools for asciilog
+Summary:        Development files for asciilog
 
 Requires: perl-String-ShellQuote
 
 %description devel
 The library needed for the asciilog C interface and the asciilog-gen-header
 tool needed to define the fields
+
+%package tools
+Requires:       %{name}%{_isa} = %{version}-%{release}
+Summary:        Tools for manipulating asciilogs
+
+
+%description tools
+Various helper tools to make working with asciilogs easier
 
 %prep
 %setup -q
@@ -53,11 +61,15 @@ make clean
 %files
 %doc
 %{_libdir}/*.so.*
-%{_bindir}/asciilog-filter
-%{_bindir}/asciilog-tailf
 
 %files devel
 %{_libdir}/*.so
 %{_includedir}/*
 %{_bindir}/asciilog-gen-header
-%doc %{_mandir}
+%doc %{_mandir}/man1/asciilog-gen-header.1.gz
+
+%files tools
+%{_bindir}/asciilog-filter
+%{_bindir}/asciilog-tailf
+%doc %{_mandir}/man1/asciilog-filter.1.gz
+%doc %{_mandir}/man1/asciilog-tailf.1.gz
