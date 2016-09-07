@@ -20,9 +20,8 @@ EXTRA_CLEAN += man1
 CCXXFLAGS := -I. -std=gnu99
 
 test/test.o: test/asciilog_fields_generated.h
-test/asciilog_fields_generated.h:
+test/asciilog_fields_generated.h: Makefile asciilog-gen-header
 	./asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' | perl -pe 's{asciilog/asciilog.h}{asciilog.h}' > $@
-.PHONY: test/asciilog_fields_generated.h
 EXTRA_CLEAN += test/asciilog_fields_generated.h test/test.got
 
 
