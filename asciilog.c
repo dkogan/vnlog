@@ -15,18 +15,25 @@ static bool              line_has_any_values = false;
 static asciilog_field_t* fields              = NULL;
 
 
-static void emit(const char* string)
+
+static void check_fp(void)
 {
     if(!fp)
         asciilog_set_output_FILE(stdout);
+}
+static void _emit(const char* string)
+{
     fprintf(fp, "%s", string);
+}
+static void emit(const char* string)
+{
+    check_fp();
+    _emit(string);
 }
 
 void asciilog_printf(const char* fmt, ...)
 {
-    if(!fp)
-        asciilog_set_output_FILE(stdout);
-
+    check_fp();
     va_list ap;
     va_start(ap, fmt);
     vfprintf(fp, fmt, ap);
@@ -35,8 +42,7 @@ void asciilog_printf(const char* fmt, ...)
 
 void asciilog_flush(void)
 {
-    if(!fp)
-        asciilog_set_output_FILE(stdout);
+    check_fp();
     fflush(fp);
 }
 
@@ -111,13 +117,17 @@ void _asciilog_emit_record(int Nfields)
     if(!line_has_any_values)
         ERR("Tried to emit a log line without any values being set");
 
+    check_fp();
+
+    flockfile(fp);
     for(int i=0; i<Nfields-1; i++)
     {
-        emit(fields[i].c);
-        emit(" ");
+        _emit(fields[i].c);
+        _emit(" ");
     }
-    emit(fields[Nfields-1].c);
-    emit("\n");
+    _emit(fields[Nfields-1].c);
+    _emit("\n");
+    funlockfile(fp);
 
     // I want to be able to process streaming data, so I flush the buffer now
     flush();
