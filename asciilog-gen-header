@@ -43,10 +43,11 @@ for my $field(@ARGV)
 say <<EOF;
 
 
-#define asciilog_emit_legend()    _asciilog_emit_legend(\"$legend\\n\", ASCIILOG_N_FIELDS)
-#define asciilog_emit_record()    _asciilog_emit_record(ASCIILOG_N_FIELDS)
-#define asciilog_stash(ctx)       _asciilog_stash(ctx, ASCIILOG_N_FIELDS)
-#define asciilog_stash_apply(ctx) _asciilog_stash_apply(ctx, ASCIILOG_N_FIELDS)
+#define asciilog_emit_legend()        _asciilog_emit_legend(\"$legend\\n\", ASCIILOG_N_FIELDS)
+#define asciilog_emit_record_ctx(ctx) _asciilog_emit_record(ctx,  ASCIILOG_N_FIELDS)
+#define asciilog_emit_record()        _asciilog_emit_record(NULL, ASCIILOG_N_FIELDS)
+#define asciilog_clear_ctx(ctx)       _asciilog_clear_ctx(ctx,  ASCIILOG_N_FIELDS)
+#define asciilog_clear()              _asciilog_clear_ctx(NULL, ASCIILOG_N_FIELDS)
 EOF
 
 
@@ -97,7 +98,8 @@ sub gen_field
     my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
 
     my $set_field_value = <<EOF;
-#define asciilog_set_field_value__$name(x) _asciilog_set_field_value("$name", $idx, $fmt, x)
+#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value(ctx,  "$name", $idx, $fmt, x)
+#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value(NULL, "$name", $idx, $fmt, x)
 EOF
 
     $idx++;
