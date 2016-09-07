@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#define ASCIILOG_C
 #include "asciilog.h"
 
 #define ERR(fmt, ...) do {                                              \

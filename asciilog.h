@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#ifndef ASCIILOG_N_FIELDS
+#ifndef ASCIILOG_C
+#error Please do not include asciilog.h directly. Instead include the header made by asciilog-gen-header
+#endif
+#endif
+
+
 /*
 This is an interface to produce asciilog output from C programs. Common usage:
 
