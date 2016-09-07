@@ -14,7 +14,9 @@ BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
-Requires:      awk
+
+# gawk or mawk would both do
+Requires:      gawk
 
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII
