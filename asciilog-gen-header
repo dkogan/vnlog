@@ -6,14 +6,25 @@ use feature ':5.10';
 use String::ShellQuote;
 
 
-
-if(!@ARGV)
+# input can come on the commandline, or pipe in on STDIN
+my @defs; # field definitions. Each element is "type name"
+if(@ARGV)
 {
-    die "Need at least one field spec on the cmdline";
+    @defs = @ARGV;
+}
+else
+{
+    @defs = map {chomp; $_;} <>;
 }
 
-my $argstring = shell_quote(@ARGV);
-my $Nfields   = @ARGV;
+if(!@defs)
+{
+    say STDERR "Field definitions must come on the commandline or on STDIN";
+    exit 1;
+}
+
+my $argstring = shell_quote(@defs);
+my $Nfields   = @defs;
 
 
 say <<EOF;
@@ -32,7 +43,7 @@ EOF
 
 my $legend = "#";
 
-for my $field(@ARGV)
+for my $field(@defs)
 {
     my ($set_field_value, $name) = gen_field($field);
     print $set_field_value;
@@ -124,12 +135,16 @@ library outputs must be known at compile time, and are specified in a header
 created by this tool. Please see the asciilog documentation for instructions on
 how to use the library
 
-=head1 REQUIRED ARGUMENTS
+=head1 ARGUMENTS
 
-Each commandline argument represents a single output field. Each such field spec
-in a C-style variable declaration with a type followed by a name. Note that
-these field specs contain whitespace, so each one must be quoted before being
-passed to the shell.
+This tool needs to be given a list of field definitions. First we look at the
+commandline, and if the definitions are not available there, we look on STDIN.
+Each definition is a string C<type name> (one def per argument on the
+commandline or per line on STDIN).
+
+Each def represents a single output field. Each such field spec in a C-style
+variable declaration with a type followed by a name. Note that these field specs
+contain whitespace, so each one must be quoted before being passed to the shell.
 
 The types can be basic scalars, possibly with set widths (C<char>, C<double>,
 C<int>, C<uint32_t>, C<unsigned int>, ...), or a NULL-terminated string
