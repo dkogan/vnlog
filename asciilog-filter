@@ -65,8 +65,10 @@ while(<STDIN>)
         next;
     }
 
-    if( !@indices && /^#/p )
+    if( /^#/p )
     {
+        next if @indices;
+
         chomp;
 
         # we got a legend line
