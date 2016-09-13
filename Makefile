@@ -6,7 +6,7 @@ TAIL_VERSION := 3
 LIB_SOURCES := *.c*
 BIN_SOURCES := test/test.c
 
-TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf
+TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix
 doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))
 .PHONY: doc
 

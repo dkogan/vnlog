@@ -1,0 +1,158 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+use autodie;
+
+
+my $usage = "$0 [--prefix prefix] --outdir dir";
+
+
+my %options;
+GetOptions(\%options,
+           "prefix=s",
+           "outdir=s",
+           "help") or die($usage);
+if( defined $options{help} )
+{
+    print $usage;
+    exit 0;
+}
+
+my $outdir = $options{outdir};
+if( ! -d $outdir || ! -w $outdir )
+{
+    die "Usage: $usage\nThe directory must be writeable";
+}
+
+my $prefix = $options{prefix} // '';
+my $slow_prev_value;
+my @fields;
+my @fds;
+
+while(<>)
+{
+    chomp;
+
+    if(!@fields)
+    {
+        if(/^ *# (.*?) *$/)
+        {
+            @fields = split(/ /, $1);
+            if( @fields < 2 )
+            {
+                die "Each line must have at least two fields: the lest-significant index, and at least one field of values";
+            }
+            shift @fields;
+
+            @fds = map { my $fd;
+                         my $filename = "$outdir/${prefix}$_.matrix";
+                         print STDERR "Writing to '$filename'\n";
+                         open $fd, '>', $filename;
+                         $fd;
+                     } @fields;
+            next;
+        }
+
+        next if /^ *#/;
+
+        die "Got line of data before a legend: '$_'";
+    }
+
+
+    next if /^ *#/;
+
+    # have legend and have data
+    my @F = split;
+
+    if( !defined $slow_prev_value )
+    {
+        $slow_prev_value = $F[0];
+    }
+    elsif( $F[0] != $slow_prev_value )
+    {
+        $slow_prev_value = $F[0];
+        foreach my $fd(@fds)
+        {
+            print $fd "\n";
+        }
+    }
+
+    foreach my $ifd (0..$#fds)
+    {
+        my $fd = $fds[$ifd];
+        print $fd "$F[$ifd+1] ";
+    }
+}
+
+foreach my $fd (@fds)
+{
+    print $fd "\n";
+    close $fd;
+}
+
+
+__END__
+
+=head1 NAME
+
+asciilog-make-matrix - create a matrix of data from a one-point-per-record asciilog
+
+=head1 SYNOPSIS
+
+ $ cat /tmp/dat
+ # i j x
+ 0 0 1
+ 0 1 2
+ 0 2 3
+ 1 0 4
+ 1 1 5
+ 1 2 6
+ 2 0 7
+ 2 1 8
+ 2 2 9
+ 3 0 10
+ 3 1 11
+ 3 2 12
+
+ $ </tmp/dat asciilog-filter i x | asciilog-make-matrix --outdir /tmp --prefix test_
+ Writing to '/tmp/test_x.matrix'
+
+ $ cat /tmp/test_x.matrix
+ 1 2 3
+ 4 5 6
+ 7 8 9
+ 10 11 12
+
+=head1 DESCRIPTION
+
+Asciilog represents each "data item" as a line of text. This is very often what
+one wants, but at times it isn't. One example of this is matrix data: we want
+each line to contain a whole row of a matrix. This script exists for
+convenience, to bridge this gap.
+
+The input is an asciilog, coming in on STDIN and/or in files given on the
+commandline. This asciilog must have at least two fields: the least-significant
+(slowest-changing) index of each point, and as many value fieldss as desired.
+These points must be written out in order, and it is assumed that all entries in
+the matrix are specified. The output is a set of (non-asciilog) matrix files in
+the directory given in the C<--outdir> argument. These files are named
+C<XXX.matrix> where C<XXX> is the field name. These matrices can be loaded into
+any analysis tool (numpy for instance), or plotted directly with gnuplot:
+
+ set size ratio -1
+ plot "/tmp/test_x.matrix" matrix with image
+ pause -1
+
+=head1 REPOSITORY
+
+https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <Dmitriy.Kogan@jpl.nasa.gov> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Proprietary. Copyright 2016 California Institute of Technology
