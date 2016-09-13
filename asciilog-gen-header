@@ -86,6 +86,7 @@ sub gen_field
        'uint32_t'     => '"%" PRIu32',
        'uint64_t'     => '"%" PRIu64',
        'char'         => '"%c"',
+       'float'        => '"%f"',
        'double'       => '"%f"',
        'const char*'  => '"%s"',
        'char*'        => '"%s"'
