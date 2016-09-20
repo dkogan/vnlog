@@ -71,6 +71,7 @@ make clean
 %files tools
 %{_bindir}/asciilog-filter
 %{_bindir}/asciilog-tailf
+%{_bindir}/asciilog-make-matrix
 %doc %{_mandir}/man1/asciilog-filter.1.gz
 %doc %{_mandir}/man1/asciilog-tailf.1.gz
 %doc %{_mandir}/man1/asciilog-make-matrix.1.gz
