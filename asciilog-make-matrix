@@ -16,7 +16,7 @@ GetOptions(\%options,
            "help") or die($usage);
 if( defined $options{help} )
 {
-    print $usage;
+    print "$usage\n";
     exit 0;
 }
 
