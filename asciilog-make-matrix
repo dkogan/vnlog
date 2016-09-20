@@ -97,7 +97,7 @@ __END__
 
 =head1 NAME
 
-asciilog-make-matrix - create a matrix of data from a one-point-per-record asciilog
+asciilog-make-matrix - create a matrix from a one-point-per-record asciilog
 
 =head1 SYNOPSIS
 
@@ -134,12 +134,13 @@ convenience, to bridge this gap.
 
 The input is an asciilog, coming in on STDIN and/or in files given on the
 commandline. This asciilog must have at least two fields: the least-significant
-(slowest-changing) index of each point, and as many value fieldss as desired.
-These points must be written out in order, and it is assumed that all entries in
-the matrix are specified. The output is a set of (non-asciilog) matrix files in
-the directory given in the C<--outdir> argument. These files are named
-C<XXX.matrix> where C<XXX> is the field name. These matrices can be loaded into
-any analysis tool (numpy for instance), or plotted directly with gnuplot:
+(slowest-changing) index of each point (must be the I<first> field), and as many
+value fields as desired. These points must be written out in order, and it is
+assumed that all entries in the matrix are specified. The output is a set of
+(non-asciilog) matrix files in the directory given in the C<--outdir> argument.
+These files are named C<PREFIX_XXX.matrix> where C<PREFIX> comes from --prefix
+(or empty) and C<XXX> is the field name. These matrices can be loaded into any
+analysis tool (numpy for instance), or plotted directly with gnuplot:
 
  set size ratio -1
  plot "/tmp/test_x.matrix" matrix with image
