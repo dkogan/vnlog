@@ -8,13 +8,14 @@ use List::MoreUtils 'all';
 use feature qw(say state);
 
 
-my $usage = "$0 [--dumpindices] [--has c0,c1,...] [--has c2] [--skipempty] [--skipcomments] ... c3 c4 f(c0) g(c1) ...\n";
+my $usage = "$0 [--dumpindices] [--has c0,c1,...] [--has c2] [--noskipempty] [--skipcomments] ... c3 c4 f(c0) g(c1) ...\n";
 if(! @ARGV)
 {
     die $usage;
 }
 
-my %options;
+# by default we do skip empty records
+my %options = (skipempty => 1);
 GetOptions(\%options,
            "has=s@",
            "skipempty!",
@@ -426,9 +427,10 @@ columns can be given in a whitespace-less comma-separated list. For instance if
 we want only recors that have both columns C<x> and C<y> we can pass in C<--has
 x,y>.
 
-=head2 --skipempty
+=head2 --[no]skipempty
 
-Don't output records where all fields are blank.
+Do [not] skip records where all fields are blank. By default we I<do> skip all
+empty records; to include them, pass C<--noskipempty>
 
 =head2 --skipcomments
 
