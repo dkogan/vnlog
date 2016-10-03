@@ -29,6 +29,7 @@ check: all
 	test/test_asciilog-filter.pl
 	test/test > test/test.got
 	diff test/test.want test/test.got
+	echo "All tests passed!"
 
 DIST_INCLUDE := *.h
 DIST_BIN     := $(TOOLS)
