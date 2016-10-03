@@ -50,7 +50,6 @@ if( !@cols_want && !@must_have_col_names )
     { print; }
 }
 
-# script to read intersense logs and to only select particular columns
 my @indices = ();
 my $indices_max;
 
