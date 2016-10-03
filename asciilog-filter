@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use List::Util 'max';
-use List::MoreUtils 'all';
+use List::MoreUtils qw(any all);
 
 use feature qw(say state);
 
@@ -223,13 +223,7 @@ while(<STDIN>)
     # cut off in the middle
     next unless $indices_max <= $#f;
 
-    if(@must_have_col_indices)
-    {
-        for my $idx (@must_have_col_indices)
-        {
-            next RECORD if '-' eq $f[$idx];
-        }
-    }
+    next RECORD if any {'-' eq $f[$_]} @must_have_col_indices;
 
     @f = @f[@indices];
 
