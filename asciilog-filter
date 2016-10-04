@@ -213,7 +213,12 @@ while(<STDIN>)
         next;
     }
 
+
+
+
+
     # we got a data line
+    die "Got data line before a legend" unless @indices_in;
     next if $options{dumpindices};
 
     # select the columns we want
