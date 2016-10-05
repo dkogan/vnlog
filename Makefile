@@ -17,7 +17,7 @@ man1/%.1: % | man1/
 	pod2man -r '' --section 1 --center "asciilog" $< $@
 EXTRA_CLEAN += man1
 
-CCXXFLAGS := -I. -std=gnu99
+CCXXFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
 test/test.o: test/asciilog_fields_generated.h
 test/asciilog_fields_generated.h: Makefile asciilog-gen-header
@@ -25,11 +25,12 @@ test/asciilog_fields_generated.h: Makefile asciilog-gen-header
 EXTRA_CLEAN += test/asciilog_fields_generated.h test/test.got
 
 
-check: all
+test check: all
 	test/test_asciilog-filter.pl
 	test/test > test/test.got
 	diff test/test.want test/test.got
-	echo "All tests passed!"
+	@echo "All tests passed!"
+.PHONY: test check
 
 DIST_INCLUDE := *.h
 DIST_BIN     := $(TOOLS)
