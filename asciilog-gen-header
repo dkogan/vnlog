@@ -58,10 +58,6 @@ say <<EOF;
 
 
 #define asciilog_emit_legend()        _asciilog_emit_legend(\"$legend\\n\", ASCIILOG_N_FIELDS)
-#define asciilog_emit_record_ctx(ctx) _asciilog_emit_record(ctx,  ASCIILOG_N_FIELDS)
-#define asciilog_emit_record()        _asciilog_emit_record(NULL, ASCIILOG_N_FIELDS)
-#define asciilog_clear_ctx(ctx)       _asciilog_clear_ctx(ctx,  ASCIILOG_N_FIELDS)
-#define asciilog_clear()              _asciilog_clear_ctx(NULL, ASCIILOG_N_FIELDS)
 EOF
 
 
