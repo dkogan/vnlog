@@ -99,9 +99,9 @@ with standard UNIXy tools with common UNIXy workflows.
 
 The log is composed of ASCII text with one data record per line and each record
 composed of whitespace-separated fields, i.e. exactly like awk expects. Each
-field has some specific meaning for all rows. Lines beginning with # are
-comments. The first line that begins with # (but not ##) is a legend line: past
-the #, each field is a label for that field.
+field has some specific meaning for all rows. Lines beginning with =#= are
+comments. The first line that begins with =#= (but not =##=) is a legend line:
+past the =#=, each field is a label for that field.
 
 Common workflows include processing with awk or perl, plotting with feedgnuplot
 or analyzing with numpy. Since this is extremely simple and standard, many
