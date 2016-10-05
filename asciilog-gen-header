@@ -57,7 +57,8 @@ for my $field(@defs)
 say <<EOF;
 
 
-#define asciilog_emit_legend()        _asciilog_emit_legend(\"$legend\\n\", ASCIILOG_N_FIELDS)
+#define asciilog_emit_legend_ctx(ctx)  _asciilog_emit_legend(ctx,  \"$legend\\n\", ASCIILOG_N_FIELDS)
+#define asciilog_emit_legend()         _asciilog_emit_legend(NULL, \"$legend\\n\", ASCIILOG_N_FIELDS)
 EOF
 
 
