@@ -20,7 +20,7 @@ EOF
 
 
 
-check( <<'EOF', qw(.) );
+check( $dat, <<'EOF', qw(.) );
 # a b c
 1 2 3
 4 - 6
@@ -28,7 +28,7 @@ check( <<'EOF', qw(.) );
 10 11 12
 EOF
 
-check( <<'EOF', qw(a b) );
+check( $dat, <<'EOF', qw(a b) );
 # a b
 1 2
 4 -
@@ -36,7 +36,7 @@ check( <<'EOF', qw(a b) );
 10 11
 EOF
 
-check( <<'EOF', qw([ab]) );
+check( $dat, <<'EOF', qw([ab]) );
 # a b
 1 2
 4 -
@@ -44,7 +44,7 @@ check( <<'EOF', qw([ab]) );
 10 11
 EOF
 
-check( <<'EOF', qw(--has a .) );
+check( $dat, <<'EOF', qw(--has a .) );
 # a b c
 1 2 3
 4 - 6
@@ -52,45 +52,45 @@ check( <<'EOF', qw(--has a .) );
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b .) );
+check( $dat, <<'EOF', qw(--has b .) );
 # a b c
 1 2 3
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has c .) );
+check( $dat, <<'EOF', qw(--has c .) );
 # a b c
 1 2 3
 4 - 6
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has), 'b,c', '.' );
+check( $dat, <<'EOF', qw(--has), 'b,c', '.' );
 # a b c
 1 2 3
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b --has c .) );
+check( $dat, <<'EOF', qw(--has b --has c .) );
 # a b c
 1 2 3
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b --has c .) );
+check( $dat, <<'EOF', qw(--has b --has c .) );
 # a b c
 1 2 3
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b --has c a) );
+check( $dat, <<'EOF', qw(--has b --has c a) );
 # a
 1
 10
 EOF
 
-check( <<'EOF', qw(rel(a) b c));
+check( $dat, <<'EOF', qw(rel(a) b c));
 # rel(a) b c
 0 2 3
 3 - 6
@@ -98,7 +98,7 @@ check( <<'EOF', qw(rel(a) b c));
 9 11 12
 EOF
 
-check( <<'EOF', qw(rel(a) b diff(a) c a));
+check( $dat, <<'EOF', qw(rel(a) b diff(a) c a));
 # rel(a) b diff(a) c a
 0 2 0 3 1
 3 - 3 6 4
@@ -106,7 +106,7 @@ check( <<'EOF', qw(rel(a) b diff(a) c a));
 9 11 3 12 10
 EOF
 
-check( <<'EOF', [qw(rel(a) b c)], [qw(rel(a))]);
+check( $dat, <<'EOF', [qw(rel(a) b c)], [qw(rel(a))]);
 # rel(a)
 0
 3
@@ -114,7 +114,7 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(rel(a))]);
 9
 EOF
 
-check( <<'EOF', [qw(rel(a) b c)], [qw(rel(rel(a)))]);
+check( $dat, <<'EOF', [qw(rel(a) b c)], [qw(rel(rel(a)))]);
 # rel(rel(a))
 0
 3
@@ -122,7 +122,7 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(rel(rel(a)))]);
 9
 EOF
 
-check( <<'EOF', [qw(rel(a) b c)], [qw(diff(rel(a)))]);
+check( $dat, <<'EOF', [qw(rel(a) b c)], [qw(diff(rel(a)))]);
 # diff(rel(a))
 0
 3
@@ -130,20 +130,79 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(diff(rel(a)))]);
 3
 EOF
 
-check( <<'EOF', qw(--has b [ab]) );
+check( $dat, <<'EOF', qw(--has b [ab]) );
 # a b
 1 2
 7 9
 10 11
 EOF
 
-check( <<'EOF', qw(--has b diff([ab])) );
+check( $dat, <<'EOF', qw(--has b diff([ab])) );
 # diff(a) diff(b)
 0 0
 6 7
 3 2
 EOF
 
+
+
+$dat = <<'EOF';
+# a b c
+1    -   3
+4    -   6
+7    8   9
+10  11  12
+13  -   14
+15  16  17
+18  -   -
+-   -   181
+182 -   183
+-   19  -
+20  21  22
+23  -   24
+-   -   26
+27  -   28
+29  30  -
+EOF
+
+check( $dat, <<'EOF', qw(--fill b ));
+# a b c
+1 8 3
+4 8 6
+7 8 9
+10 11 12
+13 16 14
+15 16 17
+18 19 -
+- 19 181
+182 19 183
+- 19 -
+20 21 22
+23 30 24
+29 30 26
+27 30 28
+29 30 -
+EOF
+
+check( $dat, <<'EOF', qw(--fill b --has a ));
+# a b c
+1 8 3
+4 8 6
+7 8 9
+10 11 12
+13 16 14
+15 16 17
+18 19 -
+182 19 183
+20 21 22
+23 30 24
+27 30 28
+29 30 -
+EOF
+
+# - anchor lines ALWAYS processed to fill in the prev lines
+# - anchor lines MAY be filtered-out with --has after filling
+# - an input line MUST satisfy the --has to be output
 
 1;
 
@@ -152,7 +211,7 @@ EOF
 
 sub check
 {
-    my ($expected, @args) = @_;
+    my ($input, $expected, @args) = @_;
 
     if( !ref $args[0] )
     {
@@ -162,7 +221,7 @@ sub check
 
     # @args is now a list-ref. Each element is a filter operation
 
-    my $in = $dat;
+    my $in = $input;
     my $out;
     for my $arg(@args)
     {

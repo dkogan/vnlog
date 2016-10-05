@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use List::Util 'max';
-use List::MoreUtils qw(any all);
+use List::MoreUtils qw(any all pairwise);
 
 use feature qw(say state);
 
@@ -21,6 +21,7 @@ GetOptions(\%options,
            "skipempty!",
            "skipcomments!",
            "dumpindices!",
+           "fill=s",
            "help") or die($usage);
 
 if( defined $options{help} )
@@ -34,6 +35,7 @@ autoflush STDOUT;
 
 my @cols_want = @ARGV;
 my @must_have_col_indices_in;
+my @must_have_col_indices_out;
 
 # parse the , in $options{has}
 my @must_have_col_names;
@@ -44,7 +46,7 @@ for my $c (@{$options{has}})
 }
 
 # if no columns requested, just print everything
-if( !@cols_want && !@must_have_col_names )
+if( !@cols_want && !@must_have_col_names && !defined $options{fill} )
 {
     while(<STDIN>)
     { print; }
@@ -55,6 +57,8 @@ my $indices_in_max;
 
 
 my @transforms;
+my @deferred_records;
+my $fill_to_index_out;
 
 RECORD:
 while(<STDIN>)
@@ -192,24 +196,40 @@ while(<STDIN>)
         print "# @colnames_output\n";
 
 
-        if( @must_have_col_names )
+        my %colindices_in;
+        foreach my $idx (0..$#cols_all_legend)
         {
-            my %colindices_in;
-            foreach my $idx (0..$#cols_all_legend)
-            {
-                $colindices_in{$cols_all_legend[$idx]} = $idx;
-            }
+            $colindices_in{$cols_all_legend[$idx]} = $idx;
+        }
 
-            foreach my $col (@must_have_col_names)
+        my %colindices_out;
+        foreach my $idx (0..$#colnames_output)
+        {
+            $colindices_out{$colnames_output[$idx]} = $idx;
+        }
+
+        foreach my $col (@must_have_col_names)
+        {
+            if ( !defined $colindices_in{$col})
             {
-                if( !defined $colindices_in{$col})
-                {
-                    die "I don't have column '$col'";
-                }
-                push @must_have_col_indices_in, $colindices_in{$col};
+                die "I don't have column '$col'";
+            }
+            push @must_have_col_indices_in, $colindices_in{$col};
+
+            if ( defined $colindices_out{$col})
+            {
+                push @must_have_col_indices_out, $colindices_out{$col};
             }
         }
 
+        if( defined $options{fill} )
+        {
+            if( !defined $colindices_out{$options{fill}} )
+            {
+                die "I don't have column '$options{fill}'";
+            }
+            $fill_to_index_out = $colindices_out{$options{fill}};
+        }
         next;
     }
 
@@ -229,11 +249,12 @@ while(<STDIN>)
     # cut off in the middle
     next unless $indices_in_max <= $#f;
 
-    next RECORD if any {'-' eq $f[$_]} @must_have_col_indices_in;
-
+    # if we're doing a fill, I let --has lines pass if this is a fill-anchor
+    # line. This will act to fill prev rows, and will be filtered-out later
+    next RECORD if (!defined $fill_to_index_out || $f[$fill_to_index_out] eq '-') && any {'-' eq $f[$_]} @must_have_col_indices_in;
     @f = @f[@indices_in];
 
-    next if $options{skipempty} && all {$_ eq '-' } @f;
+    next RECORD if $options{skipempty} && all {$_ eq '-' } @f;
 
     for my $transform (@transforms)
     {
@@ -246,7 +267,25 @@ while(<STDIN>)
         }
     }
 
-    print "@f\n";
+    if( !defined $fill_to_index_out )
+    {
+        print "@f\n";
+        next RECORD;
+    }
+
+    push @deferred_records, \@f;
+    if( $f[$fill_to_index_out] ne '-' )
+    {
+        for my $r (@deferred_records)
+        {
+            # given two items, pick the defined one. Otherwise, pick the one
+            # from the deferred record. COMMENT IS WRONG
+            my @fcum  = pairwise { $b eq '-' || $a ne '-' ? $a : $b } @$r, @f;
+
+            print "@fcum\n" unless any {'-' eq $fcum[$_]} @must_have_col_indices_out;
+        }
+        @deferred_records = ();
+    }
 }
 
 
