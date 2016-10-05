@@ -1,0 +1,4 @@
+int w
+uint8_t x
+char* y
+double z

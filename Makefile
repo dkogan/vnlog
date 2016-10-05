@@ -4,7 +4,7 @@ ABI_VERSION  := 1
 TAIL_VERSION := 4
 
 LIB_SOURCES := *.c*
-BIN_SOURCES := test/test.c
+BIN_SOURCES := test/test1.c
 
 TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix
 doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))
@@ -19,16 +19,17 @@ EXTRA_CLEAN += man1
 
 CCXXFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
-test/test.o: test/asciilog_fields_generated.h
-test/asciilog_fields_generated.h: Makefile asciilog-gen-header
-	./asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' | perl -pe 's{asciilog/asciilog.h}{asciilog.h}' > $@
-EXTRA_CLEAN += test/asciilog_fields_generated.h test/test.got
+test/test1: test/test2.o
+test/test1.o: test/asciilog_fields_generated1.h
+test/test2.o: test/asciilog_fields_generated2.h
+test/asciilog_fields_generated%.h: test/asciilog%.defs asciilog-gen-header
+	./asciilog-gen-header < $< | perl -pe 's{asciilog/asciilog.h}{asciilog.h}' > $@
+EXTRA_CLEAN += test/asciilog_fields_generated*.h test/*.got
 
 
 test check: all
 	test/test_asciilog-filter.pl
-	test/test > test/test.got
-	diff test/test.want test/test.got
+	test/test_c_api.sh
 	@echo "All tests passed!"
 .PHONY: test check
 

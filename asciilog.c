@@ -10,69 +10,81 @@
   exit(1);                                                              \
 } while(0)
 
-static FILE* fp = NULL;
-static bool legend_finished;
+void _asciilog_init_ctx( struct asciilog_context_t* ctx,
+                         int Nfields);
 
 // ASCIILOG_N_FIELDS is unknown here so the asciilog_context_t structure has 0
 // elements. I dynamically allocate it later with the proper size
-static struct asciilog_context_t* global_context;
+static struct asciilog_context_t* get_global_context(int Nfields)
+{
+    static struct asciilog_context_t* ctx;
 
-__attribute__((constructor))
-static void init(void)
-{
-    global_context = calloc(1, sizeof(struct asciilog_context_t));
-}
+    if(!ctx)
+    {
+        if(Nfields < 0)
+            ERR("Creating a global context not at the start");
+        ctx = malloc(sizeof(struct asciilog_context_t) +
+                     Nfields * sizeof(ctx->fields[0]));
+        if(!ctx) ERR("Couldn't allocate context with %d fields", Nfields);
 
-static void check_fp(void)
-{
-    if(!fp)
-        asciilog_set_output_FILE(stdout);
-}
-static void _emit(const char* string)
-{
-    fprintf(fp, "%s", string);
-}
-static void emit(const char* string)
-{
-    check_fp();
-    _emit(string);
+        _asciilog_init_ctx(ctx, Nfields);
+    }
+    return ctx;
 }
 
-void asciilog_printf(const char* fmt, ...)
+
+
+static void check_fp(struct asciilog_context_t* ctx)
 {
-    check_fp();
+    if(!ctx->fp)
+        asciilog_set_output_FILE(ctx, stdout);
+}
+static void _emit(struct asciilog_context_t* ctx, const char* string)
+{
+    fprintf(ctx->fp, "%s", string);
+    ctx->emitted_something = true;
+}
+
+static void emit(struct asciilog_context_t* ctx, const char* string)
+{
+    check_fp(ctx);
+    _emit(ctx, string);
+}
+
+void asciilog_printf(struct asciilog_context_t* ctx, const char* fmt, ...)
+{
+    check_fp(ctx);
     va_list ap;
     va_start(ap, fmt);
-    vfprintf(fp, fmt, ap);
+    vfprintf(ctx->fp, fmt, ap);
     va_end(ap);
+
+    ctx->emitted_something = true;
 }
 
-void asciilog_flush(void)
+void asciilog_flush(struct asciilog_context_t* ctx)
 {
-    check_fp();
-    fflush(fp);
+    check_fp(ctx);
+    fflush(ctx->fp);
 }
 
-void asciilog_set_output_FILE(FILE* _fp)
+void asciilog_set_output_FILE(struct asciilog_context_t* ctx, FILE* fp)
 {
-    if(fp)
+    if(ctx->fp)
         ERR("fp is already set");
-
-    if( legend_finished )
+    if( ctx->emitted_something )
         ERR("Can only change the output at the start");
 
-    fp = _fp;
+    ctx->fp = fp;
 }
 
-static void flush(void)
+static void flush(struct asciilog_context_t* ctx)
 {
-    fflush(fp);
+    fflush(ctx->fp);
 }
 
-void _asciilog_clear_ctx(struct asciilog_context_t* ctx, int Nfields)
+static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields)
 {
-    if( ctx == NULL ) ctx = global_context;
-
     ctx->line_has_any_values = false;
     for(int i=0; i<Nfields; i++)
     {
@@ -81,31 +93,53 @@ void _asciilog_clear_ctx(struct asciilog_context_t* ctx, int Nfields)
     }
 }
 
-void _asciilog_emit_legend(const char* legend, int Nfields)
+void _asciilog_init_ctx( struct asciilog_context_t* ctx,
+                         int Nfields)
 {
-    if( legend_finished )
+    if( ctx == NULL )
+        ERR("Can't init a NULL context");
+
+    *ctx = (struct asciilog_context_t){}; // zero out structure
+    clear_ctx_fields( ctx, Nfields );
+}
+
+void _asciilog_init_child_ctx(      struct asciilog_context_t* ctx,
+                              const struct asciilog_context_t* ctx_src,
+                              int Nfields)
+{
+    if( ctx     == NULL ) ERR("Can't init a NULL context");
+    if( ctx_src == NULL ) ctx_src = get_global_context(Nfields);
+
+    if( !ctx_src->legend_finished )
+        ERR("Cannot create children contexts before writing a legend. Hard to keep state consistent otherwise.");
+
+
+    // copy all the context except for the flexible array at the end
+    *ctx = *ctx_src;
+
+    // reset the flexible array
+    clear_ctx_fields( ctx, Nfields );
+}
+
+void _asciilog_emit_legend(struct asciilog_context_t* ctx, const char* legend, int Nfields)
+{
+    if( ctx == NULL ) ctx = get_global_context(Nfields);
+
+    if( ctx->legend_finished )
         ERR("already have a legend");
+    ctx->legend_finished = true;
 
-    emit(legend);
-    flush();
-
-    global_context = realloc(global_context,
-                             sizeof(struct asciilog_context_t) +
-                             Nfields * sizeof(global_context->fields[0]));
-    if(!global_context)
-        ERR("Couldn't allocate context with %d fields", Nfields);
-    legend_finished = true;
-
-    _asciilog_clear_ctx(global_context, Nfields);
+    emit(ctx, legend);
+    flush(ctx);
 }
 
 void _asciilog_set_field_value(struct asciilog_context_t* ctx,
                                const char* fieldname, int idx,
                                const char* fmt, ...)
 {
-    if( ctx == NULL ) ctx = global_context;
+    if( ctx == NULL ) ctx = get_global_context(-1);
 
-    if(!legend_finished)
+    if(!ctx->legend_finished)
         ERR("need a legend to do this");
     if(ctx->fields[idx].c[0] != '-' || ctx->fields[idx].c[1] != '\0')
         ERR("Field '%s' already set. Old value: '%s'",
@@ -125,28 +159,28 @@ void _asciilog_set_field_value(struct asciilog_context_t* ctx,
 
 void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields)
 {
-    if( ctx == NULL ) ctx = global_context;
+    if( ctx == NULL ) ctx = get_global_context(-1);
 
-    if(!legend_finished)
+    if(!ctx->legend_finished)
         ERR("need a legend to do this");
 
     if(!ctx->line_has_any_values)
         ERR("Tried to emit a log line without any values being set");
 
-    check_fp();
+    check_fp(ctx);
 
-    flockfile(fp);
+    flockfile(ctx->fp);
     for(int i=0; i<Nfields-1; i++)
     {
-        _emit(ctx->fields[i].c);
-        _emit(" ");
+        _emit(ctx, ctx->fields[i].c);
+        _emit(ctx, " ");
     }
-    _emit(ctx->fields[Nfields-1].c);
-    _emit("\n");
-    funlockfile(fp);
+    _emit(ctx, ctx->fields[Nfields-1].c);
+    _emit(ctx, "\n");
+    funlockfile(ctx->fp);
 
     // I want to be able to process streaming data, so I flush the buffer now
-    flush();
+    flush(ctx);
 
-    _asciilog_clear_ctx(ctx, Nfields);
+    clear_ctx_fields(ctx, Nfields);
 }
