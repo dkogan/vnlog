@@ -8,7 +8,20 @@ use List::MoreUtils qw(any all);
 use feature qw(say state);
 
 
-my $usage = "$0 [--dumpindices] [--has c0,c1,...] [--has c2] [--noskipempty] [--skipcomments] ... c3 c4 f(c0) g(c1) ...\n";
+my $usage = <<EOF;
+$0 [--has c0,c1,...] [--has c2] ... c3 c4 f(c0) g(c1) ...
+
+    Other available options:
+      --noskipempty
+      --skipcomments
+      --dumpindices
+      --dumpawk
+      --perl
+
+    --perl processes the data with perl, not awk. Awk is faster and is thus the
+    --default. --dumpawk is only meaningful without --perl
+EOF
+
 if(! @ARGV)
 {
     die $usage;
@@ -21,7 +34,15 @@ GetOptions(\%options,
            "skipempty!",
            "skipcomments!",
            "dumpindices!",
+           "dumpawk!",
+           "perl",
            "help") or die($usage);
+
+if( $options{perl} && $options{dumpawk})
+{
+    say STDERR "Can't dump the awk script if we're doing stuff in perl";
+    die $usage;
+}
 
 if( defined $options{help} )
 {
@@ -54,9 +75,24 @@ my @indices_in = ();
 my $indices_in_max;
 
 
-my @transforms;
+# these are all for transforms: things like rel(a), deg2rad(x) and so on
+my @transforms;        # perl functions
+my @awk_output_fields; # awk strings representing stuff to print
+# awk stanzas for set up any required state. This is for rel() to store the
+# initial value and diff() to store the previous value
+my ($awk_state_stanzas_before, $awk_state_stanzas_after);
 
-while(<STDIN>)
+
+# Loop searching for the legend.
+#
+# Here instead of using while(<STDIN>) we read one byte at a time. This means
+# that as far as the OS is concerned we never read() past our line. And when we
+# exec() to awk, all the data is available. This is inefficient, but we only use
+# this function to read up to the legend, which is fine.
+#
+# Note that perl tries to make while(<STDIN>) work by doing an lseek() before we
+# exec(), but if we're reading a pipe, this can't work
+while(defined ($_ = get_unbuffered_line(*STDIN)))
 {
     if(/^##/p)
     {
@@ -93,7 +129,11 @@ while(<STDIN>)
                 push @colnames_output, @cols_all_legend[@indices_in_here];
                 push @indices_in,      @indices_in_here;
 
-                if( @funcs )
+                if( !@funcs )
+                {
+                    push @awk_output_fields, map { '$'.($_+1) } @indices_in_here;
+                }
+                else
                 {
                     # This loop is important. It is possible to push it to later
                     # by doing this instead:
@@ -110,7 +150,28 @@ while(<STDIN>)
                     foreach my $idx (0..$#indices_in_here)
                     {
                         my $idx_out = $idx + $Nindices;
-                        push @transforms, [$idx_out, parse_transform_funcs(@funcs) ];
+
+                        my @perl_funcs         = parse_transform_funcs(@funcs);
+                        my $awk_stanzas_after  = pop @perl_funcs;
+                        my $awk_stanzas_before = pop @perl_funcs;
+                        my $awk_statement      = pop @perl_funcs;
+
+                        push @transforms,        [$idx_out, @perl_funcs ];
+
+                        my $idx_in        =  $indices_in_here[$idx];
+                        $awk_statement    =~ s/___input___/'$'.($idx_in+1)/ge;
+                        push @awk_output_fields, $awk_statement;
+
+                        if(defined $awk_stanzas_before)
+                        {
+                            $awk_stanzas_before      =~ s/___input___/'$'.($idx_in+1)/ge;
+                            $awk_state_stanzas_before .= $awk_stanzas_before;
+                        }
+                        if(defined $awk_stanzas_after)
+                        {
+                            $awk_stanzas_after      =~ s/___input___/'$'.($idx_in+1)/ge;
+                            $awk_state_stanzas_after .= $awk_stanzas_after;
+                        }
 
                         $colnames_output[$idx_out] =
                           join('', map { "$_("} reverse @funcs) .
@@ -186,7 +247,7 @@ while(<STDIN>)
         }
 
         # print out the new legend
-        print "# @colnames_output\n";
+        print "# @colnames_output\n" unless $options{dumpawk};
 
 
         if( @must_have_col_names )
@@ -212,38 +273,61 @@ while(<STDIN>)
     die "Got data line before a legend";
 }
 
+# data loop
+#
+# At this point I'm done dealing with the legend, and it's time to read in and
+# process the data. I can keep going in perl, or I can generate an awk program,
+# and let awk do this work. The reason: awk (mawk especialy) runs much faster.
+# Both paths should produce the exact same output, and the test suite makes sure
+# this is the case
+
+if( !$options{perl} )
+{
+    my $awkprogram = makeAwkProgram();
+    if( $options{dumpawk} )
+    {
+        say $awkprogram;
+        exit;
+    }
+    exec 'mawk', $awkprogram;
+    exit; # dummy. We never get here
+}
+
+
 while(<STDIN>)
 {
+    # Data loop. Each statement here is analogous to the awk program generated
+    # by makeAwkProgram();
+
+    # skip comments
     if(/^#/)
     {
         print unless $options{skipcomments};
         next;
     }
 
-    # we got a data line
-
-    # select the columns we want
     chomp;
     my @f = split;
 
-    # skip incomplete lines. Can happen if a log line at the end of a file was
+    # skip incomplete records. Can happen if a log line at the end of a file was
     # cut off in the middle
     next unless $indices_in_max <= $#f;
 
+    # skip records that have empty input columns that must be non-empty
     next if any {'-' eq $f[$_]} @must_have_col_indices_in;
 
     @f = @f[@indices_in];
 
+    # skip empty records if we must
     next if $options{skipempty} && all {$_ eq '-' } @f;
 
+    # apply transformations
     for my $transform (@transforms)
     {
-        # The indices here index the OUTPUT columns list
-        my ($idx, @funcs) = @$transform;
-
+        my ($index_out, @funcs) = @$transform;
         foreach my $func(@funcs)
         {
-            $f[$idx] = $func->($f[$idx]);
+            $f[$index_out] = $func->($f[$index_out]);
         }
     }
 
@@ -259,46 +343,75 @@ sub parse_transform_funcs
 {
     sub parse_transform_func
     {
+        # Takes in a function name, and outputs a list
+        #
+        #     (perl function, awk function text to print, extra awk
+        #     condition/command directives)
         my $f = shift;
 
         if( $f eq 'us2s' )
         {
-            return sub { return $_[0] * 1e-6; };
+            return
+              ( sub { return $_[0] * 1e-6; },
+                '___input___ * 1e-6' );
         }
         elsif( $f eq 'deg2rad' )
         {
-            return sub { return $_[0] * 3.141592653589793/180.0; };
+            return
+              ( sub { return $_[0] * 3.141592653589793/180.0; },
+                '___input___ * 3.141592653589793/180.0' );
         }
         elsif( $f eq 'rad2deg' )
         {
-            return sub { return $_[0] * 180.0/3.141592653589793; };
+            return
+              ( sub { return $_[0] * 180.0/3.141592653589793; },
+                '___input___ * 180.0/3.141592653589793' );
         }
         elsif( $f eq 'rel' )
         {
             # relative to the starting value. The 'state' variable should be a
             # different instance for each sub instance
-            return sub
-            {
-                state $x0;
-                $x0 //= $_[0];
-                return $_[0] - $x0;
-            };
+            return
+              ( sub
+                {
+                    state $x0;
+                    $x0 //= $_[0];
+                    return $_[0] - $x0;
+                },
+
+                # statement to print
+                '___input___ - ___state___',
+
+                # preceding awk stanza
+                '!___state___set {___state___ = ___input___; ___state___set=1}'
+              );
         }
         elsif( $f eq 'diff' )
         {
             # relative to the previous value. The 'state' variable should be a
             # different instance for each sub instance
-            return sub
-            {
-                state $xprev;
-                my $ret = 0;
-                if(defined $xprev)
+            return
+              ( sub
                 {
-                    $ret = $_[0] - $xprev;
-                }
-                $xprev = $_[0];
-                return $ret;
-            };
+                    state $xprev;
+                    my $ret = 0;
+                    if (defined $xprev)
+                    {
+                        $ret = $_[0] - $xprev;
+                    }
+                    $xprev = $_[0];
+                    return $ret;
+                },
+
+                # statement to print
+                '(___input___ - ___state___)*___state__set',
+
+                # preceding awk stanza
+                undef,
+
+                # following awk stanza
+                '{___state___ = ___input___; ___state__set=1}'
+              );
         }
         else
         {
@@ -307,10 +420,108 @@ sub parse_transform_funcs
     }
 
 
-    my @funcs = @_;
-    return map { parse_transform_func($_) } @funcs;
+    my @func_names = @_;
+    my @perl_funcs;
+    my $awk_statement = '___input___';
+    my ($awk_stanzas_before, $awk_stanzas_after);
+    for my $f(@func_names)
+    {
+        # get the perl functions, the awk statement text, and any awk stanzas we
+        # need
+        my ($p, $a, $s_before, $s_after) = parse_transform_func($f);
+
+        # the perl functions go into a list, to be applied one at a time during
+        # data processing
+        push @perl_funcs, $p;
+
+        # the awk function composition happens right now when I generate the awk
+        # statement string
+        state $awk_state_idx = 0;
+        my $state = "__state$awk_state_idx";
+        $a =~ s/___input___/$awk_statement/g;
+        $a =~ s/___state___/$state/g;
+
+        if( defined $s_before )
+        {
+            $s_before =~ s/___input___/$awk_statement/g;
+            $s_before =~ s/___state___/$state/g;
+            $awk_stanzas_before  .= " $s_before ";
+        }
+        if( defined $s_after )
+        {
+            $s_after =~ s/___input___/$awk_statement/g;
+            $s_after =~ s/___state___/$state/g;
+            $awk_stanzas_after  .= " $s_after ";
+        }
+
+        $awk_statement = $a;
+        $awk_state_idx++;
+    }
+
+    return (@perl_funcs, $awk_statement, $awk_stanzas_before, $awk_stanzas_after);
 }
 
+sub makeAwkProgram
+{
+    # The awk program I generate here is analogous to the logic in the data
+    # while() loop above
+
+
+    my $awkprogram = '';
+
+    # skip comments
+    $awkprogram .=
+      '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
+
+    # skip incomplete records. Can happen if a log line at the end of a file
+    # was cut off in the middle
+    $awkprogram .=
+      (1+$indices_in_max) . " > NF { next } ";
+
+    # skip records that have empty input columns that must be non-empty
+    if (@must_have_col_indices_in)
+    {
+        $awkprogram .=
+          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_in);
+        $awkprogram .= ' { next } ';
+    }
+
+    # skip empty records if we must
+    if ($options{skipempty})
+    {
+        $awkprogram .=
+          join ' && ', (map { '$'.($_+1)." == \"-\"" } @indices_in);
+        $awkprogram .= ' { next } ';
+    }
+
+    # print selected fields. These already have the transformations applied
+    $awkprogram .= $awk_state_stanzas_before if defined $awk_state_stanzas_before;
+    $awkprogram .=
+      '{ print ' . (join(',', @awk_output_fields)) . '} ';
+    $awkprogram .= $awk_state_stanzas_after if defined $awk_state_stanzas_after;
+
+    return $awkprogram;
+}
+
+# Reads a line from STDIN one byte at a time. This means that as far as the OS
+# is concerned we never read() past our line. And when we exec() to awk, all the
+# data is available. This is inefficient, but we only use this function to read
+# up to the legend, which is fine.
+sub get_unbuffered_line
+{
+    my $fd = shift;
+
+    my $line = '';
+
+    while(1)
+    {
+        my $c = '';
+        return undef unless 1 == sysread($fd, $c, 1);
+
+        $line .= $c;
+        return $line if $c eq "\n";
+    }
+}
 __END__
 
 =head1 NAME
@@ -415,6 +626,17 @@ report data relative to previous value
 
 =back
 
+=head2 Backend choice
+
+By default, the parsing of arguments and the legend happens in perl, which then
+constructs a simple awk script, and invokes C<awk> to actually read the data and
+to process it. This is done because awk is lighter weight and runs faster, which
+is important because our data sets could be quite large. This is especially true
+of C<mawk>, which is noticeably more snappy than C<gawk>. We don't need the
+extra features of C<gawk>, so C<mawk> is preferred here. If for whatever reason
+we want to do everything with perl, this can be requested with the C<--perl>
+option.
+
 =head1 ARGUMENTS
 
 =head2 --has a,b,c,...
@@ -435,6 +657,18 @@ empty records; to include them, pass C<--noskipempty>
 =head2 --skipcomments
 
 Don't output non-legend comments
+
+=head2 --perl
+
+Normally we initialize with perl, and use awk to do all the actual work. If we
+want to do everything with perl, pass this option. It should produce the same
+results, but not as quickly.
+
+=head2 --dumpawk
+
+All the work is generally done by an awk script that's generated on the fly from
+the commandline options and the legend. For debugging it is possible to print
+out the awk script instead of running it. This option does this.
 
 =head2 --dumpindices
 

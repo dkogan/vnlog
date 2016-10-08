@@ -168,28 +168,40 @@ EOF
 
 sub check
 {
+    # I check stuff twice. Once with perl processing, and again with awk
+    # processing
+
     my ($expected, @args) = @_;
 
-    if( !ref $args[0] )
-    {
-        my @args2 = @args;
-        @args = (\@args2);
-    }
 
-    # @args is now a list-ref. Each element is a filter operation
-
-    my $in = $dat;
-    my $out;
-    for my $arg(@args)
+    for my $doperl (0,1)
     {
-        $out = '';
-        run( ["$Bin/../asciilog-filter", @$arg], \$in, \$out ) or confess "Couldn't run test";
-        $in = $out;
-    }
+        # if the arguments are a list of strings, these are simply the args to a
+        # filter run. If the're a list of list-refs, then we run the filter
+        # multiple times, with the arguments in each list-ref
+        if ( !ref $args[0] )
+        {
+            my @args2 = @args;
+            @args = (\@args2);
+        }
 
-    my $diff = diff(\$expected, \$out);
-    if ( length $diff )
-    {
-        confess "Test failed; diff: '$diff'";
+        # @args is now a list-ref. Each element is a filter operation
+        my $in = $dat;
+        my $out;
+        for my $arg (@args)
+        {
+            my @args_here = @$arg;
+            push @args_here, '--perl' if $doperl;
+
+            $out = '';
+            run( ["$Bin/../asciilog-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
+            $in = $out;
+        }
+
+        my $diff = diff(\$expected, \$out);
+        if ( length $diff )
+        {
+            confess "Test failed when doperl=$doperl; diff: '$diff'";
+        }
     }
 }
