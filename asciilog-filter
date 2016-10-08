@@ -56,7 +56,6 @@ my $indices_in_max;
 
 my @transforms;
 
-RECORD:
 while(<STDIN>)
 {
     if(/^##/p)
@@ -67,8 +66,6 @@ while(<STDIN>)
 
     if( /^#/p )
     {
-        next if @indices_in;
-
         chomp;
 
         # we got a legend line
@@ -209,17 +206,21 @@ while(<STDIN>)
                 push @must_have_col_indices_in, $colindices_in{$col};
             }
         }
+        last;
+    }
 
+    die "Got data line before a legend";
+}
+
+while(<STDIN>)
+{
+    if(/^#/)
+    {
+        print unless $options{skipcomments};
         next;
     }
 
-
-
-
-
     # we got a data line
-    die "Got data line before a legend" unless @indices_in;
-    next if $options{dumpindices};
 
     # select the columns we want
     chomp;
@@ -229,7 +230,7 @@ while(<STDIN>)
     # cut off in the middle
     next unless $indices_in_max <= $#f;
 
-    next RECORD if any {'-' eq $f[$_]} @must_have_col_indices_in;
+    next if any {'-' eq $f[$_]} @must_have_col_indices_in;
 
     @f = @f[@indices_in];
 
