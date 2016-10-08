@@ -90,6 +90,22 @@ check( <<'EOF', qw(--has b --has c a) );
 10
 EOF
 
+check( <<'EOF', qw(c us2s(a)) );
+# c us2s(a)
+3 1e-06
+6 4e-06
+- 7e-06
+12 1e-05
+EOF
+
+check( <<'EOF', qw(c us2s(us2s(a))) );
+# c us2s(us2s(a))
+3 1e-12
+6 4e-12
+- 7e-12
+12 1e-11
+EOF
+
 check( <<'EOF', qw(rel(a) b c));
 # rel(a) b c
 0 2 3
