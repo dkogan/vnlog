@@ -9,7 +9,7 @@ use feature qw(say state);
 
 
 my $usage = <<EOF;
-$0 [--has c0,c1,...] [--has c2] ... c3 c4 f(c0) g(c1) ...
+$0 [--has c0,c1,...] [--has c2] [--matches expr] ... c3 c4 f(c0) g(c1) ...
 
     Other available options:
       --noskipempty
@@ -31,12 +31,15 @@ if(! @ARGV)
 my %options = (skipempty => 1);
 GetOptions(\%options,
            "has=s@",
+           "matches=s@",
            "skipempty!",
            "skipcomments!",
            "dumpindices!",
            "dumpawk!",
            "perl",
            "help") or die($usage);
+$options{has}     //= [];
+$options{matches} //= [];
 
 if( $options{perl} && $options{dumpawk})
 {
@@ -58,18 +61,21 @@ my @must_have_col_indices_in;
 
 # parse the , in $options{has}
 my @must_have_col_names;
-$options{has} //= [];
 for my $c (@{$options{has}})
 {
     push @must_have_col_names, split(/,/,$c)
 }
 
 # if no columns requested, just print everything
-if( !@cols_want && !@must_have_col_names )
+if( !@cols_want && !@must_have_col_names && !@{$options{matches}} )
 {
     while(<STDIN>)
     { print; }
 }
+
+my @cols_all_legend;
+my @colnames_output;
+my %colindices_in;
 
 my @indices_in = ();
 my $indices_in_max;
@@ -105,14 +111,15 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         chomp;
 
         # we got a legend line
-        my @cols_all_legend = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
+        @cols_all_legend = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
+        foreach my $idx (0..$#cols_all_legend)
+        {
+            $colindices_in{$cols_all_legend[$idx]} = $idx;
+        }
 
         # If we weren't asked for particular columns, take them all. This isn't
         # a no-op because we can have --has
         @cols_want = @cols_all_legend unless @cols_want;
-
-        my @colnames_output;
-
 
         # grab all the column indices
       COLUMN:
@@ -252,12 +259,6 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
         if( @must_have_col_names )
         {
-            my %colindices_in;
-            foreach my $idx (0..$#cols_all_legend)
-            {
-                $colindices_in{$cols_all_legend[$idx]} = $idx;
-            }
-
             foreach my $col (@must_have_col_names)
             {
                 if( !defined $colindices_in{$col})
@@ -293,7 +294,13 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
+my $must_match_expr =
+  join ' && ', map {
+      s/(\w+)/defined $colindices_in{$1} ? '$f[' . $colindices_in{$1} . ']' : $1/egr
+  } @{$options{matches}};
 
+
+RECORD:
 while(<STDIN>)
 {
     # Data loop. Each statement here is analogous to the awk program generated
@@ -315,6 +322,10 @@ while(<STDIN>)
 
     # skip records that have empty input columns that must be non-empty
     next if any {'-' eq $f[$_]} @must_have_col_indices_in;
+
+    # skip all records that don't match given expressions
+    next if $must_match_expr && !eval $must_match_expr;
+
 
     @f = @f[@indices_in];
 
@@ -486,6 +497,12 @@ sub makeAwkProgram
         $awkprogram .= ' { next } ';
     }
 
+    for my $expr( @{$options{matches}} )
+    {
+        $expr =~ s/(\w+)/defined $colindices_in{$1} ? '$' . ($colindices_in{$1}+1) : $1/eg;
+        $awkprogram .= ' !' . "($expr) { next } ";
+    }
+
     # skip empty records if we must
     if ($options{skipempty})
     {
@@ -641,13 +658,26 @@ option.
 
 =head2 --has a,b,c,...
 
-A I<null> value in a column is designated with a single C<->. This means that
-this particular field value does not exist in this record. If we want to select
-only records that I<do> have a column named C<x>, we can pass C<--has x>. The
-C<--has> option can be repeated to request multiple columns, or the multiple
-columns can be given in a whitespace-less comma-separated list. For instance if
-we want only recors that have both columns C<x> and C<y> we can pass in C<--has
-x,y>.
+Used to select particular records (rows) in a data file. A I<null> value in a
+column is designated with a single C<->. This means that this particular field
+value does not exist in this record. If we want to select only records that
+I<do> have a column named C<x>, we can pass C<--has x>. The C<--has> option can
+be repeated to request multiple columns, or the multiple columns can be given in
+a whitespace-less comma-separated list. For instance if we want only records
+that have both columns C<x> and C<y> we can pass in C<--has x,y>.
+
+=head2 --matches expr
+
+Used to select particular records (rows) in a data file. The argument is an
+expression that is evaluated for each row. If it evaluates to true, that row is
+output. This expression is passed directly to the perl or awk backend, so be
+aware of which one you are using. This feature is I<very> slow in perl, so awk
+is strongly recommended here. To refer to a field named C<xxx> in the
+expression, simply say C<xxx>; do I<not> use a sigil. This will be added
+automatically if the perl backend is used.
+
+Multiple C<--matches> options can be given. The record is output onlyt if I<all>
+the expressions are true.
 
 =head2 --[no]skipempty
 

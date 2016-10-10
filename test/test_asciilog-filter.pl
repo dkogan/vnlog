@@ -160,6 +160,18 @@ check( <<'EOF', qw(--has b diff([ab])) );
 3 2
 EOF
 
+check( <<'EOF', qw(--matches a>5 .) );
+# a b c
+7 9 -
+10 11 12
+EOF
+
+check( <<'EOF', qw(--matches a>5 --no-skipempty c) );
+# c
+-
+12
+EOF
+
 
 1;
 
