@@ -296,8 +296,15 @@ if( !$options{perl} )
 
 my $must_match_expr =
   join ' && ', map {
-      s/(\w+)/defined $colindices_in{$1} ? '$f[' . $colindices_in{$1} . ']' : $1/egr
+      s/ (\w+) /
+        !defined $colindices_in{$1} ? $1 :
+        '("-" eq $f[' . $colindices_in{$1} . '] ? undef : $f[' . $colindices_in{$1} . '])'
+        /egrx
   } @{$options{matches}};
+$must_match_expr //= 1;
+
+my @f;
+eval "sub matches { return $must_match_expr; }";
 
 
 RECORD:
@@ -314,7 +321,7 @@ while(<STDIN>)
     }
 
     chomp;
-    my @f = split;
+    @f = split;
 
     # skip incomplete records. Can happen if a log line at the end of a file was
     # cut off in the middle
@@ -324,7 +331,7 @@ while(<STDIN>)
     next if any {'-' eq $f[$_]} @must_have_col_indices_in;
 
     # skip all records that don't match given expressions
-    next if $must_match_expr && !eval $must_match_expr;
+    next unless matches();
 
 
     @f = @f[@indices_in];
