@@ -15,9 +15,6 @@ BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
 
-# gawk or mawk would both do
-Requires:      gawk
-
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII
 format. The format in compatible with the usual UNIX tools, and thus can be
@@ -38,6 +35,7 @@ tool needed to define the fields
 %package tools
 Requires:       %{name}%{_isa} = %{version}-%{release}
 Summary:        Tools for manipulating asciilogs
+Requires:       mawk
 
 
 %description tools
