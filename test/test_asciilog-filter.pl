@@ -189,7 +189,7 @@ check( <<'EOF', qw(--matches a>5), '--eval', 'print a+b', 'AWK' );
 21
 EOF
 
-check( <<'EOF', qw(--matches $a>5), '--eval', 'say ($a+$b+2)', 'PERL' );
+check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', 'PERL' );
 18
 23
 EOF
