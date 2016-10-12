@@ -300,27 +300,39 @@ if( !$options{perl} )
 sub expr_col_names_to_indices_perl
 {
     return $_[0] =~
-      s/ (\w+) /
+      s/ \$(\w+) /
       !defined $colindices_in{$1} ? $1 :
       '("-" eq $f[' . $colindices_in{$1} . '] ? undef : $f[' . $colindices_in{$1} . '])'
       /egrx;
 }
 
-sub slurp
+sub expr_col_names_to_indices_awk
 {
-    my $filename = shift;
-    my $fd;
-    open $fd, '<', $filename or die "Couldn't open '$filename'";
-    local $/ = undef;
-    my $data = <$fd>;
-    close $fd;
-    return $data;
+    return $_[0] =~
+      s/ (\w+) /
+      !defined $colindices_in{$1} ? $1 :
+      '$' . ($colindices_in{$1}+1)
+      /egrx;
 }
 
 sub get_expr_string
 {
+    sub slurp
+    {
+        my $filename = shift;
+        my $fd;
+        open $fd, '<', $filename or die "Couldn't open '$filename'";
+        local $/ = undef;
+        my $data = <$fd>;
+        close $fd;
+        return $data;
+    }
+
+
     my $str = shift;
     return $str unless $str =~ /^\@(\S+)$/;
+
+
     return slurp($1);
 }
 
@@ -531,13 +543,6 @@ sub makeAwkProgram
 {
     # The awk program I generate here is analogous to the logic in the data
     # while() loop above
-
-    sub expr_col_names_to_indices_awk
-    {
-        return $_[0] =~ s/(\w+)/defined $colindices_in{$1} ? '$' . ($colindices_in{$1}+1) : $1/egr;
-    }
-
-
     my $awkprogram = '';
 
     # skip comments
@@ -763,10 +768,9 @@ that have both columns C<x> and C<y> we can pass in C<--has x,y>.
 Used to select particular records (rows) in a data file. The argument is an
 expression that is evaluated for each row. If it evaluates to true, that row is
 output. This expression is passed directly to the perl or awk backend, so be
-aware of which one you are using. This feature is I<very> slow in perl, so awk
-is strongly recommended here. To refer to a field named C<xxx> in the
-expression, simply say C<xxx>; do I<not> use a sigil. This will be added
-automatically if the perl backend is used.
+aware of which one you are using. This feature is slow in perl, so awk is
+strongly recommended here. To refer to a field named C<xxx> in the expression,
+say C<xxx> in awk and C<$xxx> in perl.
 
 Multiple C<--matches> options can be given. The record is output onlyt if I<all>
 the expressions are true.
@@ -778,8 +782,8 @@ is assumed to be a filename from which the expression should be read.
 
 Instead of printing out all matching records, evaluate the expression for each
 record. The expression may or may not print anything. The expression is treated
-similar to --matches: variables are bound by name, no sigil is required and so
-on. No column-selecting arguments should be given.
+similar to --matches: variables are bound by name, a sigil may be required,
+depending on language and so on. No column-selecting arguments should be given.
 
 If a C<--eval> expression begins with C<@>, then the text following the C<@> is
 assumed to be a filename from which the expression should be read.

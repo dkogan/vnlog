@@ -160,13 +160,25 @@ check( <<'EOF', qw(--has b diff([ab])) );
 3 2
 EOF
 
-check( <<'EOF', qw(--matches a>5 .) );
+check( <<'EOF', qw(--matches a>5 .), 'AWK' );
 # a b c
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--matches a>5 --no-skipempty c) );
+check( <<'EOF', qw(--matches $a>5 .), 'PERL' );
+# a b c
+7 9 -
+10 11 12
+EOF
+
+check( <<'EOF', qw(--matches a>5 --no-skipempty c), 'AWK' );
+# c
+-
+12
+EOF
+
+check( <<'EOF', qw(--matches $a>5 --no-skipempty c), 'PERL' );
 # c
 -
 12
@@ -185,8 +197,18 @@ sub check
 
     my ($expected, @args) = @_;
 
+    my @langs;
+    if( $args[-1] =~ /PERL|AWK/ )
+    {
+        my $lang = pop @args;
+        push @langs, ($lang =~ /PERL/ ? 1 : 0);
+    }
+    if( !@langs )
+    {
+        @langs = (0,1);
+    }
 
-    for my $doperl (0,1)
+    for my $doperl (@langs)
     {
         # if the arguments are a list of strings, these are simply the args to a
         # filter run. If the're a list of list-refs, then we run the filter
