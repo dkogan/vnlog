@@ -302,7 +302,7 @@ sub expr_col_names_to_indices_perl
     return $_[0] =~
       s/ \$(\w+) /
       !defined $colindices_in{$1} ? "\$$1" :
-      '("-" eq $f[' . $colindices_in{$1} . '] ? undef : $f[' . $colindices_in{$1} . '])'
+      '$feval[' . $colindices_in{$1} . ']'
       /egrx;
 }
 
@@ -343,12 +343,12 @@ my $must_match_expr =
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
 my @f;
-my $evalstr = "sub matches { return $must_match_expr; }";
+my $evalstr = 'sub matches { my @feval = map {q{-} eq $_ ? undef : $_ } @f; return ' . $must_match_expr . '; }';
 
 if ( $options{eval} )
 {
     my $expr = expr_col_names_to_indices_perl( get_expr_string($options{eval}) );
-    $evalstr .= "\nsub evalexpr { $expr ; }";
+    $evalstr .= "\n" . 'sub evalexpr { my @feval = map {q{-} eq $_ ? undef : $_ } @f; ' . $expr . ' ; }';
 }
 
 if( $options{dumpexprs} )
@@ -356,7 +356,12 @@ if( $options{dumpexprs} )
     say "Expressions to evaluate:\n\n$evalstr";
     exit;
 }
+
 eval $evalstr;
+if( $@ )
+{
+    die "Error evaluating expression '$evalstr':\n$@";
+}
 
 
 
@@ -370,7 +375,7 @@ while(<STDIN>)
     # skip comments
     if(/^#/)
     {
-        print unless $options{skipcomments};
+        print unless $options{skipcomments} || $options{eval};
         next;
     }
 
