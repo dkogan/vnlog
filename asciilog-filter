@@ -12,14 +12,16 @@ my $usage = <<EOF;
 $0 [--has c0,c1,...] [--has c2] [--matches expr] ... c3 c4 f(c0) g(c1) ...
 
     Other available options:
+      --eval expr
       --noskipempty
       --skipcomments
       --dumpindices
-      --dumpawk
+      --dumpexprs
       --perl
 
     --perl processes the data with perl, not awk. Awk is faster and is thus the
-    --default. --dumpawk is only meaningful without --perl
+    --default. The --matches and --eval expressions are either in awk or perl,
+    --depending on --perl
 EOF
 
 if(! @ARGV)
@@ -32,18 +34,19 @@ my %options = (skipempty => 1);
 GetOptions(\%options,
            "has=s@",
            "matches=s@",
+           "eval=s",
            "skipempty!",
            "skipcomments!",
            "dumpindices!",
-           "dumpawk!",
+           "dumpexprs!",
            "perl",
            "help") or die($usage);
 $options{has}     //= [];
 $options{matches} //= [];
 
-if( $options{perl} && $options{dumpawk})
+if( defined $options{eval} && @ARGV )
 {
-    say STDERR "Can't dump the awk script if we're doing stuff in perl";
+    say STDERR "--eval is given, so no column selectors should be given also";
     die $usage;
 }
 
@@ -67,7 +70,7 @@ for my $c (@{$options{has}})
 }
 
 # if no columns requested, just print everything
-if( !@cols_want && !@must_have_col_names && !@{$options{matches}} )
+if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
 {
     while(<STDIN>)
     { print; }
@@ -102,7 +105,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 {
     if(/^##/p)
     {
-        print unless $options{skipcomments};
+        print unless $options{skipcomments} || $options{eval};
         next;
     }
 
@@ -254,7 +257,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         }
 
         # print out the new legend
-        print "# @colnames_output\n" unless $options{dumpawk};
+        print "# @colnames_output\n" unless $options{dumpexprs} || $options{eval};
 
 
         if( @must_have_col_names )
@@ -285,7 +288,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 if( !$options{perl} )
 {
     my $awkprogram = makeAwkProgram();
-    if( $options{dumpawk} )
+    if( $options{dumpexprs} )
     {
         say $awkprogram;
         exit;
@@ -294,17 +297,36 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
-my $must_match_expr =
-  join ' && ', map {
+sub expr_col_names_to_indices_perl
+{
+    return $_[0] =~
       s/ (\w+) /
-        !defined $colindices_in{$1} ? $1 :
-        '("-" eq $f[' . $colindices_in{$1} . '] ? undef : $f[' . $colindices_in{$1} . '])'
-        /egrx
-  } @{$options{matches}};
-$must_match_expr //= 1;
+      !defined $colindices_in{$1} ? $1 :
+      '("-" eq $f[' . $colindices_in{$1} . '] ? undef : $f[' . $colindices_in{$1} . '])'
+      /egrx;
+}
+
+my $must_match_expr =
+  join ' && ', map { expr_col_names_to_indices_perl($_) } @{$options{matches}};
+$must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
 my @f;
-eval "sub matches { return $must_match_expr; }";
+my $evalstr = "sub matches { return $must_match_expr; }";
+
+if ( $options{eval} )
+{
+    my $expr = expr_col_names_to_indices_perl($options{eval});
+    $evalstr .= "\nsub evalexpr { $expr ; }";
+}
+
+if( $options{dumpexprs} )
+{
+    say "Expressions to evaluate:\n\n$evalstr";
+    exit;
+}
+eval $evalstr;
+
+
 
 
 RECORD:
@@ -339,17 +361,23 @@ while(<STDIN>)
     # skip empty records if we must
     next if $options{skipempty} && all {$_ eq '-' } @f;
 
-    # apply transformations
-    for my $transform (@transforms)
+    if( $options{eval} )
     {
-        my ($index_out, @funcs) = @$transform;
-        foreach my $func(@funcs)
-        {
-            $f[$index_out] = $func->($f[$index_out]);
-        }
+        evalexpr();
     }
-
-    print "@f\n";
+    else
+    {
+        # apply transformations
+        for my $transform (@transforms)
+        {
+            my ($index_out, @funcs) = @$transform;
+            foreach my $func (@funcs)
+            {
+                $f[$index_out] = $func->($f[$index_out]);
+            }
+        }
+        print "@f\n";
+    }
 }
 
 
@@ -484,6 +512,11 @@ sub makeAwkProgram
     # The awk program I generate here is analogous to the logic in the data
     # while() loop above
 
+    sub expr_col_names_to_indices_awk
+    {
+        return $_[0] =~ s/(\w+)/defined $colindices_in{$1} ? '$' . ($colindices_in{$1}+1) : $1/egr;
+    }
+
 
     my $awkprogram = '';
 
@@ -506,7 +539,7 @@ sub makeAwkProgram
 
     for my $expr( @{$options{matches}} )
     {
-        $expr =~ s/(\w+)/defined $colindices_in{$1} ? '$' . ($colindices_in{$1}+1) : $1/eg;
+        $expr = expr_col_names_to_indices_awk($expr);
         $awkprogram .= ' !' . "($expr) { next } ";
     }
 
@@ -518,11 +551,22 @@ sub makeAwkProgram
         $awkprogram .= ' { next } ';
     }
 
-    # print selected fields. These already have the transformations applied
-    $awkprogram .= $awk_state_stanzas_before if defined $awk_state_stanzas_before;
-    $awkprogram .=
-      '{ print ' . (join(',', @awk_output_fields)) . '} ';
-    $awkprogram .= $awk_state_stanzas_after if defined $awk_state_stanzas_after;
+    if( $options{eval} )
+    {
+        my $expr = expr_col_names_to_indices_awk($options{eval});
+        $awkprogram .= " { $expr } ";
+
+        # don't need $awk_state_stanzas_before and $awk_state_stanzas_after:
+        # these are for rel() and diff(), and I'm disallowing column selectors
+    }
+    else
+    {
+        # print selected fields. These already have the transformations applied
+        $awkprogram .= $awk_state_stanzas_before if defined $awk_state_stanzas_before;
+        $awkprogram .=
+          '{ print ' . (join(',', @awk_output_fields)) . '} ';
+        $awkprogram .= $awk_state_stanzas_after if defined $awk_state_stanzas_after;
+    }
 
     return $awkprogram;
 }
@@ -555,36 +599,40 @@ asciilog-filter - filters ascii logs to select particular rows, fields
 =head1 SYNOPSIS
 
     # Read log data, filter out the timestamps, and post-process some of them
-    $ raw-log-read-ins /tmp/stereo_lump_log |
+    $ < /tmp/log
       asciilog-filter '.*time' 'us2s(time)' 'rel(time)' 'rel(us2s(.*time))'
 
-    # frame_time time us2s(time) rel(time) rel(us2s(frame_time)) rel(us2s(time))
+    # image_time time us2s(time) rel(time) rel(us2s(image_time)) rel(us2s(time))
     1434662133270338 1434662131279978 1434662131.27998 0 0 0
     1434662133270338 1434662131289978 1434662131.28998 10000 0 0.00999999046325684
     1434662133270338 1434662131299978 1434662131.29998 20000 0 0.0199999809265137
     1434662133270338 1434662131309978 1434662131.30998 30000 0 0.0299999713897705
     ...
 
-    # Read log data, filter out the lat/lon, and make a plot
-    $ raw-log-read-ins /tmp/stereo_lump_log |
-      asciilog-filter lat lon |
-      feedgnuplot --domain --lines
+    # Run the robot, write out telemetry to a log, filter out the position, and
+    # make a realtime plot of its motion
+    $ run_robot |
+      tee /tmp/log |
+      asciilog-filter x y |
+      feedgnuplot --domain --lines --stream
 
-    [ plot pops up ]
+    [ plot pops up, and updates itself as the robot moves ]
 
 
 =head1 DESCRIPTION
 
 This tool reads in an ASCII data stream, and allows easy filtering to select
 particular data from this stream. Many common post-processing operations are
-available.
+available, as is general interpretation of data.
 
 This is a UNIX-style tool, so the input/output of this tool is strictly
-STDIN/STDOUT. Furthermore, this tool is a filter, so the format of the output is
-I<exactly> the same as the format of the input.
+STDIN/STDOUT. Furthermore, in its most common form this tool is a filter, so the
+format of the output is I<exactly> the same as the format of the input. The
+exception to this is when using C<--eval>, in which the output is dependent on
+whatever expression we're evaluating.
 
-This tool is convenient both to filter stored data, or to filter live data that
-can then be plotted to produce realtime telemetry.
+This tool is convenient both to process stored data, or to process live data
+that can then be plotted to produce realtime telemetry.
 
 This tool takes a list of fields on the commandline. These are the only fields
 that are selected for output. The requested field names are compared with the
@@ -594,6 +642,23 @@ that column. Otherwise we run a regex search, and take all matching columns.
 The user often wants to apply unit conversions to data, or to look at the data
 relative to the initial point, or to differentiate the input. These filters can
 be easily applied by this tool.
+
+This tool has two major modes of operation: filtering and evaluating.
+
+=head2
+
+The normal mode of operation is a filtering one. Here we read in an asciilog,
+select some rows, columns, maybe apply some simple filter functions, and output
+this data as a new asciilog. A new legend is written, and comments are
+preserved.
+
+=head2
+
+If we want to do something more complicated, we can use the I<evaluating> mode
+of operation. Here we pass C<--eval expression>. For each row, we evaluate the
+expression (in awk, or in perl if C<--perl> is given). This evaluation may or
+may not print anything. Comments are ignored. Any columns should be referred-to
+by name. This mode ignores any column selectors, so none should be given.
 
 =head2 Input/output data format
 
@@ -685,6 +750,13 @@ automatically if the perl backend is used.
 
 Multiple C<--matches> options can be given. The record is output onlyt if I<all>
 the expressions are true.
+
+=head2 --eval expr
+
+Instead of printing out all matching records, evaluate the expression for each
+record. The expression may or may not print anything. The expression is treated
+similar to --matches: variables are bound by name, no sigil is required and so
+on. No column-selecting arguments should be given.
 
 =head2 --[no]skipempty
 
