@@ -184,6 +184,16 @@ check( <<'EOF', qw(--matches $a>5 --no-skipempty c), 'PERL' );
 12
 EOF
 
+check( <<'EOF', qw(--matches a>5), '--eval', 'print a+b', 'AWK' );
+16
+21
+EOF
+
+check( <<'EOF', qw(--matches $a>5), '--eval', 'say ($a+$b+2)', 'PERL' );
+18
+23
+EOF
+
 
 1;
 
