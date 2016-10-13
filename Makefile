@@ -6,13 +6,8 @@ TAIL_VERSION := 1.6
 LIB_SOURCES := *.c*
 BIN_SOURCES := test/test1.c
 
-TOOLS   := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix
-PERLMOD := Asciilog.pm
-
-MAN1   := $(addprefix man1/,$(addsuffix .1,$(TOOLS)))
-MAN3PM := $(addprefix man3/,$(addsuffix .3pm,$(PERLMOD)))
-
-doc: $(MAN1) $(MAN3PM)
+TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix
+doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))
 .PHONY: doc
 
 %/:
@@ -20,9 +15,7 @@ doc: $(MAN1) $(MAN3PM)
 
 man1/%.1: % | man1/
 	pod2man -r '' --section 1 --center "asciilog" $< $@
-man3/%.3pm: % | man3/
-	pod2man -r '' --section 3pm --center "asciilog" $< $@
-EXTRA_CLEAN += man1 man3
+EXTRA_CLEAN += man1
 
 CCXXFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
@@ -44,6 +37,6 @@ DIST_INCLUDE := *.h
 DIST_BIN     := $(TOOLS)
 
 install: doc
-DIST_MAN     := man1/ man3/
+DIST_MAN     := man1/
 
 include /usr/include/mrbuild/Makefile.common
