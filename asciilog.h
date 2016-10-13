@@ -11,7 +11,10 @@
   #define asciilog_emit_record()            _asciilog_emit_record   (NULL,     ASCIILOG_N_FIELDS)
   #define asciilog_init_session_ctx(ctx)    _asciilog_init_ctx      (ctx,      ASCIILOG_N_FIELDS)
   #define asciilog_init_child_ctx(dst, src) _asciilog_init_child_ctx(dst, src, ASCIILOG_N_FIELDS)
-
+  #define asciilog_printf(...)              _asciilog_printf        (NULL, ## __VA_ARGS__)
+  #define asciilog_printf_ctx(ctx, ...)     _asciilog_printf        (ctx, ## __VA_ARGS__)
+  #define asciilog_flush()                  _asciilog_flush         (NULL)
+  #define asciilog_flush_ctx(ctx)           _asciilog_flush         (ctx)
 
 #else
 
@@ -144,14 +147,28 @@ void _asciilog_set_field_value(struct asciilog_context_t* ctx,
 void _asciilog_emit_record(struct asciilog_context_t* ctx,
                            int Nfields);
 
-// Writes out the given printf-style format to the asciilog. Generally this is a
-// comment string, so it should start with a '#' and end in a '\n', but I do not
-// check or enforce this.
-void asciilog_printf(struct asciilog_context_t* ctx,
-                     const char* fmt, ...);
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
+// either of
+//
+//     asciilog_emit_printf()
+//     asciilog_emit_printf_ctx(ctx)
+//
+// depending on whether they want to use the default context or not. Writes out
+// the given printf-style format to the asciilog. Generally this is a comment
+// string, so it should start with a '#' and end in a '\n', but I do not check
+// or enforce this.
+void _asciilog_printf(struct asciilog_context_t* ctx,
+                      const char* fmt, ...);
 
-// Flushes the output buffer. Useful in conjunction with asciilog_printf()
-void asciilog_flush(struct asciilog_context_t* ctx);
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
+// either of
+//
+//     asciilog_emit_printf()
+//     asciilog_emit_printf_ctx(ctx)
+//
+// depending on whether they want to use the default context or not. Flushes the
+// output buffer. Useful in conjunction with asciilog_printf()
+void _asciilog_flush(struct asciilog_context_t* ctx);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 //
