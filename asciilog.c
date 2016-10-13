@@ -53,6 +53,7 @@ static void emit(struct asciilog_context_t* ctx, const char* string)
 
 void _asciilog_printf(struct asciilog_context_t* ctx, const char* fmt, ...)
 {
+    if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
     va_list ap;
     va_start(ap, fmt);
@@ -64,6 +65,7 @@ void _asciilog_printf(struct asciilog_context_t* ctx, const char* fmt, ...)
 
 void _asciilog_flush(struct asciilog_context_t* ctx)
 {
+    if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
     fflush(ctx->fp);
 }
