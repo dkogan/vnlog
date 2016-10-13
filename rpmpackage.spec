@@ -14,6 +14,8 @@ BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
+# for tests
+BuildRequires: mawk
 
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII
