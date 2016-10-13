@@ -51,7 +51,7 @@ static void emit(struct asciilog_context_t* ctx, const char* string)
     _emit(ctx, string);
 }
 
-void _asciilog_printf(struct asciilog_context_t* ctx, const char* fmt, ...)
+void _asciilog_printf(struct asciilog_context_t* ctx, int Nfields, const char* fmt, ...)
 {
     if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
@@ -63,7 +63,7 @@ void _asciilog_printf(struct asciilog_context_t* ctx, const char* fmt, ...)
     ctx->emitted_something = true;
 }
 
-void _asciilog_flush(struct asciilog_context_t* ctx)
+void _asciilog_flush(struct asciilog_context_t* ctx, int Nfields)
 {
     if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
