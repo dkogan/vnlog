@@ -9,7 +9,7 @@
   // asciilog-gen-header
   #define asciilog_emit_record_ctx(ctx)     _asciilog_emit_record   (ctx,      ASCIILOG_N_FIELDS)
   #define asciilog_emit_record()            _asciilog_emit_record   (NULL,     ASCIILOG_N_FIELDS)
-  #define asciilog_init_session_ctx(ctx)    _asciilog_init_ctx      (ctx,      ASCIILOG_N_FIELDS)
+  #define asciilog_init_session_ctx(ctx)    _asciilog_init_session_ctx (ctx,      ASCIILOG_N_FIELDS)
   #define asciilog_init_child_ctx(dst, src) _asciilog_init_child_ctx(dst, src, ASCIILOG_N_FIELDS)
   #define asciilog_printf(...)              _asciilog_printf        (NULL,     ASCIILOG_N_FIELDS, ## __VA_ARGS__)
   #define asciilog_printf_ctx(ctx, ...)     _asciilog_printf        (ctx,      ASCIILOG_N_FIELDS, ## __VA_ARGS__)
@@ -81,16 +81,22 @@ typedef struct { char c[ASCIILOG_MAX_FIELD_LEN]; } asciilog_field_t;
 // start out at 0
 struct asciilog_context_t
 {
-    // global state for this whole session. These are passed-down from parent
-    // contexts by asciilog_init_child_ctx(). If we have a single asciilog
-    // session in an executable, all the contexts have the same values for these
-    FILE*            fp;
-    bool             emitted_something   : 1;
-    bool             legend_finished     : 1;
+    // The root context. The values shared by all contexts in this session are
+    // accessed via the root. It is slightly wasteful for all contexts to carry
+    // the (unreliable) data even if they're not the root, but it makes the API
+    // simpler
+    struct asciilog_context_t* root;
+
+    // global state for this whole session. These should be accessed ONLY
+    // through the root context.
+    FILE*            _fp;
+    bool             _emitted_something   : 1;
+    bool             _legend_finished     : 1;
 
     // Each context manages its own set of fields. These could be different in
     // each context instance
     bool             line_has_any_values : 1;
+
     asciilog_field_t fields[
 #ifdef ASCIILOG_N_FIELDS
                             ASCIILOG_N_FIELDS
@@ -258,8 +264,8 @@ void _asciilog_init_child_ctx( struct asciilog_context_t* ctx,
 //         ...
 //         asciilog_emit_record();
 //     }
-void _asciilog_init_ctx( struct asciilog_context_t* ctx,
-                         int Nfields);
+void _asciilog_init_session_ctx( struct asciilog_context_t* ctx,
+                                 int Nfields);
 
 #ifdef __cplusplus
 }
