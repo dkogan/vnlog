@@ -109,11 +109,22 @@ sub gen_field
 
     my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
 
-    my $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value(ctx,  "$name", $idx, $fmt, x)
-#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value(NULL, "$name", $idx, $fmt, x)
+    my $set_field_value;
+    if( $type =~ /double|float/ )
+    {
+        $set_field_value = <<EOF;
+#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value_double(ctx,  "$name", $idx, $fmt, (double)(x))
+#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value_double(NULL, "$name", $idx, $fmt, (double)(x))
 EOF
-
+    }
+    else
+    {
+        my $otype = '__' . ($type =~ s/ /_/gr =~ s/char\*/str/gr);
+        $set_field_value = <<EOF;
+#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value_int(ctx,  "$name", $idx, $fmt, (union asciilog_field_types_t){.$otype = (x)})
+#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value_int(NULL, "$name", $idx, $fmt, (union asciilog_field_types_t){.$otype = (x)})
+EOF
+    }
     $idx++;
 
     return ($set_field_value, $name);

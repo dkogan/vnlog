@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #define ASCIILOG_C
 #include "asciilog.h"
@@ -139,29 +140,56 @@ void _asciilog_emit_legend(struct asciilog_context_t* ctx, const char* legend, i
     flush(ctx);
 }
 
-void _asciilog_set_field_value(struct asciilog_context_t* ctx,
-                               const char* fieldname, int idx,
-                               const char* fmt, ...)
+static bool is_field_null(const char* field)
+{
+    return field[0] == '-' && field[1] == '\0';
+}
+
+static struct asciilog_context_t*
+set_field_prelude(struct asciilog_context_t* ctx,
+                  const char* fieldname, int idx)
 {
     if( ctx == NULL ) ctx = get_global_context(-1);
 
     if(!ctx->root->_legend_finished)
         ERR("need a legend to do this");
-    if(ctx->fields[idx].c[0] != '-' || ctx->fields[idx].c[1] != '\0')
+    if(!is_field_null(ctx->fields[idx].c))
         ERR("Field '%s' already set. Old value: '%s'",
             fieldname, ctx->fields[idx].c);
-
     ctx->line_has_any_values = true;
 
-    va_list ap;
-    va_start(ap, fmt);
+    return ctx;
+}
+
+// printf() is type agnostic as far as the ABI is concerned, so I pass it the
+// correct raw bits without letting C know of the details: all possible integer
+// types are passed in via union asciilog_context_t. Past that the code path is
+// the same regardless of type. The guts of printf() reinterprets the bits based
+// on the format string. Floating-point types are handled differently by the
+// ABI, so I do handle those specially
+void _asciilog_set_field_value_int(struct asciilog_context_t* ctx,
+                                   const char* fieldname, int idx,
+                                   const char* fmt, union asciilog_field_types_t arg)
+{
+    ctx = set_field_prelude(ctx, fieldname, idx);
     if( (int)sizeof(ctx->fields[0]) <=
-        vsnprintf(ctx->fields[idx].c, sizeof(ctx->fields[0]), fmt, ap) )
+        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0]), fmt, arg) )
     {
         ERR("Field size exceeded for field '%s'", fieldname);
     }
-    va_end(ap);
 }
+void _asciilog_set_field_value_double(struct asciilog_context_t* ctx,
+                                      const char* fieldname, int idx,
+                                      const char* fmt, double arg)
+{
+    ctx = set_field_prelude(ctx, fieldname, idx);
+    if( (int)sizeof(ctx->fields[0]) <=
+        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0]), fmt, arg) )
+    {
+        ERR("Field size exceeded for field '%s'", fieldname);
+    }
+}
+
 
 void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields)
 {
