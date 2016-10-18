@@ -26,6 +26,31 @@ if(!@defs)
     exit 1;
 }
 
+
+my $legend = "#";
+my $anchor_field_idx;
+
+my $set_field_value_defs = '';
+for my $field(@defs)
+{
+    my ($set_field_value, $name, $anchor_field_idx_here) = gen_field($field);
+    $set_field_value_defs .= $set_field_value;
+    $legend .= " $name";
+
+    if(defined $anchor_field_idx)
+    {
+        if(defined $anchor_field_idx_here)
+        {
+            die "Got multiply-defined anchor field: $anchor_field_idx and $anchor_field_idx_here";
+        }
+    }
+    else
+    {
+        $anchor_field_idx = $anchor_field_idx_here;
+    }
+}
+$anchor_field_idx //= -1;
+
 my $argstring = shell_quote(@defs);
 my $Nfields   = @defs;
 
@@ -38,25 +63,15 @@ say <<EOF;
 
 #include <inttypes.h>
 
-#define ASCIILOG_N_FIELDS $Nfields
+#define ASCIILOG_N_FIELDS         $Nfields
+#define ASCIILOG_ANCHOR_FIELD_IDX $anchor_field_idx
 #include <asciilog/asciilog.h>
 
 EOF
 
-
-my $legend = "#";
-
-for my $field(@defs)
-{
-    my ($set_field_value, $name) = gen_field($field);
-    print $set_field_value;
-
-    $legend .= " $name";
-}
+print $set_field_value_defs;
 
 say <<EOF;
-
-
 #define asciilog_emit_legend_ctx(ctx)  _asciilog_emit_legend(ctx,  \"$legend\\n\", ASCIILOG_N_FIELDS)
 #define asciilog_emit_legend()         _asciilog_emit_legend(NULL, \"$legend\\n\", ASCIILOG_N_FIELDS)
 EOF
@@ -89,16 +104,24 @@ sub gen_field
        'char*'        => '"%s"'
       );
 
-    my ($type, $name) = $field =~ /\s*
-                                   (.+?) # A maximal string. May have space in the middle
-                                   \s+   # Some space
-                                   (\S+) # A maximal string with no spaces
-                                  /x;
-    if( !defined $type || !defined $name )
+    my ($type, $name, $options) =
+      $field =~ /\s*
+                 (.+?) # A maximal string. May have space in the middle
+                 \s+   # Some space
+                 (\S+) # A maximal string with no spaces
+                 (?:
+                     \s*
+                     \(\s* (.*?) \s* \) # some expression in () ...
+                 )?                     # ... possibly missing
+                /x;
+    if ( !defined $type || !defined $name )
     {
         die "Couldn't parse field spec '$field'";
     }
-
+    if( defined $options && $options ne 'anchor' )
+    {
+        die "The only supported options is 'anchor', but I got '$field'";
+    }
     if( $name =~ /[^a-zA-Z0-9_]/ )
     {
         die "Name can only have [a-zA-Z0-9_], but got '$name'";
@@ -110,24 +133,36 @@ sub gen_field
     my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
 
     my $set_field_value;
+    my ($type_footer, $type_arg);
     if( $type =~ /double|float/ )
     {
-        $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value_double(ctx,  "$name", $idx, $fmt, (double)(x))
-#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value_double(NULL, "$name", $idx, $fmt, (double)(x))
-EOF
+        $type_footer = "double";
+        $type_arg    = "(double)(x)";
     }
     else
     {
         my $otype = '__' . ($type =~ s/ /_/gr =~ s/char\*/str/gr);
-        $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value_int(ctx,  "$name", $idx, $fmt, (union asciilog_field_types_t){.$otype = (x)})
-#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value_int(NULL, "$name", $idx, $fmt, (union asciilog_field_types_t){.$otype = (x)})
-EOF
+        $type_footer = "int";
+        $type_arg    = "(union asciilog_field_types_t){.$otype = (x)}";
     }
-    $idx++;
 
-    return ($set_field_value, $name);
+    my $anchor_pre  = '';
+    my $anchor_post = '';
+    if(defined $options)
+    {
+        $anchor_pre = "({ struct asciilog_context_t* ___ctx =";
+        $anchor_post = "; ___ctx->root->fields[$idx] = ___ctx->fields[$idx];})";
+    }
+
+    $set_field_value = <<EOF;
+#define asciilog_set_field_value_ctx__$name(ctx, x) $anchor_pre _asciilog_set_field_value_$type_footer(ctx,  "$name", $idx, $fmt, $type_arg) $anchor_post
+#define asciilog_set_field_value__$name(x)          $anchor_pre _asciilog_set_field_value_$type_footer(NULL, "$name", $idx, $fmt, $type_arg) $anchor_post
+EOF
+
+    my @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
+
+    $idx++;
+    return @ret;
 }
 
 __END__
