@@ -155,8 +155,8 @@ sub gen_field
     }
 
     $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, x) $anchor_pre _asciilog_set_field_value_$type_footer(ctx,  "$name", $idx, $fmt, $type_arg) $anchor_post
-#define asciilog_set_field_value__$name(x)          $anchor_pre _asciilog_set_field_value_$type_footer(NULL, "$name", $idx, $fmt, $type_arg) $anchor_post
+#define asciilog_set_field_value_ctx__$name(ctx, x) $anchor_pre _asciilog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg) $anchor_post
+#define asciilog_set_field_value__$name(x)          $anchor_pre _asciilog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg) $anchor_post
 EOF
 
     my @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
