@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <b64/cencode.h>
 
 #define ASCIILOG_C
 #include "asciilog.h"
@@ -41,6 +42,31 @@ static void _emit(struct asciilog_context_t* ctx, const char* string)
 {
     fprintf(ctx->root->_fp, "%s", string);
     ctx->root->_emitted_something = true;
+}
+
+static void _emit_field(struct asciilog_context_t* ctx, int i)
+{
+    if( ctx->fields[i].binptr == NULL )
+        // plain ascii field
+        _emit(ctx, ctx->fields[i].c);
+    else
+    {
+        // binary field. Encode with base64 first
+        // The buffer needs to be 4/3 as large as what I need. To be extra
+        // conservative, I double it
+        char out_base64[ctx->fields[i].binlen * 2];
+
+        base64_encodestate s;
+        base64_init_encodestate(&s);
+        int len = base64_encode_block(ctx->fields[i].binptr, ctx->fields[i].binlen,
+                                      out_base64, &s);
+        len += base64_encode_blockend(&out_base64[len], &s);
+        if( out_base64[len-1] == '\n')
+            out_base64[len-1] = '\0';
+        else
+            out_base64[len] = '\0';
+        _emit(ctx, out_base64);
+    }
 }
 
 static void emit(struct asciilog_context_t* ctx, const char* string)
@@ -90,8 +116,9 @@ static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields, int an
     {
         if( ctx == ctx->root && i == anchor_field_idx)
             continue;
-        ctx->fields[i].c[0] = '-';
-        ctx->fields[i].c[1] = '\0';
+        ctx->fields[i].c[0]   = '-';
+        ctx->fields[i].c[1]   = '\0';
+        ctx->fields[i].binptr = NULL;
     }
 }
 
@@ -138,9 +165,9 @@ void _asciilog_emit_legend(struct asciilog_context_t* ctx, const char* legend, i
     flush(ctx);
 }
 
-static bool is_field_null(const char* field)
+static bool is_field_null(const asciilog_field_t* field)
 {
-    return field[0] == '-' && field[1] == '\0';
+    return field->binptr == NULL && field->c[0] == '-' && field->c[1] == '\0';
 }
 
 static struct asciilog_context_t*
@@ -167,8 +194,8 @@ _asciilog_set_field_value_int(struct asciilog_context_t* ctx,
                               const char* fmt, union asciilog_field_types_t arg)
 {
     ctx = set_field_prelude(ctx);
-    if( (int)sizeof(ctx->fields[0]) <=
-        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0]), fmt, arg) )
+    if( (int)sizeof(ctx->fields[0].c) <=
+        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) )
     {
         ERR("Field size exceeded for field '%s'", fieldname);
     }
@@ -180,11 +207,22 @@ _asciilog_set_field_value_double(struct asciilog_context_t* ctx,
                                  const char* fmt, double arg)
 {
     ctx = set_field_prelude(ctx);
-    if( (int)sizeof(ctx->fields[0]) <=
-        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0]), fmt, arg) )
+    if( (int)sizeof(ctx->fields[0].c) <=
+        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) )
     {
         ERR("Field size exceeded for field '%s'", fieldname);
     }
+    return ctx;
+}
+
+struct asciilog_context_t*
+_asciilog_set_field_value_binary(struct asciilog_context_t* ctx,
+                                 const char* fieldname __attribute__((unused)), int idx,
+                                 const void* data, int len)
+{
+    ctx = set_field_prelude(ctx);
+    ctx->fields[idx].binptr = data;
+    ctx->fields[idx].binlen = len;
     return ctx;
 }
 
@@ -207,10 +245,10 @@ void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields, int anch
             // There's no anchor field. Output all the fields from this context
             for(int i=0; i<Nfields-1; i++)
             {
-                _emit(ctx, ctx->fields[i].c);
+                _emit_field(ctx, i);
                 _emit(ctx, " ");
             }
-            _emit(ctx, ctx->fields[Nfields-1].c);
+            _emit_field(ctx, Nfields-1);
             _emit(ctx, "\n");
         }
         else
@@ -221,10 +259,10 @@ void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields, int anch
             void emit_field(int i)
             {
                 // For each field, emit the anchor if the field is empty AND we have an anchor
-                if( i == anchor_field_idx && is_field_null(ctx->fields[i].c) )
-                    _emit(ctx->root, ctx->root->fields[anchor_field_idx].c);
+                if( i == anchor_field_idx && is_field_null(&ctx->fields[i]) )
+                    _emit_field(ctx->root, anchor_field_idx);
                 else
-                    _emit(ctx, ctx->fields[i].c);
+                    _emit_field(ctx, i);
             }
 
             for(int i=0; i<Nfields-1; i++)

@@ -130,36 +130,58 @@ sub gen_field
     $type =~ s/ +/ /g;   # replace all consecutive ' ' with a single space
     $type =~ s/ \*/\*/g; # ' *' -> '*'. so 'const char *' -> 'const char*'
 
-    my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
-
-    my $set_field_value;
-    my ($type_footer, $type_arg);
-    if( $type =~ /double|float/ )
+    my @ret;
+    if( $type eq 'void*' )
     {
-        $type_footer = "double";
-        $type_arg    = "(double)(x)";
+        # binary type
+        my $anchor_pre  = '';
+        my $anchor_post = '';
+        if (defined $options)
+        {
+            $anchor_pre = "({ struct asciilog_context_t* ___ctx =";
+            $anchor_post = "; ___ctx->root->fields[$idx] = ___ctx->fields[$idx];})";
+        }
+
+        my $set_field_value = <<EOF;
+#define asciilog_set_field_value_ctx__$name(ctx, ptr, len) $anchor_pre _asciilog_set_field_value_binary(ctx,  "$name", $idx, ptr, len) $anchor_post
+#define asciilog_set_field_value__$name(ptr, len)          $anchor_pre _asciilog_set_field_value_binary(NULL, "$name", $idx, ptr, len) $anchor_post
+EOF
+
+        @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
     }
     else
     {
-        my $otype = '__' . ($type =~ s/ /_/gr =~ s/char\*/str/gr);
-        $type_footer = "int";
-        $type_arg    = "(union asciilog_field_types_t){.$otype = (x)}";
-    }
+        my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
 
-    my $anchor_pre  = '';
-    my $anchor_post = '';
-    if(defined $options)
-    {
-        $anchor_pre = "({ struct asciilog_context_t* ___ctx =";
-        $anchor_post = "; ___ctx->root->fields[$idx] = ___ctx->fields[$idx];})";
-    }
+        my $set_field_value;
+        my ($type_footer, $type_arg);
+        if ( $type =~ /double|float/ )
+        {
+            $type_footer = "double";
+            $type_arg    = "(double)(x)";
+        }
+        else
+        {
+            my $otype = '__' . ($type =~ s/ /_/gr =~ s/char\*/str/gr);
+            $type_footer = "int";
+            $type_arg    = "(union asciilog_field_types_t){.$otype = (x)}";
+        }
 
-    $set_field_value = <<EOF;
+        my $anchor_pre  = '';
+        my $anchor_post = '';
+        if (defined $options)
+        {
+            $anchor_pre = "({ struct asciilog_context_t* ___ctx =";
+            $anchor_post = "; ___ctx->root->fields[$idx] = ___ctx->fields[$idx];})";
+        }
+
+        $set_field_value = <<EOF;
 #define asciilog_set_field_value_ctx__$name(ctx, x) $anchor_pre _asciilog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg) $anchor_post
 #define asciilog_set_field_value__$name(x)          $anchor_pre _asciilog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg) $anchor_post
 EOF
 
-    my @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
+        @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
+    }
 
     $idx++;
     return @ret;
