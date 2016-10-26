@@ -51,7 +51,7 @@ Hot damn! Let's look only at the =w= and =x= columns, but I want =w= relative
 from the first point
 
 #+BEGIN_EXAMPLE
-$ .test | asciilog-filter 'rel(w) x'
+$ ./test | asciilog-filter 'rel(w) x'
 
 # rel(w) x
 0 40
@@ -145,7 +145,7 @@ $ cat /tmp/x.matrix
 10 11 12
 #+END_EXAMPLE
 
-- =asciilog.c=, - =asciilog-gen-header=
+- =asciilog.c=, =asciilog-gen-header=
 a C interface so produce asciilog output. Allows the fields to be populated by
 name, one at a time without the user needing to think about their column index
 
