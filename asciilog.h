@@ -74,9 +74,9 @@ INCLUDED BY THE GENERATED asciilog_fieldss_generated.h
 
 typedef struct
 {
-    char        c[ASCIILOG_MAX_FIELD_LEN];
-    const void* binptr;         // If non-NULL, we have binary data instead of ascii data in c[]
-    int         binlen;
+    char  c[ASCIILOG_MAX_FIELD_LEN];
+    void* binptr;               // If non-NULL, we have binary data instead of ascii data in c[]
+    int   binlen;
 } asciilog_field_t;
 
 // If we're building the LIBRARY, we don't know how many fields we'll have. The
@@ -310,6 +310,14 @@ void _asciilog_init_child_ctx( struct asciilog_context_t* ctx,
 //     }
 void _asciilog_init_session_ctx( struct asciilog_context_t* ctx,
                                  int Nfields);
+
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
+//
+//     asciilog_free_ctx(ctx)
+//
+// Frees memory for an asciilog context. Currently this is only needed for
+// binary fields, but this should be called in for all contexts, just in case
+void _asciilog_free_ctx( struct asciilog_context_t* ctx, int Nfields );
 
 #ifdef __cplusplus
 }

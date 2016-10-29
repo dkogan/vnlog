@@ -29,6 +29,7 @@ int main()
             asciilog_set_field_value_ctx__x(&ctx, i + 6);
             asciilog_emit_record_ctx(&ctx);
         }
+        asciilog_free_ctx(&ctx);
         test2();
     }
 
@@ -56,12 +57,14 @@ int main()
             asciilog_set_field_value_ctx__z(&ctx, (double)i + 60);
             asciilog_emit_record_ctx(&ctx);
         }
+        asciilog_free_ctx(&ctx);
     }
 
     // Now we resume the previous record. We still remember that x == 70
     asciilog_set_field_value_ctx__w(&ctx2, -21);
     asciilog_set_field_value_ctx__z(&ctx2, 0.4);
     asciilog_emit_record_ctx(&ctx2);
+    asciilog_free_ctx(&ctx2);
 
     return 0;
 }

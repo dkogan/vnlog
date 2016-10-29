@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <b64/cencode.h>
+#include <string.h>
 
 #define ASCIILOG_C
 #include "asciilog.h"
@@ -153,6 +154,15 @@ void _asciilog_init_child_ctx(      struct asciilog_context_t* ctx,
     clear_ctx_fields( ctx, Nfields, -1 );
 }
 
+void _asciilog_free_ctx( struct asciilog_context_t* ctx, int Nfields )
+{
+    for(int i=0; i<Nfields; i++)
+    {
+        free(ctx->fields[i].binptr);
+        ctx->fields[i].binptr = NULL;
+    }
+}
+
 void _asciilog_emit_legend(struct asciilog_context_t* ctx, const char* legend, int Nfields)
 {
     if( ctx == NULL ) ctx = get_global_context(Nfields);
@@ -221,8 +231,10 @@ _asciilog_set_field_value_binary(struct asciilog_context_t* ctx,
                                  const void* data, int len)
 {
     ctx = set_field_prelude(ctx);
-    ctx->fields[idx].binptr = data;
+
     ctx->fields[idx].binlen = len;
+    ctx->fields[idx].binptr = realloc(ctx->fields[idx].binptr, len);
+    memcpy(ctx->fields[idx].binptr, data, len);
     return ctx;
 }
 

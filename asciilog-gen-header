@@ -74,6 +74,7 @@ print $set_field_value_defs;
 say <<EOF;
 #define asciilog_emit_legend_ctx(ctx)  _asciilog_emit_legend(ctx,  \"$legend\\n\", ASCIILOG_N_FIELDS)
 #define asciilog_emit_legend()         _asciilog_emit_legend(NULL, \"$legend\\n\", ASCIILOG_N_FIELDS)
+#define asciilog_free_ctx(ctx)  _asciilog_free_ctx(ctx, ASCIILOG_N_FIELDS)
 EOF
 
 

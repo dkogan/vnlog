@@ -18,4 +18,5 @@ void test2(void)
     asciilog_emit_record_ctx(&ctx);
 
     fclose(fp);
+    asciilog_free_ctx(&ctx);
 }
