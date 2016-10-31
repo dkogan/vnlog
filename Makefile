@@ -26,8 +26,6 @@ test/asciilog_fields_generated%.h: test/asciilog%.defs asciilog-gen-header
 	./asciilog-gen-header < $< | perl -pe 's{asciilog/asciilog.h}{asciilog.h}' > $@
 EXTRA_CLEAN += test/asciilog_fields_generated*.h test/*.got
 
-LDLIBS += -lb64
-
 test check: all
 	test/test_asciilog-filter.pl
 	test/test_c_api.sh

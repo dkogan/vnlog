@@ -58,6 +58,8 @@ For details, see http://sourceforge.net/projects/libb64
 */
 
 
+#include "b64_cencode.h"
+
 typedef enum
 {
 	step_A, step_B, step_C
@@ -67,27 +69,23 @@ typedef struct
 {
 	base64_encodestep step;
 	char result;
-	int stepcount;
 } base64_encodestate;
 
 
-static const int CHARS_PER_LINE = 72;
-
-void base64_init_encodestate(base64_encodestate* state_in)
+static void base64_init_encodestate(base64_encodestate* state_in)
 {
 	state_in->step = step_A;
 	state_in->result = 0;
-	state_in->stepcount = 0;
 }
 
-char base64_encode_value(char value_in)
+static char base64_encode_value(char value_in)
 {
-	const char* encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	static const char* encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	if (value_in > 63) return '=';
 	return encoding[(int)value_in];
 }
 
-int base64_encode_block(const char* plaintext_in, int length_in, char* code_out, base64_encodestate* state_in)
+static int base64_encode_block(const char* plaintext_in, int length_in, char* code_out, base64_encodestate* state_in)
 {
 	const char* plainchar = plaintext_in;
 	const char* const plaintextend = plaintext_in + length_in;
@@ -135,20 +133,13 @@ int base64_encode_block(const char* plaintext_in, int length_in, char* code_out,
 			*codechar++ = base64_encode_value(result);
 			result  = (fragment & 0x03f) >> 0;
 			*codechar++ = base64_encode_value(result);
-			
-			++(state_in->stepcount);
-			if (state_in->stepcount == CHARS_PER_LINE/4)
-			{
-				*codechar++ = '\n';
-				state_in->stepcount = 0;
-			}
 		}
 	}
 	/* control should not reach here */
 	return codechar - code_out;
 }
 
-int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
+static int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 {
 	char* codechar = code_out;
 	
@@ -166,7 +157,33 @@ int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 	case step_A:
 		break;
 	}
-	*codechar++ = '\n';
-	
+
 	return codechar - code_out;
+}
+
+int base64_encode(       char* dst, int dstlen,
+                   const char* src, int srclen )
+{
+    if(srclen <= 0)
+    {
+        if(dstlen > 0)
+            *dst = '\0';
+        return 0;
+    }
+
+    base64_encodestate s;
+    base64_init_encodestate(&s);
+
+    const int dstlen_needed = base64_dstlen_to_encode(srclen);
+
+    if(dstlen < dstlen_needed)
+        return -1;
+
+    int len = base64_encode_block(src, srclen, dst, &s);
+    len += base64_encode_blockend(&dst[len], &s);
+    dst[len] = '\0';
+
+    // The number of bytes in the output (not including the trailing '\0') is
+    // returned
+    return len;
 }

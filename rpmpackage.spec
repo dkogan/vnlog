@@ -14,7 +14,7 @@ BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
-BuildRequires: libb64-devel
+
 # for tests
 BuildRequires: mawk
 

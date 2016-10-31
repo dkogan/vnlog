@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <b64/cencode.h>
 #include <string.h>
+
+#include "b64_cencode.h"
 
 #define ASCIILOG_C
 #include "asciilog.h"
@@ -53,19 +54,9 @@ static void _emit_field(struct asciilog_context_t* ctx, int i)
     else
     {
         // binary field. Encode with base64 first
-        // The buffer needs to be 4/3 as large as what I need. To be extra
-        // conservative, I double it
-        char out_base64[ctx->fields[i].binlen * 2];
-
-        base64_encodestate s;
-        base64_init_encodestate(&s);
-        int len = base64_encode_block(ctx->fields[i].binptr, ctx->fields[i].binlen,
-                                      out_base64, &s);
-        len += base64_encode_blockend(&out_base64[len], &s);
-        if( out_base64[len-1] == '\n')
-            out_base64[len-1] = '\0';
-        else
-            out_base64[len] = '\0';
+        char out_base64[base64_dstlen_to_encode(ctx->fields[i].binlen)];
+        base64_encode( out_base64, sizeof(out_base64),
+                       ctx->fields[i].binptr, ctx->fields[i].binlen );
         _emit(ctx, out_base64);
     }
 }
