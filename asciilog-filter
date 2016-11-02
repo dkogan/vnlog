@@ -277,6 +277,12 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
     die "Got data line before a legend";
 }
 
+if(!@cols_all_legend)
+{
+    die "No legend received. Is the input file empty?";
+}
+
+
 # data loop
 #
 # At this point I'm done dealing with the legend, and it's time to read in and
