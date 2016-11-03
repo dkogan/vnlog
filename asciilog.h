@@ -200,8 +200,8 @@ void _asciilog_emit_record(struct asciilog_context_t* ctx,
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 // either of
 //
-//     asciilog_emit_printf()
-//     asciilog_emit_printf_ctx(ctx)
+//     asciilog_printf(...)
+//     asciilog_printf_ctx(ctx, ...)
 //
 // depending on whether they want to use the default context or not. Writes out
 // the given printf-style format to the asciilog. Generally this is a comment
@@ -213,8 +213,8 @@ void _asciilog_printf(struct asciilog_context_t* ctx, int Nfields,
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 // either of
 //
-//     asciilog_emit_printf()
-//     asciilog_emit_printf_ctx(ctx)
+//     asciilog_flush()
+//     asciilog_flush_ctx(ctx)
 //
 // depending on whether they want to use the default context or not. Flushes the
 // output buffer. Useful in conjunction with asciilog_printf()
