@@ -28,28 +28,14 @@ if(!@defs)
 
 
 my $legend = "#";
-my $anchor_field_idx;
 
 my $set_field_value_defs = '';
 for my $field(@defs)
 {
-    my ($set_field_value, $name, $anchor_field_idx_here) = gen_field($field);
+    my ($set_field_value, $name) = gen_field($field);
     $set_field_value_defs .= $set_field_value;
     $legend .= " $name";
-
-    if(defined $anchor_field_idx)
-    {
-        if(defined $anchor_field_idx_here)
-        {
-            die "Got multiply-defined anchor field: $anchor_field_idx and $anchor_field_idx_here";
-        }
-    }
-    else
-    {
-        $anchor_field_idx = $anchor_field_idx_here;
-    }
 }
-$anchor_field_idx //= -1;
 
 my $argstring = shell_quote(@defs);
 my $Nfields   = @defs;
@@ -64,7 +50,6 @@ say <<EOF;
 #include <inttypes.h>
 
 #define ASCIILOG_N_FIELDS         $Nfields
-#define ASCIILOG_ANCHOR_FIELD_IDX $anchor_field_idx
 #include <asciilog/asciilog.h>
 
 EOF
@@ -119,9 +104,9 @@ sub gen_field
     {
         die "Couldn't parse field spec '$field'";
     }
-    if( defined $options && $options ne 'anchor' )
+    if( defined $options  )
     {
-        die "The only supported options is 'anchor', but I got '$field'";
+        die "No options are yet supported";
     }
     if( $name =~ /[^a-zA-Z0-9_]/ )
     {
@@ -135,20 +120,12 @@ sub gen_field
     if( $type eq 'void*' )
     {
         # binary type
-        my $anchor_pre  = '';
-        my $anchor_post = '';
-        if (defined $options)
-        {
-            $anchor_pre = "({ struct asciilog_context_t* ___ctx =";
-            $anchor_post = "; ___ctx->root->fields[$idx] = ___ctx->fields[$idx];})";
-        }
-
         my $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, ptr, len) $anchor_pre _asciilog_set_field_value_binary(ctx,  "$name", $idx, ptr, len) $anchor_post
-#define asciilog_set_field_value__$name(ptr, len)          $anchor_pre _asciilog_set_field_value_binary(NULL, "$name", $idx, ptr, len) $anchor_post
+#define asciilog_set_field_value_ctx__$name(ctx, ptr, len) _asciilog_set_field_value_binary(ctx,  "$name", $idx, ptr, len)
+#define asciilog_set_field_value__$name(ptr, len)          _asciilog_set_field_value_binary(NULL, "$name", $idx, ptr, len)
 EOF
 
-        @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
+        @ret = ($set_field_value, $name);
     }
     else
     {
@@ -168,20 +145,12 @@ EOF
             $type_arg    = "(union asciilog_field_types_t){.$otype = (x)}";
         }
 
-        my $anchor_pre  = '';
-        my $anchor_post = '';
-        if (defined $options)
-        {
-            $anchor_pre = "({ struct asciilog_context_t* ___ctx =";
-            $anchor_post = "; ___ctx->root->fields[$idx] = ___ctx->fields[$idx];})";
-        }
-
         $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, x) $anchor_pre _asciilog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg) $anchor_post
-#define asciilog_set_field_value__$name(x)          $anchor_pre _asciilog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg) $anchor_post
+#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg)
+#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg)
 EOF
 
-        @ret = ($set_field_value, $name, (defined $options ? $idx : undef));
+        @ret = ($set_field_value, $name);
     }
 
     $idx++;

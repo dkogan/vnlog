@@ -14,6 +14,9 @@
   exit(1);                                                              \
 } while(0)
 
+void _asciilog_init_session_ctx( struct asciilog_context_t* ctx,
+                                 int Nfields);
+
 // ASCIILOG_N_FIELDS is unknown here so the asciilog_context_t structure has 0
 // elements. I dynamically allocate it later with the proper size
 static struct asciilog_context_t* get_global_context(int Nfields)
@@ -101,13 +104,11 @@ static void flush(struct asciilog_context_t* ctx)
     fflush(ctx->root->_fp);
 }
 
-static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields, int anchor_field_idx)
+static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields)
 {
     ctx->line_has_any_values = false;
     for(int i=0; i<Nfields; i++)
     {
-        if( ctx == ctx->root && i == anchor_field_idx)
-            continue;
         ctx->fields[i].c[0]   = '-';
         ctx->fields[i].c[1]   = '\0';
         ctx->fields[i].binptr = NULL;
@@ -122,7 +123,7 @@ void _asciilog_init_session_ctx( struct asciilog_context_t* ctx, int Nfields)
     // zero out the context, and set its root to point to itself
     *ctx = (struct asciilog_context_t){ .root = ctx };
 
-    clear_ctx_fields( ctx, Nfields, -1 );
+    clear_ctx_fields( ctx, Nfields );
 }
 
 void _asciilog_init_child_ctx(      struct asciilog_context_t* ctx,
@@ -142,7 +143,7 @@ void _asciilog_init_child_ctx(      struct asciilog_context_t* ctx,
     *ctx = *ctx_src;
 
     // reset the flexible array
-    clear_ctx_fields( ctx, Nfields, -1 );
+    clear_ctx_fields( ctx, Nfields );
 }
 
 void _asciilog_free_ctx( struct asciilog_context_t* ctx, int Nfields )
@@ -172,12 +173,16 @@ static bool is_field_null(const asciilog_field_t* field)
 }
 
 static struct asciilog_context_t*
-set_field_prelude(struct asciilog_context_t* ctx)
+set_field_prelude(struct asciilog_context_t* ctx,
+                  const char* fieldname, int idx)
 {
     if( ctx == NULL ) ctx = get_global_context(-1);
 
     if(!ctx->root->_legend_finished)
         ERR("need a legend to do this");
+    if(!is_field_null(&ctx->fields[idx]))
+        ERR("Field '%s' already set. Old value: '%s'",
+            fieldname, ctx->fields[idx].c);
     ctx->line_has_any_values = true;
 
     return ctx;
@@ -189,47 +194,44 @@ set_field_prelude(struct asciilog_context_t* ctx)
 // the same regardless of type. The guts of printf() reinterprets the bits based
 // on the format string. Floating-point types are handled differently by the
 // ABI, so I do handle those specially
-struct asciilog_context_t*
+void
 _asciilog_set_field_value_int(struct asciilog_context_t* ctx,
                               const char* fieldname, int idx,
                               const char* fmt, union asciilog_field_types_t arg)
 {
-    ctx = set_field_prelude(ctx);
+    ctx = set_field_prelude(ctx, fieldname, idx);
     if( (int)sizeof(ctx->fields[0].c) <=
         snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) )
     {
         ERR("Field size exceeded for field '%s'", fieldname);
     }
-    return ctx;
 }
-struct asciilog_context_t*
+void
 _asciilog_set_field_value_double(struct asciilog_context_t* ctx,
                                  const char* fieldname, int idx,
                                  const char* fmt, double arg)
 {
-    ctx = set_field_prelude(ctx);
+    ctx = set_field_prelude(ctx, fieldname, idx);
     if( (int)sizeof(ctx->fields[0].c) <=
         snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) )
     {
         ERR("Field size exceeded for field '%s'", fieldname);
     }
-    return ctx;
 }
 
-struct asciilog_context_t*
+void
 _asciilog_set_field_value_binary(struct asciilog_context_t* ctx,
                                  const char* fieldname __attribute__((unused)), int idx,
                                  const void* data, int len)
 {
-    ctx = set_field_prelude(ctx);
+    ctx = set_field_prelude(ctx, fieldname, idx);
 
     ctx->fields[idx].binlen = len;
     ctx->fields[idx].binptr = realloc(ctx->fields[idx].binptr, len);
     memcpy(ctx->fields[idx].binptr, data, len);
-    return ctx;
 }
 
-void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields, int anchor_field_idx)
+void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields)
 {
     if( ctx == NULL ) ctx = get_global_context(-1);
 
@@ -243,44 +245,19 @@ void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields, int anch
 
     flockfile(ctx->root->_fp);
     {
-        if( anchor_field_idx < 0  )
+        // There's no anchor field. Output all the fields from this context
+        for(int i=0; i<Nfields-1; i++)
         {
-            // There's no anchor field. Output all the fields from this context
-            for(int i=0; i<Nfields-1; i++)
-            {
-                _emit_field(ctx, i);
-                _emit(ctx, " ");
-            }
-            _emit_field(ctx, Nfields-1);
-            _emit(ctx, "\n");
+            _emit_field(ctx, i);
+            _emit(ctx, " ");
         }
-        else
-        {
-            // There is an anchor field. Emit the anchor if the field is empty
-
-            // This is a gcc-ism
-            void emit_field(int i)
-            {
-                // For each field, emit the anchor if the field is empty AND we have an anchor
-                if( i == anchor_field_idx && is_field_null(&ctx->fields[i]) )
-                    _emit_field(ctx->root, anchor_field_idx);
-                else
-                    _emit_field(ctx, i);
-            }
-
-            for(int i=0; i<Nfields-1; i++)
-            {
-                emit_field(i);
-                _emit(ctx, " ");
-            }
-            emit_field(Nfields-1);
-            _emit(ctx, "\n");
-        }
+        _emit_field(ctx, Nfields-1);
+        _emit(ctx, "\n");
     }
     funlockfile(ctx->root->_fp);
 
     // I want to be able to process streaming data, so I flush the buffer now
     flush(ctx);
 
-    clear_ctx_fields(ctx, Nfields, anchor_field_idx);
+    clear_ctx_fields(ctx, Nfields);
 }

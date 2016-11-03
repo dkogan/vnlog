@@ -1,5 +1,5 @@
 int w
-uint8_t x (anchor)
+uint8_t x
 char* y
 double z
 void* d

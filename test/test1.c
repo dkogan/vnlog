@@ -39,32 +39,5 @@ int main()
 
     asciilog_emit_record();
 
-
-
-    // Let's do it again, but the internal record should leave x blank. x is an
-    // anchor, so its value that was set(), but not emitted(), should come
-    // through. To make it even more interesting, I set the anchor from a
-    // non-root context
-    struct asciilog_context_t ctx2;
-    asciilog_init_child_ctx(&ctx2, NULL); // child of the global context
-    asciilog_set_field_value_ctx__x(&ctx2, 70);
-    {
-        struct asciilog_context_t ctx;
-        asciilog_init_child_ctx(&ctx, NULL); // child of the global context
-        for(int i=0; i<3; i++)
-        {
-            asciilog_set_field_value_ctx__w(&ctx, i + 50);
-            asciilog_set_field_value_ctx__z(&ctx, (double)i + 60);
-            asciilog_emit_record_ctx(&ctx);
-        }
-        asciilog_free_ctx(&ctx);
-    }
-
-    // Now we resume the previous record. We still remember that x == 70
-    asciilog_set_field_value_ctx__w(&ctx2, -21);
-    asciilog_set_field_value_ctx__z(&ctx2, 0.4);
-    asciilog_emit_record_ctx(&ctx2);
-    asciilog_free_ctx(&ctx2);
-
     return 0;
 }
