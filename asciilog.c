@@ -104,7 +104,7 @@ static void flush(struct asciilog_context_t* ctx)
     fflush(ctx->root->_fp);
 }
 
-static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields)
+void _asciilog_clear_fields_ctx(struct asciilog_context_t* ctx, int Nfields, bool do_free_binary)
 {
     ctx->line_has_any_values = false;
     for(int i=0; i<Nfields; i++)
@@ -116,7 +116,8 @@ static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields)
         // inefficient, but allows some things to be simple. For instance I can
         // use NULL to recognize empty binary fields. The vast majority of these
         // data files will have no binary fields, and this simplicity is good
-        free(ctx->fields[i].binptr);
+        if(do_free_binary)
+            free(ctx->fields[i].binptr);
         ctx->fields[i].binptr = NULL;
     }
 }
@@ -129,7 +130,7 @@ void _asciilog_init_session_ctx( struct asciilog_context_t* ctx, int Nfields)
     // zero out the context, and set its root to point to itself
     *ctx = (struct asciilog_context_t){ .root = ctx };
 
-    clear_ctx_fields( ctx, Nfields );
+    _asciilog_clear_fields_ctx( ctx, Nfields, false );
 }
 
 void _asciilog_init_child_ctx(      struct asciilog_context_t* ctx,
@@ -149,7 +150,7 @@ void _asciilog_init_child_ctx(      struct asciilog_context_t* ctx,
     *ctx = *ctx_src;
 
     // reset the flexible array
-    clear_ctx_fields( ctx, Nfields );
+    _asciilog_clear_fields_ctx( ctx, Nfields, false );
 }
 
 void _asciilog_free_ctx( struct asciilog_context_t* ctx, int Nfields )
@@ -270,5 +271,5 @@ void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields)
     // I want to be able to process streaming data, so I flush the buffer now
     flush(ctx);
 
-    clear_ctx_fields(ctx, Nfields);
+    _asciilog_clear_fields_ctx(ctx, Nfields, true);
 }

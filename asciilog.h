@@ -313,10 +313,30 @@ void _asciilog_init_session_ctx( struct asciilog_context_t* ctx,
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 //
+//     asciilog_clear_fields_ctx(ctx, do_free_binary)
+//
+// Clears out the data in a context and makes it ready to be used for the next
+// record. It is rare for the user to have to call this manually. The most
+// common case is handled automatically (clearing out a context after emitting a
+// record). One area where this is useful is when making a copy of a context:
+//
+//     struct asciilog_context_t ctx1;
+//     .... do stuff with ctx1 ... add data to it ...
+//
+//     struct asciilog_context_t ctx2 = ctx1;
+//     // ctx1 and ctx2 now both have the same data, and the same pointers to
+//     // binary data. I need to get rid of the pointer references in ctx1
+//
+//     asciilog_clear_fields_ctx(&ctx1, false);
+void _asciilog_clear_fields_ctx(struct asciilog_context_t* ctx, int Nfields, bool do_free_binary);
+
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
+//
 //     asciilog_free_ctx(ctx)
 //
-// Frees memory for an asciilog context. Currently this is only needed for
-// binary fields, but this should be called in for all contexts, just in case
+// Frees memory for an asciilog context. Do this before throwing the context
+// away. Currently this is only needed for context that have binary fields, but
+// this should be called in for all contexts, just in case
 void _asciilog_free_ctx( struct asciilog_context_t* ctx, int Nfields );
 
 #ifdef __cplusplus
