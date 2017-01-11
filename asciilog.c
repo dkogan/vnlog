@@ -111,6 +111,12 @@ static void clear_ctx_fields(struct asciilog_context_t* ctx, int Nfields)
     {
         ctx->fields[i].c[0]   = '-';
         ctx->fields[i].c[1]   = '\0';
+
+        // Here the idea is that once I emit the field I deallocate. This is
+        // inefficient, but allows some things to be simple. For instance I can
+        // use NULL to recognize empty binary fields. The vast majority of these
+        // data files will have no binary fields, and this simplicity is good
+        free(ctx->fields[i].binptr);
         ctx->fields[i].binptr = NULL;
     }
 }
@@ -226,6 +232,11 @@ _asciilog_set_field_value_binary(struct asciilog_context_t* ctx,
 {
     ctx = set_field_prelude(ctx, fieldname, idx);
 
+    // Here I allocate the memory for the data, and copy into it. The idea is
+    // that once I emit the field I deallocate. This is inefficient, but allows
+    // some things to be simple. For instance I can use NULL to recognize empty
+    // binary fields. The vast majority of these data files will have no binary
+    // fields, and this simplicity is good
     ctx->fields[idx].binlen = len;
     ctx->fields[idx].binptr = realloc(ctx->fields[idx].binptr, len);
     memcpy(ctx->fields[idx].binptr, data, len);
