@@ -7,7 +7,10 @@ LIB_SOURCES := *.c*
 BIN_SOURCES := test/test1.c
 
 TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix
-doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))
+
+# Make can't deal with ':' in filenames, so I hack it
+coloncolon := __colon____colon__
+doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))  $(patsubst lib/Asciilog/%.pm,man3/Asciilog$(coloncolon)%.3pm,$(wildcard lib/Asciilog/*.pm))
 .PHONY: doc
 
 %/:
@@ -15,7 +18,9 @@ doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))
 
 man1/%.1: % | man1/
 	pod2man -r '' --section 1 --center "asciilog" $< $@
-EXTRA_CLEAN += man1
+man3/Asciilog$(coloncolon)%.3pm: lib/Asciilog/%.pm | man3/
+	pod2man -r '' --section 3pm --center "asciilog" $< $@
+EXTRA_CLEAN += man1 man3
 
 CCXXFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
@@ -32,10 +37,11 @@ test check: all
 	@echo "All tests passed!"
 .PHONY: test check
 
-DIST_INCLUDE := *.h
-DIST_BIN     := $(TOOLS)
+DIST_INCLUDE      := *.h
+DIST_BIN          := $(TOOLS)
+DIST_PERL_MODULES := lib/Asciilog
 
 install: doc
-DIST_MAN     := man1/
+DIST_MAN     := man1/ man3/
 
 include /usr/include/mrbuild/Makefile.common
