@@ -9,7 +9,7 @@ use Carp 'confess';
 use FindBin '$Bin';
 
 
-my $dat = <<'EOF';
+my $data_default = <<'EOF';
 # a b c
 1 2 3
 4 - 6
@@ -17,6 +17,20 @@ my $dat = <<'EOF';
 10 11 12
 EOF
 
+my $data_latlon = <<'EOF';
+# lat lon
+37.0597792247 -76.1703387355
+37.0598883299 -76.1703577868
+37.0599879749 -76.1703966222
+37.0600739448 -76.1704347187
+37.0601797672 -76.1704662408
+37.0602752259 -76.1705049567
+37.0604772596 -76.1705748082
+37.0605833650 -76.1706010153
+37.0606881510 -76.1706390439
+37.0607908914 -76.1706712460
+37.0608903752 -76.1707157735
+EOF
 
 
 
@@ -160,40 +174,71 @@ check( <<'EOF', qw(--has b diff([ab])) );
 3 2
 EOF
 
-check( <<'EOF', qw(--matches a>5 .), 'AWK' );
+check( <<'EOF', qw(--matches a>5 .), {language => 'AWK'} );
 # a b c
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--matches $a>5 .), 'PERL' );
+check( <<'EOF', qw(--matches $a>5 .), {language => 'PERL'} );
 # a b c
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--matches a>5 --no-skipempty c), 'AWK' );
+check( <<'EOF', qw(--matches a>5 --no-skipempty c), {language => 'AWK'} );
 # c
 -
 12
 EOF
 
-check( <<'EOF', qw(--matches $a>5 --no-skipempty c), 'PERL' );
+check( <<'EOF', qw(--matches $a>5 --no-skipempty c), {language => 'PERL'} );
 # c
 -
 12
 EOF
 
-check( <<'EOF', qw(--matches a>5), '--eval', 'print a+b', 'AWK' );
+check( <<'EOF', qw(--matches a>5), '--eval', 'print a+b', {language => 'AWK'} );
 16
 21
 EOF
 
-check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', 'PERL' );
+check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', {language => 'PERL'} );
 18
 23
 EOF
 
+
+check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', {language => 'AWK', data => $data_latlon} );
+# rel_n(lat) rel_e(lon)
+0 0
+12.1319 -1.6905
+23.212 -5.13654
+32.7714 -8.51701
+44.5383 -11.3141
+55.1528 -14.7495
+77.6179 -20.9478
+89.4163 -23.2732
+101.068 -26.6477
+112.492 -29.5051
+123.554 -33.4562
+EOF
+
+
+check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', {language => 'PERL', data => $data_latlon} );
+# rel_n(lat) rel_e(lon)
+0 0
+12.1319447101403 -1.69050470904804
+23.2119631755057 -5.13653865865383
+32.7713799003105 -8.51700679638622
+44.5382939050826 -11.3140998289326
+55.1528170494324 -14.7495300237067
+77.6179395005555 -20.9477574245461
+89.4163216701965 -23.2732273896387
+101.06799325373 -26.6476704659731
+112.492204495462 -29.505102855998
+123.554298338749 -33.4562215956404
+EOF
 
 1;
 
@@ -208,15 +253,24 @@ sub check
     my ($expected, @args) = @_;
 
     my @langs;
-    if( $args[-1] =~ /PERL|AWK/ )
+    my $data;
+    if(ref($args[-1]) && ref($args[-1]) eq 'HASH' )
     {
-        my $lang = pop @args;
-        push @langs, ($lang =~ /PERL/ ? 1 : 0);
+        my $opts = pop @args;
+        if($opts->{language})
+        {
+            push @langs, ($opts->{language} =~ /PERL/ ? 1 : 0);
+        }
+        if($opts->{data})
+        {
+            $data = $opts->{data};
+        }
     }
     if( !@langs )
     {
         @langs = (0,1);
     }
+    $data //= $data_default;
 
     for my $doperl (@langs)
     {
@@ -230,7 +284,7 @@ sub check
         }
 
         # @args is now a list-ref. Each element is a filter operation
-        my $in = $dat;
+        my $in = $data;
         my $out;
         for my $arg (@args)
         {
