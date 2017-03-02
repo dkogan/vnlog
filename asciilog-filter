@@ -493,13 +493,13 @@ sub parse_transform_funcs
                 },
 
                 # statement to print
-                '(___input___ - ___state___)*___state__set',
+                '(___input___ - ___state___)*___state___set',
 
                 # preceding awk stanza
                 undef,
 
                 # following awk stanza
-                '{___state___ = ___input___; ___state__set=1}'
+                '{___state___ = ___input___; ___state___set=1}'
               );
         }
         else
