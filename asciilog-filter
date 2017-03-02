@@ -103,7 +103,8 @@ my ($awk_state_stanzas_before, $awk_state_stanzas_after);
 # exec(), but if we're reading a pipe, this can't work
 while(defined ($_ = get_unbuffered_line(*STDIN)))
 {
-    if(/^##/p)
+    # I pass through (don't treat as a legend) ## comments and #! shebang
+    if(/^#[#!]/p)
     {
         print unless $options{skipcomments} || $options{eval};
         next;
