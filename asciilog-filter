@@ -43,6 +43,10 @@ GetOptions(\%options,
            "help") or die($usage);
 $options{has}     //= [];
 $options{matches} //= [];
+if( defined $options{eval} )
+{
+    $options{skipcomments} = 1;
+}
 
 if( defined $options{eval} && @ARGV )
 {
@@ -109,7 +113,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
     # I pass through (don't treat as a legend) ## comments and #! shebang
     if(/^#[#!]/p)
     {
-        print unless $options{skipcomments} || $options{eval};
+        print unless $options{skipcomments};
         next;
     }
 
@@ -398,7 +402,7 @@ while(<STDIN>)
     # skip comments
     if(/^#/)
     {
-        print unless $options{skipcomments} || $options{eval};
+        print unless $options{skipcomments};
         next;
     }
 
