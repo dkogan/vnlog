@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Getopt::Long;
+use Getopt::Long qw(:config no_getopt_compat);
 use List::Util 'max';
 use List::MoreUtils qw(any all);
 
@@ -9,7 +9,7 @@ use feature qw(say state);
 
 
 my $usage = $0 . <<'EOF';
- [--has c0,c1,...] [--has c2] [--matches expr|@file] ... c3 c4 f(c0) g(c1) ...
+ [--has c0,c1,...] [--has c2] [--matches expr|@file] ... c3 c4 +c5 f(c0) g(c1) ...
 
     Other available options:
       --eval expr|@file
@@ -22,6 +22,12 @@ my $usage = $0 . <<'EOF';
     --perl processes the data with perl, not awk. Awk is faster and is thus the
     --default. The --matches and --eval expressions are either in awk or perl,
     --depending on --perl
+
+    Rows selected with --has or --matches.
+
+    Columns selected by naming them on the cmdline. Column specs can be regexen.
+Preced col name with '+' to also add that column to --has. A few functions exist
+to select transformed columns.
 EOF
 
 if(! @ARGV)
@@ -62,6 +68,17 @@ if( defined $options{help} )
 
 # useful for realtime plots
 autoflush STDOUT;
+
+# any requested columns preceded with '+' go into --has. And I strip out the '+'
+for my $iarg (0..$#ARGV)
+{
+    if( $ARGV[$iarg] =~ /^\+(.+)/ )
+    {
+        $ARGV[$iarg] = $1;
+        $options{has} //= [];
+        push @{$options{has}}, $ARGV[$iarg];
+    }
+}
 
 my @cols_want = @ARGV;
 my @must_have_col_indices_in;
@@ -784,20 +801,17 @@ be easily applied by this tool.
 
 This tool has two major modes of operation: filtering and evaluating.
 
-=head2
-
 The normal mode of operation is a filtering one. Here we read in an asciilog,
 select some rows, columns, maybe apply some simple filter functions, and output
 this data as a new asciilog. A new legend is written, and comments are
 preserved.
 
-=head2
-
 If we want to do something more complicated, we can use the I<evaluating> mode
 of operation. Here we pass C<--eval expression>. For each row, we evaluate the
 expression (in awk, or in perl if C<--perl> is given). This evaluation may or
 may not print anything. Comments are ignored. Any columns should be referred-to
-by name. This mode ignores any column selectors, so none should be given.
+by name (not as a regex or a transform). This mode ignores any column selectors,
+so none should be given.
 
 =head2 Input/output data format
 
@@ -825,10 +839,40 @@ update the legend to reflect which columns have been selected.
 A string C<-> is used to indicate that a record does not have a value for this
 field. Other records (lines) may have such a value.
 
-=head2 Filters
+=head2 Basic filtering
 
-We can post-process our data with filters. To apply filter =f= and then filter
-=g= to column =x=, pass in =g(f(x))=. The filters currently available are
+To select specific columns from a file, pass their names (or regexen) on the
+commandline. For instance to pull out columns called C<lat>, C<lon>, and any
+column whose name contains the string C<feature_>, do
+
+ asciilog-filter lat lon feature_
+
+We look for exact column name matches, and if none are found, we use a regex. So
+the above would work if we had columns C<feature_width> and C<feature_height>,
+but would fail if we also had C<feature_>, since in this case only this last
+column would be found. We can explicitly pass a regex to deal with this:
+
+ asciilog-filter lat lon 'feature_.*'
+
+To select specific rows, we can use C<--has col> to get only those rows that
+have a non-empty value in column C<col>. C<--matches> is similar, but evaluates
+arebitrary expressions. For instance C<--matches 'size > 10'> would pass only
+those rows whose C<size> column contains a value > 10.
+
+If we want to select a column I<and> pick only rows that have a value in this
+column, a shorthand syntax exists:
+
+ asciilog-filter --has col col
+
+is equivalent to
+
+ asciilog-filter +col
+
+=head2 Transforms
+
+We can post-process our data with transforms. To apply a transform =f= and then
+a transform =g= to column =x=, pass in =g(f(x))=. The transforms currently
+available are
 
 =over
 
@@ -885,6 +929,15 @@ I<do> have a column named C<x>, we can pass C<--has x>. The C<--has> option can
 be repeated to request multiple columns, or the multiple columns can be given in
 a whitespace-less comma-separated list. For instance if we want only records
 that have both columns C<x> and C<y> we can pass in C<--has x,y>.
+
+If we want to select a column I<and> pick only rows that have a value in this
+column, a shorthand syntax exists:
+
+ asciilog-filter --has col col
+
+is equivalent to
+
+ asciilog-filter +col
 
 =head2 --matches expr
 
