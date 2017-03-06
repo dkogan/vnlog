@@ -8,8 +8,8 @@ use List::MoreUtils qw(any all);
 use feature qw(say state);
 
 
-my $usage = <<'EOF';
-$0 [--has c0,c1,...] [--has c2] [--matches expr|@file] ... c3 c4 f(c0) g(c1) ...
+my $usage = $0 . <<'EOF';
+ [--has c0,c1,...] [--has c2] [--matches expr|@file] ... c3 c4 f(c0) g(c1) ...
 
     Other available options:
       --eval expr|@file
