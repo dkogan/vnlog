@@ -112,8 +112,7 @@ my @awk_output_fields; # awk strings representing stuff to print
 # initial value and diff() to store the previous value
 my ($awk_state_stanzas_before, $awk_state_stanzas_after);
 
-my $saw_rel_n = 0;
-my $saw_rel_e = 0;
+my $saw_rel_n;
 
 
 # Loop searching for the legend.
@@ -308,16 +307,6 @@ if(!@cols_all_legend)
 }
 
 
-
-if ( !(
-       ($saw_rel_n == 0 && $saw_rel_e == 0) ||
-       ($saw_rel_n == 1 && $saw_rel_e == 1)
-      ) )
-{
-    # I don't support multiples of these because I don't know which lat0
-    # corresponds to what. And the awk tools only HAVE a single lat0
-    die "If using rel_n() and rel_e(), I MUST have exactly one of each. Giving up.";
-}
 
 
 
@@ -523,17 +512,21 @@ sub parse_transform_funcs
             #   (N,E) = R_earth * (delta_lat, cos(lat0) * delta_lon)
             #
             # These are a bit special: here a single sub and a single set of
-            # state is used for both rel_n and rel_e
+            # state is used for both rel_n and rel_e. And this state applies to
+            # ALL rel_n, rel_e filters
             state ($lat0,$lon0,$cos_lat0);
             my $Rearth = 6371.0e3; # "mean radius" from wikipedia
 
             if ( $f eq 'rel_n')
             {
-                $saw_rel_n++;
+                $saw_rel_n = 1;
+
 
                 return
                   ( sub
                     {
+                        return '-' if '-' eq $_[0];
+
                         if ( !defined $lat0 )
                         {
                             $lat0 = $_[0];
@@ -545,26 +538,30 @@ sub parse_transform_funcs
 
                     # these awk statements are a bit convoluted by nature. Write
                     # it out to confirm it is correct. The tests confirm it is
-                    # correct as well
+                    # correct.
+                    #
+                    # I don't use the special ___state___ and ___state___set
+                    # variables because the state here is GLOBAL, not local to
+                    # some particular column. I.e. lat0 is the same for ALL
+                    # rel_n(). ___rel_[ne]0___ and ___cos_lat0___ are passed to
+                    # awk unmodified
 
                     # statement to print
-                    "___input___ * 3.141592653589793/180.0*$Rearth - ___state___",
+                    "___input___ == \"-\" ? \"-\" : (___input___ * 3.141592653589793/180.0*$Rearth - ___rel_n0___)",
 
                     # preceding awk stanza
-                    "!___state___set {" .
+                    "!___rel_n0___set && ___input___ != \"-\" {" .
                     "   x = ___input___ * 3.141592653589793/180.0;" .
-                    "   ___state___ = x * $Rearth;"     .
-                    "   cos_lat0 = cos(x);"      .
-                    "   cos_lat0_scaled = cos_lat0 * 3.141592653589793/180.0 * $Rearth;" .
-                    "   ___state___set=1" .
+                    "   ___rel_n0___ = x * $Rearth;"     .
+                    "   ___cos_lat0___ = cos(x);"      .
+                    "   cos_lat0_scaled = ___cos_lat0___ * 3.141592653589793/180.0 * $Rearth;" .
+                    "   ___rel_n0___set=1" .
                     "}"
                   );
             }
 
             # 'rel_e'
-            $saw_rel_e++;
-
-            if( $saw_rel_n == 0 )
+            if( !$saw_rel_n )
             {
                 # rel_n initializes state (cos(lat0)) that rel_e uses, so rel_n
                 # must come first
@@ -575,23 +572,29 @@ sub parse_transform_funcs
             return
               ( sub
                 {
-                    # rel_e
+                    return '-' if '-' eq $_[0];
                     $lon0 //= $_[0];
                     return ($_[0] - $lon0) * 3.141592653589793/180.0 * $cos_lat0 * $Rearth;
                 },
 
                 # these awk statements are a bit convoluted by nature. Write
                 # it out to confirm it is correct. The tests confirm it is
-                # correct as well
+                # correct.
+                #
+                # I don't use the special ___state___ and ___state___set
+                # variables because the state here is GLOBAL, not local to some
+                # particular column. I.e. lat0 is the same for ALL rel_n().
+                # ___rel_[ne]0___ and ___cos_lat0___ are passed to awk
+                # unmodified
 
                 # statement to print
-                "___input___ * cos_lat0_scaled - ___state___",
+                "___input___ == \"-\" ? \"-\" : (___input___ * cos_lat0_scaled - ___rel_e0___)",
 
                 # preceding awk stanza
-                "!___state___set {" .
+                "!___rel_e0___set && ___input___ != \"-\" {" .
                 "   x = ___input___ * 3.141592653589793/180.0;" .
-                "   ___state___ = x * $Rearth * cos_lat0;"   .
-                "   ___state___set=1" .
+                "   ___rel_e0___ = x * $Rearth * ___cos_lat0___;"   .
+                "   ___rel_e0___set=1" .
                 "}"
               );
         }
