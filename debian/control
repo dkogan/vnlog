@@ -1,0 +1,44 @@
+Source: libasciilog
+Priority: optional
+Section: devel
+Build-Depends: debhelper (>= 9), mrbuild, dh-exec,
+ libipc-run-perl,
+ libtext-diff-perl,
+ libstring-shellquote-perl,
+ liblist-moreutils-perl,
+ mawk
+Maintainer: Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>
+Standards-Version: 3.9.8
+Homepage: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+Vcs-Git: git@github.jpl.nasa.gov:maritime-robotics/asciilog.git
+Vcs-Browser: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+
+Package: libasciilog0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Tools to manipulate whitespace-separated ASCII logs
+ We want to manipulate data logged in a very simple whitespace-separated ASCII
+ format. The format in compatible with the usual UNIX tools, and thus can be
+ processed with a multitude of existing methods. Some convenience tools and
+ library interfaces are provided to create new data in this format and
+ manipulate existing data
+
+Package: libasciilog-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends}, libasciilog0 (= ${binary:Version}),
+ libstring-shellquote-perl
+Description: Tools to manipulate whitespace-separated ASCII logs
+ The library needed for the asciilog C interface and the asciilog-gen-header
+ tool needed to define the fields
+
+Package: libasciilog-tools
+Section: libdevel
+Architecture: all
+Depends: ${misc:Depends},
+ mawk
+Description: Tools to manipulate whitespace-separated ASCII logs
+ Various helper tools to make working with asciilogs easier

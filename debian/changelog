@@ -1,0 +1,5 @@
+libasciilog (1.14) stretch; urgency=medium
+
+  * first Debian package build
+
+ -- Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>  Sat, 04 Mar 2017 00:01:32 -0800
