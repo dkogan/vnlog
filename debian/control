@@ -2,11 +2,7 @@ Source: libasciilog
 Priority: optional
 Section: devel
 Build-Depends: debhelper (>= 9), mrbuild, dh-exec,
- libipc-run-perl,
- libtext-diff-perl,
- libstring-shellquote-perl,
- liblist-moreutils-perl,
- mawk
+ libstring-shellquote-perl
 Maintainer: Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>
 Standards-Version: 3.9.8
 Homepage: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
