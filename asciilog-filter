@@ -859,7 +859,7 @@ column would be found. We can explicitly pass a regex to deal with this:
 
 To select specific rows, we can use C<--has col> to get only those rows that
 have a non-empty value in column C<col>. C<--matches> is similar, but evaluates
-arebitrary expressions. For instance C<--matches 'size > 10'> would pass only
+arebitrary expressions. For instance C<--matches 'size E<gt> 10'> would pass only
 those rows whose C<size> column contains a value > 10.
 
 If we want to select a column I<and> pick only rows that have a value in this
