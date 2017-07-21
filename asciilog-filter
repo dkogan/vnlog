@@ -469,19 +469,19 @@ sub parse_transform_funcs
         {
             return
               ( sub { return $_[0] * 1e-6; },
-                '___input___ * 1e-6' );
+                '(___input___) * 1e-6' );
         }
         elsif( $f eq 'deg2rad' )
         {
             return
               ( sub { return $_[0] * 3.141592653589793/180.0; },
-                '___input___ * 3.141592653589793/180.0' );
+                '(___input___) * 3.141592653589793/180.0' );
         }
         elsif( $f eq 'rad2deg' )
         {
             return
               ( sub { return $_[0] * 180.0/3.141592653589793; },
-                '___input___ * 180.0/3.141592653589793' );
+                '(___input___) * 180.0/3.141592653589793' );
         }
         elsif( $f eq 'rel' )
         {
@@ -496,10 +496,10 @@ sub parse_transform_funcs
                 },
 
                 # statement to print
-                '___input___ - ___state___',
+                '(___input___) - ___state___',
 
                 # preceding awk stanza
-                '!___state___set {___state___ = ___input___; ___state___set=1}'
+                '!___state___set {___state___ = (___input___); ___state___set=1}'
               );
         }
         elsif( $f =~ /^rel_[ne]$/ )
@@ -547,11 +547,11 @@ sub parse_transform_funcs
                     # awk unmodified
 
                     # statement to print
-                    "___input___ == \"-\" ? \"-\" : (___input___ * 3.141592653589793/180.0*$Rearth - ___rel_n0___)",
+                    "(___input___) == \"-\" ? \"-\" : ((___input___) * 3.141592653589793/180.0*$Rearth - ___rel_n0___)",
 
                     # preceding awk stanza
-                    "!___rel_n0___set && ___input___ != \"-\" {" .
-                    "   x = ___input___ * 3.141592653589793/180.0;" .
+                    "!___rel_n0___set && (___input___) != \"-\" {" .
+                    "   x = (___input___) * 3.141592653589793/180.0;" .
                     "   ___rel_n0___ = x * $Rearth;"     .
                     "   ___cos_lat0___ = cos(x);"      .
                     "   cos_lat0_scaled = ___cos_lat0___ * 3.141592653589793/180.0 * $Rearth;" .
@@ -588,11 +588,11 @@ sub parse_transform_funcs
                 # unmodified
 
                 # statement to print
-                "___input___ == \"-\" ? \"-\" : (___input___ * cos_lat0_scaled - ___rel_e0___)",
+                "(___input___) == \"-\" ? \"-\" : ((___input___) * cos_lat0_scaled - ___rel_e0___)",
 
                 # preceding awk stanza
-                "!___rel_e0___set && ___input___ != \"-\" {" .
-                "   x = ___input___ * 3.141592653589793/180.0;" .
+                "!___rel_e0___set && (___input___) != \"-\" {" .
+                "   x = (___input___) * 3.141592653589793/180.0;" .
                 "   ___rel_e0___ = x * $Rearth * ___cos_lat0___;"   .
                 "   ___rel_e0___set=1" .
                 "}"
@@ -616,13 +616,13 @@ sub parse_transform_funcs
                 },
 
                 # statement to print
-                '(___input___ - ___state___)*___state___set',
+                '((___input___) - ___state___)*___state___set',
 
                 # preceding awk stanza
                 undef,
 
                 # following awk stanza
-                '{___state___ = ___input___; ___state___set=1}'
+                '{___state___ = (___input___); ___state___set=1}'
               );
         }
         else

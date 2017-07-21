@@ -26,6 +26,14 @@ my $data_latlon = <<'EOF';
 37.0601797672 -76.1704662408 37.0607908914 -76.1706712460
 EOF
 
+my $data_t = <<'EOF';
+# t
+100e6
+101e6
+102e6
+103e6
+EOF
+
 
 
 check( <<'EOF', qw(.) );
@@ -151,6 +159,38 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(diff(rel(a)))]);
 0
 3
 3
+3
+EOF
+
+check( <<'EOF', 'us2s(t)', {data => $data_t});
+# us2s(t)
+100
+101
+102
+103
+EOF
+
+check( <<'EOF', 'rel(t)', {data => $data_t});
+# rel(t)
+0
+1000000
+2000000
+3000000
+EOF
+
+check( <<'EOF', 'rel(us2s(t))', {data => $data_t});
+# rel(us2s(t))
+0
+1
+2
+3
+EOF
+
+check( <<'EOF', 'us2s(rel(t))', {data => $data_t});
+# us2s(rel(t))
+0
+1
+2
 3
 EOF
 
