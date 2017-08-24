@@ -865,11 +865,11 @@ those rows whose C<size> column contains a value > 10.
 If we want to select a column I<and> pick only rows that have a value in this
 column, a shorthand syntax exists:
 
- asciilog-filter --has col col
+ asciilog-filter +col
 
 is equivalent to
 
- asciilog-filter +col
+ asciilog-filter --has col col
 
 =head2 Transforms
 
@@ -951,7 +951,7 @@ aware of which one you are using. This feature is slow in perl, so awk is
 strongly recommended here. To refer to a field named C<xxx> in the expression,
 say C<xxx> in awk and C<$xxx> in perl.
 
-Multiple C<--matches> options can be given. The record is output onlyt if I<all>
+Multiple C<--matches> options can be given. The record is output only if I<all>
 the expressions are true.
 
 If a C<--matches> expression begins with C<@>, then the text following the C<@>
@@ -982,16 +982,16 @@ Normally we initialize with perl, and use awk to do all the actual work. If we
 want to do everything with perl, pass this option. It should produce the same
 results, but not as quickly.
 
-=head2 --dumpawk
+=head2 --dumpexprs
 
-All the work is generally done by an awk script that's generated on the fly from
-the commandline options and the legend. For debugging it is possible to print
-out the awk script instead of running it. This option does this.
+Used for debugging. This spits out all the expressions parsed from the
+commandline. These come from C<--matches>, C<--eval> and, if using the awk
+backend, the generated awk program
 
 =head2 --dumpindices
 
-This option exists only for debugging. If given, prints out the indices of all
-the selected columns, and exits.
+Used for debugging. If given, prints out the indices of all the selected
+columns, and exits.
 
 =head1 REPOSITORY
 
