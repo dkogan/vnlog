@@ -47,23 +47,21 @@ $ ./test
 -30 10 whoa 0.500000
 #+END_EXAMPLE
 
-Hot damn! Let's look only at the =w= and =x= columns, but I want =w= relative
-from the first point
+Hot damn! Let's look only at the =w= and =x= columns
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter 'rel(w) x'
+$ ./test | asciilog-filter w x
 
-# rel(w) x
-0 40
--10 50
--20 10
+# w x
+-10 40
+-20 50
+-30 10
 #+END_EXAMPLE
 
-Let me plot those
+We can trivially make plots:
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter 'rel(w) x' | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
-                                                                                
+$ ./test | asciilog-filter w x | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
                                                                                 
   50 +-+---------------+--------------********------------+---------------+-+   
      +                 +            **   +    *********   +                 +   
@@ -81,16 +79,39 @@ $ ./test | asciilog-filter 'rel(w) x' | feedgnuplot --domain --terminal 'dumb 80
   15 +-**                                                                 +-+   
      +*                +                 +                +                 +   
   10 *-+---------------+-----------------+----------------+---------------+-+   
-    -20               -15               -10              -5                 0   
+    -30               -25               -20              -15               -10  
 #+END_EXAMPLE
 
-I only want to see records with a valid =z=
+The field selectors fall back to regexes, and simple processing is available.
+For instance, =w= relative to the first record:
 
 #+BEGIN_EXAMPLE
-./test | asciilog-filter --has z
+$ ./test | asciilog-filter 'rel(w)' '[xy]'
+
+# rel(w) x y
+0 40 asdf
+-10 50 -
+-20 10 whoa
+#+END_EXAMPLE
+
+And we can ask for specific rows. Only those that have a valid record for =y=:
+
+#+BEGIN_EXAMPLE
+$ ./test | asciilog-filter --has y
+
 # w x y z
--20 50 - 0.300000
+-10 40 asdf -
 -30 10 whoa 0.500000
+#+END_EXAMPLE
+
+Or those that match some arbitrary expression:
+
+#+BEGIN_EXAMPLE
+$ ./test | asciilog-filter --matches 'x > 20'
+
+# w x y z
+-10 40 asdf -
+-20 50 - 0.300000
 #+END_EXAMPLE
 
 * Description
