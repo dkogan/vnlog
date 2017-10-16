@@ -18,6 +18,7 @@ $0 [--has c0,c1,...] [--has c2] [--matches expr|\@file] ... c3 c4 +c5 f(c0) g(c1
       --dumpindices
       --dumpexprs
       --perl
+      --unbuffered
 
     --perl processes the data with perl, not awk. Awk is faster and is thus the
     --default. The --matches and --eval expressions are either in awk or perl,
@@ -51,6 +52,7 @@ GetOptions(\%options,
            "dumpindices!",
            "dumpexprs!",
            "perl",
+           "unbuffered",
            "help") or die($usage);
 $options{has}     //= [];
 $options{matches} //= [];
@@ -70,9 +72,6 @@ if( defined $options{help} )
     print $usage;
     exit 0;
 }
-
-# useful for realtime plots
-autoflush STDOUT;
 
 # any requested columns preceded with '+' go into --has. And I strip out the '+'
 for my $iarg (0..$#ARGV)
@@ -99,7 +98,10 @@ for my $c (@{$options{has}})
 if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
 {
     while(<STDIN>)
-    { print; }
+    {
+        print;
+        flush STDOUT if $options{unbuffered};
+    }
 }
 
 my @cols_all_legend;
@@ -134,7 +136,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
     # I pass through (don't treat as a legend) ## comments and #! shebang
     if(/^#[#!]/p)
     {
-        print unless $options{skipcomments};
+        unless($options{skipcomments})
+        {
+            print;
+            flush STDOUT if $options{unbuffered};
+        }
         next;
     }
 
@@ -286,7 +292,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         }
 
         # print out the new legend
-        print "# @colnames_output\n" unless $options{dumpexprs} || $options{eval};
+        unless($options{dumpexprs} || $options{eval})
+        {
+            print "# @colnames_output\n";
+            flush STDOUT if $options{unbuffered};
+        }
 
 
         if( @must_have_col_names )
@@ -331,7 +341,15 @@ if( !$options{perl} )
         say $awkprogram;
         exit;
     }
-    exec 'mawk', $awkprogram;
+    if($options{unbuffered})
+    {
+        exec 'mawk', '-Winteractive', $awkprogram;
+    }
+    else
+    {
+        exec 'mawk', $awkprogram;
+    }
+
     exit; # dummy. We never get here
 }
 
@@ -413,7 +431,11 @@ while(<STDIN>)
     # skip comments
     if(/^#/)
     {
-        print unless $options{skipcomments};
+        unless($options{skipcomments})
+        {
+            print;
+            flush STDOUT if $options{unbuffered};
+        }
         next;
     }
 
@@ -452,6 +474,7 @@ while(<STDIN>)
             }
         }
         print "@f\n";
+        flush STDOUT if $options{unbuffered};
     }
 }
 
@@ -777,7 +800,7 @@ asciilog-filter - filters ascii logs to select particular rows, fields
     # make a realtime plot of its motion
     $ run_robot |
       tee /tmp/log |
-      asciilog-filter x y |
+      asciilog-filter --unbuffered x y |
       feedgnuplot --domain --lines --stream
 
     [ plot pops up, and updates itself as the robot moves ]
@@ -997,6 +1020,11 @@ backend, the generated awk program
 
 Used for debugging. If given, prints out the indices of all the selected
 columns, and exits.
+
+=head2 --unbuffered
+
+Flushes each line after each print. This makes sure each line is output as soon
+as it is available, which is crucial for realtime output and plotting.
 
 =head1 REPOSITORY
 
