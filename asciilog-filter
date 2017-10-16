@@ -956,10 +956,13 @@ option.
 Used to select particular records (rows) in a data file. A I<null> value in a
 column is designated with a single C<->. This means that this particular field
 value does not exist in this record. If we want to select only records that
-I<do> have a column named C<x>, we can pass C<--has x>. The C<--has> option can
-be repeated to request multiple columns, or the multiple columns can be given in
-a whitespace-less comma-separated list. For instance if we want only records
-that have both columns C<x> and C<y> we can pass in C<--has x,y>.
+I<do> have a column named C<x>, we can pass C<--has x>. To select records that
+have data for I<all> of a set of columns, the C<--has> option can be repeated,
+or these multiple columns can be given in a whitespace-less comma-separated
+list. For instance if we want only records that have data in I<both> columns
+C<x> I<and> C<y> we can pass in C<--has x,y> or C<--has x --has y>. If we want
+to combine multiple columns in an I<or> (select rows that have data in I<any> of
+a given set of columns), use C<--matches> as documented below.
 
 If we want to select a column I<and> pick only rows that have a value in this
 column, a shorthand syntax exists:
@@ -984,6 +987,15 @@ the expressions are true.
 
 If a C<--matches> expression begins with C<@>, then the text following the C<@>
 is assumed to be a filename from which the expression should be read.
+
+Example: to select all rows that have valid data in column C<a> I<or> column
+C<b> I<or> column C<c> you can
+
+ asciilog-filter --matches 'a != "-" || b != "-" || c != "-"'
+
+or
+
+ asciilog-filter --perl --matches 'defined $a || defined $b || defined $c'
 
 =head2 --eval expr
 
