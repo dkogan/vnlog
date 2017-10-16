@@ -32,7 +32,7 @@ asciilog-tailf - tails a log file, preserving the legend
 
 =head1 SYNOPSIS
 
- $ asciilog-tailf /tmp/log
+ $ asciilog-tailf tst.asciilog
  # x y z
  1 2 3
  ...
@@ -49,7 +49,7 @@ are passed to <tail> verbatim.
 A common asciilog use case is to run a data-generating process, C<tee> the
 output to a log file, while plotting some of the results:
 
- $ run_widget | tee /tmp/log | asciilog-filter quality | feedgnuplot --stream
+ $ run_widget | tee tst.asciilog | asciilog-filter quality | feedgnuplot --stream
 
 As this runs, maybe we want to make a realtime plot of some other fields in teh
 log. We thus need to create a pipe that produces the data as it comes in.
@@ -61,7 +61,7 @@ that, we can use this tool instead of a plain C<tail -f>. This tool simply
 prints out the log until it sees a legend (inclusively), and then runs the
 C<tail -f> as usual. So we can do
 
- $ asciilog-tailf /tmp/log | asciilog-filter x y z | feedgnuplot --stream --3d --lines
+ $ asciilog-tailf tst.asciilog | asciilog-filter x y z | feedgnuplot --stream --3d --lines
 
 This usage will start printing out all the data written to the log file as it
 comes in. Thus all data that is I<already> in the log is ignored. If this is
@@ -71,7 +71,7 @@ possible to ask C<tail> to print out all lines except the first (so that we
 don't print the legend twice, assuming the legend is on the first line) and
 I<then> to output new data:
 
- $ asciilog-tailf -n+2 /tmp/log | ....
+ $ asciilog-tailf -n+2 tst.asciilog | ....
 
 =head1 REQUIRED ARGUMENTS
 
