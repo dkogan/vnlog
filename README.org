@@ -1,4 +1,8 @@
 * Summary
+This should highlight the format and filtering tool FIRST. The C interface
+second.
+
+
 In a shell:
 
 #+BEGIN_EXAMPLE
@@ -136,6 +140,10 @@ selects specific rows, fields possibly with some very simple postprocessing
 
 - =asciilog-tailf=
 Works like =tail -f=, but makes sure to output the legend
+
+- =asciilog-align=
+Works like =column -t= to print out aligned columns of text, but makes sure to
+treat the legend and comments correctly
 
 - =asciilog-make-matrix=
 Converts a one-point-per-line asciilog to a matrix of data. I.e.
