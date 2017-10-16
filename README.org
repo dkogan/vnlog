@@ -1,49 +1,9 @@
 * Summary
-This should highlight the format and filtering tool FIRST. The C interface
-second.
-
-
-In a shell:
+We have a log file: whitespace-separated ascii text, comments start with #,
+first comment is field labels.
 
 #+BEGIN_EXAMPLE
-asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
-#+END_EXAMPLE
-
-In a C program test.c:
-
-#+BEGIN_SRC C
-#include "asciilog_fields_generated.h"
-
-int main()
-{
-    asciilog_emit_legend();
-
-    asciilog_set_field_value__w(-10);
-    asciilog_set_field_value__x(40);
-    asciilog_set_field_value__y("asdf");
-    asciilog_emit_record();
-
-    asciilog_set_field_value__z(0.3);
-    asciilog_set_field_value__x(50);
-    asciilog_set_field_value__w(-20);
-    asciilog_emit_record();
-
-    asciilog_set_field_value__w(-30);
-    asciilog_set_field_value__x(10);
-    asciilog_set_field_value__y("whoa");
-    asciilog_set_field_value__z(0.5);
-    asciilog_emit_record();
-
-    return 0;
-}
-#+END_SRC
-
-Then we build and run, and we get
-
-#+BEGIN_EXAMPLE
-$ cc -o test test.c -lasciilog
-
-$ ./test
+$ cat tst.asciilog
 
 # w x y z
 -10 40 asdf -
@@ -51,10 +11,10 @@ $ ./test
 -30 10 whoa 0.500000
 #+END_EXAMPLE
 
-Hot damn! Let's look only at the =w= and =x= columns
+Let's look only at the =w= and =x= columns
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter w x
+$ < tst.asciilog asciilog-filter w x
 
 # w x
 -10 40
@@ -65,7 +25,7 @@ $ ./test | asciilog-filter w x
 We can trivially make plots:
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter w x | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
+$ < tst.asciilog asciilog-filter w x | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
                                                                                 
   50 +-+---------------+--------------********------------+---------------+-+   
      +                 +            **   +    *********   +                 +   
@@ -90,7 +50,7 @@ The field selectors fall back to regexes, and simple processing is available.
 For instance, =w= relative to the first record:
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter 'rel(w)' '[xy]'
+$ < tst.asciilog asciilog-filter 'rel(w)' '[xy]'
 
 # rel(w) x y
 0 40 asdf
@@ -98,10 +58,21 @@ $ ./test | asciilog-filter 'rel(w)' '[xy]'
 -20 10 whoa
 #+END_EXAMPLE
 
+That's hard to read. Let's align the columns:
+
+#+BEGIN_EXAMPLE
+$ < tst.asciilog asciilog-filter 'rel(w)' '[xy]' | asciilog-align
+
+# rel(w) x  y   
+  0      40 asdf
+-10      50 -   
+-20      10 whoa
+#+END_EXAMPLE
+
 And we can ask for specific rows. Only those that have a valid record for =y=:
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter --has y
+$ < tst.asciilog asciilog-filter --has y
 
 # w x y z
 -10 40 asdf -
@@ -111,7 +82,7 @@ $ ./test | asciilog-filter --has y
 Or those that match some arbitrary expression:
 
 #+BEGIN_EXAMPLE
-$ ./test | asciilog-filter --matches 'x > 20'
+$ < tst.asciilog asciilog-filter --matches 'x > 20'
 
 # w x y z
 -10 40 asdf -
@@ -180,6 +151,61 @@ name, one at a time without the user needing to think about their column index
 
 See [[file:asciilog.h][=asciilog.h=]] for the (trivially-simple) API. And see the manpages of each
 specific tool to get more details about usage.
+
+* C interface
+For most uses, these logfiles are simple enough to be generated with plain
+prints. But it's possible to have a large C program that's writing logs with
+hundreds of columns where any one record would contain only a subset of the
+columns. In such a case, it's helpful to have a library that can output the log
+files. This is available, and simple-enough to be demonstrated with an example:
+
+In a shell:
+
+#+BEGIN_EXAMPLE
+$ asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
+#+END_EXAMPLE
+
+In a C program test.c:
+
+#+BEGIN_SRC C
+#include "asciilog_fields_generated.h"
+
+int main()
+{
+    asciilog_emit_legend();
+
+    asciilog_set_field_value__w(-10);
+    asciilog_set_field_value__x(40);
+    asciilog_set_field_value__y("asdf");
+    asciilog_emit_record();
+
+    asciilog_set_field_value__z(0.3);
+    asciilog_set_field_value__x(50);
+    asciilog_set_field_value__w(-20);
+    asciilog_emit_record();
+
+    asciilog_set_field_value__w(-30);
+    asciilog_set_field_value__x(10);
+    asciilog_set_field_value__y("whoa");
+    asciilog_set_field_value__z(0.5);
+    asciilog_emit_record();
+
+    return 0;
+}
+#+END_SRC
+
+Then we build and run, and we get
+
+#+BEGIN_EXAMPLE
+$ cc -o test test.c -lasciilog
+
+$ ./test
+
+# w x y z
+-10 40 asdf -
+-20 50 - 0.300000
+-30 10 whoa 0.500000
+#+END_EXAMPLE
 
 * Maintainer
 This is maintained by Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>. Please let Dima
