@@ -243,6 +243,7 @@ check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', {la
 EOF
 
 
+# awk and perl write out the data with different precisions, so I test them separately for now
 check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
 # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
 0 0 55.1528 -14.7495
