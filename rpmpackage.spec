@@ -15,6 +15,7 @@ BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
 
+
 # for tests
 BuildRequires: mawk
 
@@ -39,6 +40,7 @@ tool needed to define the fields
 Requires:       %{name}%{_isa} = %{version}-%{release}
 Summary:        Tools for manipulating asciilogs
 Requires:       mawk
+Requires:       perl-Text-Table
 
 
 %description tools

@@ -1,0 +1,149 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Text::Table;
+
+
+
+my $usage = "Usage: $0 [logfile]\n";
+if( exists $ARGV[0] && ($ARGV[0] eq '-h' || $ARGV[0] eq '--help'))
+{
+    print $usage;
+    exit 0;
+}
+
+
+
+my $table = undef;
+
+# This exists to support interstitial comments that are output without
+# alignment. Each chunk is:
+#
+# - integer index of the line start
+# - trailing comment
+#
+# Lines preceding the legend are stored in the chunk that has index < 0
+my @chunks = ( [-1, ''] );
+my $Nlines_here = 0;
+
+
+while(<>)
+{
+    if( !defined $table )
+    {
+        if( !/^# / )
+        {
+            # don't have a legend yet, and this isn't it.
+            $chunks[-1][1] .= $_;
+        }
+        else
+        {
+            # got legend
+            push @chunks, [0,''];
+            $Nlines_here = 1;
+
+            chomp;
+            my @fields = split;
+            shift @fields;
+
+            $fields[0] = "# $fields[0]";
+
+            $table = Text::Table->new(@fields);
+        }
+        next;
+    }
+
+    if( /^#/ )
+    {
+        # comment. Add to the comment we're accumulating
+        $chunks[-1][1] .= $_;
+        next;
+    }
+
+    # data line
+    chomp;
+    my @fields = split;
+    $table->add(@fields);
+
+    if( length($chunks[-1][1]) == 0 )
+    {
+        # Data line and we don't have a trailing comment yet. Accumulate
+        $Nlines_here++;
+    }
+    else
+    {
+        # Our chunk already has a trailing comment, But the new line is a data
+        # line. I start a new chunk
+        push @chunks, [$chunks[-1][0] + $Nlines_here,
+                       ''];
+        $Nlines_here = 1;
+    }
+}
+
+for my $ichunk (0..$#chunks)
+{
+    my $chunk = $chunks[$ichunk];
+
+    if( $chunk->[0] >= 0)
+    {
+        print $table->table($chunk->[0],
+                            $ichunk != $#chunks ?
+                            ($chunks[$ichunk+1][0] - $chunk->[0]) :
+                            $Nlines_here);
+    }
+    print $chunk->[1];
+}
+
+__END__
+
+=head1 NAME
+
+asciilog-align - aligns the columns for easy interpretation by humans
+
+=head1 SYNOPSIS
+
+ $ cat tst.asciilog
+
+ # w x y z
+ -10 40 asdf -
+ -20 50 - 0.300000
+ -30 10 whoa 0.500000
+
+
+ $ asciilog-align tst.asciilog
+
+ # w x  y    z
+ -10 40 asdf -
+ -20 50 -    0.300000
+ -30 10 whoa 0.500000
+
+=head1 DESCRIPTION
+
+The basic usage is
+
+ asciilog-align logfile
+
+The arguments are assumed to be the asciilog files. If no arguments are given,
+the input comes from STDIN.
+
+This is very similar to C<column -t>, but handles C<#> lines properly:
+
+1. The first C<#> line is the legend. For the purposes of alignment, the leading
+   C<#> character and the first column label are treated as one column
+
+2. Any other C<#> lines are output verbatim.
+
+=head1 REPOSITORY
+
+https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <Dmitriy.Kogan@jpl.nasa.gov> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Proprietary. Copyright 2016 California Institute of Technology
+
+=cut

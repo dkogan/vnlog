@@ -6,7 +6,7 @@ TAIL_VERSION := 1.9
 LIB_SOURCES := *.c*
 BIN_SOURCES := test/test1.c
 
-TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix
+TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix asciilog-align
 
 # Make can't deal with ':' in filenames, so I hack it
 coloncolon := __colon____colon__
