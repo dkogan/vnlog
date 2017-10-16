@@ -32,7 +32,7 @@ while(<>)
 {
     if( !defined $table )
     {
-        if( !/^# / )
+        if( !/^#[^#]/ )
         {
             # don't have a legend yet, and this isn't it.
             $chunks[-1][1] .= $_;
@@ -44,8 +44,8 @@ while(<>)
             $Nlines_here = 1;
 
             chomp;
+            s/^# +//;
             my @fields = split;
-            shift @fields;
 
             $fields[0] = "# $fields[0]";
 

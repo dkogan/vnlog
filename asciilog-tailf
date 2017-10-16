@@ -18,8 +18,8 @@ fi
 
 
 
-<$logfile awk '{print} /^# / { exit }' # print everything until we see the
-                                       # legend
+<$logfile awk '{print} /^#[^#]/ { exit }' # print everything until we see the
+                                          # legend
 tail -f  $@
 
 
