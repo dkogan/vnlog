@@ -8,11 +8,11 @@ use List::MoreUtils qw(any all);
 use feature qw(say state);
 
 
-my $usage = $0 . <<'EOF';
- [--has c0,c1,...] [--has c2] [--matches expr|@file] ... c3 c4 +c5 f(c0) g(c1) ...
+my $usage =  <<EOF;
+$0 [--has c0,c1,...] [--has c2] [--matches expr|\@file] ... c3 c4 +c5 f(c0) g(c1) ...
 
     Other available options:
-      --eval expr|@file
+      --eval expr|\@file
       --noskipempty
       --skipcomments
       --dumpindices
@@ -26,8 +26,13 @@ my $usage = $0 . <<'EOF';
     Rows selected with --has or --matches.
 
     Columns selected by naming them on the cmdline. Column specs can be regexen.
-Preced col name with '+' to also add that column to --has. A few functions exist
-to select transformed columns.
+    Precede col name with '+' to also add that column to --has. A few functions
+    exist to select transformed columns.
+
+    --unbuffered flushes each line after each print. Useful for streaming data.
+
+    For more information invoke $0 --help
+
 EOF
 
 if(! @ARGV)
