@@ -1,4 +1,2 @@
-#!/usr/bin/dh-exec
-
-debian/tmp/usr/lib64/*.so.* usr/lib/${DEB_HOST_MULTIARCH}
+/usr/lib/*/*.so.*
 /usr/share/perl5/*

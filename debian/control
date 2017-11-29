@@ -1,7 +1,7 @@
-Source: libasciilog
+Source: asciilog
 Priority: optional
 Section: devel
-Build-Depends: debhelper (>= 9), mrbuild, dh-exec,
+Build-Depends: debhelper (>= 9), mrbuild (>= 0.51),
  libstring-shellquote-perl
 Maintainer: Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>
 Standards-Version: 3.9.8
@@ -31,7 +31,7 @@ Description: Tools to manipulate whitespace-separated ASCII logs
  The library needed for the asciilog C interface and the asciilog-gen-header
  tool needed to define the fields
 
-Package: libasciilog-tools
+Package: asciilog
 Section: libdevel
 Architecture: all
 Depends: ${misc:Depends},
