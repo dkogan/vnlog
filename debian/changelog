@@ -1,10 +1,10 @@
-libasciilog (1.18) unstable; urgency=medium
+asciilog (1.18) unstable; urgency=medium
 
   * Updates
 
  -- Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>  Tue, 28 Nov 2017 17:58:19 -0800
 
-libasciilog (1.14) stretch; urgency=medium
+asciilog (1.14) stretch; urgency=medium
 
   * first Debian package build
 
