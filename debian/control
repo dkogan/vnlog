@@ -2,7 +2,10 @@ Source: asciilog
 Priority: optional
 Section: devel
 Build-Depends: debhelper (>= 9), mrbuild (>= 0.51),
- libstring-shellquote-perl
+ libipc-run-perl,
+ libtext-diff-perl,
+ libstring-shellquote-perl,
+ liblist-moreutils-perl
 Maintainer: Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>
 Standards-Version: 3.9.8
 Homepage: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
@@ -35,6 +38,6 @@ Package: asciilog
 Section: libdevel
 Architecture: all
 Depends: ${misc:Depends},
- mawk
+ mawk, libtext-table-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
  Various helper tools to make working with asciilogs easier
