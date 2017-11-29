@@ -86,8 +86,8 @@ sub gen_field
        'uint32_t'     => '"%" PRIu32',
        'uint64_t'     => '"%" PRIu64',
        'char'         => '"%c"',
-       'float'        => '"%g"',
-       'double'       => '"%g"',
+       'float'        => '"%.20g"', # should fit into a ASCIILOG_MAX_FIELD_LEN
+       'double'       => '"%.20g"',
        'const char*'  => '"%s"',
        'char*'        => '"%s"'
       );
