@@ -1,3 +1,4 @@
 /usr/bin/asciilog-filter
 /usr/bin/asciilog-tailf
 /usr/bin/asciilog-make-matrix
+/usr/bin/asciilog-align
