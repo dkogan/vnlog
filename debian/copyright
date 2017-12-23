@@ -1,5 +1,5 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Source: https://github.jpl.nasa.gov/maritime-robotics/libasciilog/
+Source: https://github.com/dkogan/libasciilog/
 Upstream-Contact: Dima Kogan, <dima@secretsauce.net>
 Upstream-Name: asciilog
 

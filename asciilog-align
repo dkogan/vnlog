@@ -136,7 +136,7 @@ This is very similar to C<column -t>, but handles C<#> lines properly:
 
 =head1 REPOSITORY
 
-https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+https://github.com/dkogan/asciilog/
 
 =head1 AUTHOR
 

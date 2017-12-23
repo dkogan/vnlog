@@ -199,7 +199,7 @@ Returns a list of [$key,$value] tuples.
 
 =head1 REPOSITORY
 
-L<https://github.jpl.nasa.gov/maritime-robotics/asciilog>
+L<https://github.com/dkogan/asciilog>
 
 =head1 AUTHOR
 

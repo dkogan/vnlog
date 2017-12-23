@@ -8,9 +8,9 @@ Build-Depends: debhelper (>= 9), mrbuild (>= 0.51),
  liblist-moreutils-perl
 Maintainer: Dima Kogan <dima@secretsauce.net>
 Standards-Version: 3.9.8
-Homepage: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
-Vcs-Git: git@github.jpl.nasa.gov:maritime-robotics/asciilog.git
-Vcs-Browser: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
+Homepage: https://github.com/dkogan/asciilog/
+Vcs-Git: git@github.com:dkogan/asciilog.git
+Vcs-Browser: https://github.com/dkogan/asciilog/
 
 Package: libasciilog0
 Section: libs
