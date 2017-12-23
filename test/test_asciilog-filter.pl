@@ -5,7 +5,7 @@ use warnings;
 use feature ':5.10';
 use IPC::Run 'run';
 use Text::Diff 'diff';
-use Carp 'confess';
+use Carp qw(cluck confess);
 use FindBin '$Bin';
 
 
@@ -322,7 +322,7 @@ sub check
         my $diff = diff(\$expected, \$out);
         if ( length $diff )
         {
-            confess "Test failed when doperl=$doperl; diff: '$diff'";
+            cluck "Test failed when doperl=$doperl; diff: '$diff'";
         }
     }
 }
