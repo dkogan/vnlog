@@ -4,7 +4,16 @@ Upstream-Contact: Dima Kogan <dima@secretsauce.net>
 Upstream-Name: asciilog
 
 Files: *
-Copyright: 2016-2017, California Institute of Technology
-License: Proprietary
+Copyright: 2016-2017 California Institute of Technology
+           2017 Dima Kogan <dima@secretsauce.net>
+License: LGPL-2.1+
 
-License: Proprietary license. May not distribute without a license
+License: LGPL-2.1+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ On Debian GNU/Linux systems, the complete text of the Lesser General
+ Public License 2.1 can be found in
+ `/usr/share/common-licenses/LGPL-2.1'.

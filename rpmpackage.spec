@@ -4,7 +4,7 @@ Version:        xxx
 Release:        1%{?dist}
 Summary:        Tools to manipulate whitespace-separated ASCII logs
 
-License:        Proprietary
+License:        LGPL-2.1+
 URL:            https://github.com/dkogan/asciilog/
 Source0:        https://github.com/dkogan/asciilog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 

@@ -207,8 +207,11 @@ Dima Kogan, C<< <dima@secretsauce.net> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2017 California Institute of Technology
+Copyright 2016 California Institute of Technology.
 
-Proprietary software. Do not distribute without permission of copyright holder
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option) any
+later version.
 
-See http://dev.perl.org/licenses/ for more information.
+=cut
