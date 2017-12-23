@@ -203,7 +203,7 @@ L<https://github.jpl.nasa.gov/maritime-robotics/asciilog>
 
 =head1 AUTHOR
 
-Dima Kogan, C<< <Dmitriy.Kogan@jpl.nasa.gov> >>
+Dima Kogan, C<< <dima@secretsauce.net> >>
 
 =head1 LICENSE AND COPYRIGHT
 

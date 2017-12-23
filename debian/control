@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9), mrbuild (>= 0.51),
  libtext-diff-perl,
  libstring-shellquote-perl,
  liblist-moreutils-perl
-Maintainer: Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>
+Maintainer: Dima Kogan <dima@secretsauce.net>
 Standards-Version: 3.9.8
 Homepage: https://github.jpl.nasa.gov/maritime-robotics/asciilog/
 Vcs-Git: git@github.jpl.nasa.gov:maritime-robotics/asciilog.git

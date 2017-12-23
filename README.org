@@ -208,6 +208,6 @@ $ ./test
 #+END_EXAMPLE
 
 * Maintainer
-This is maintained by Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>. Please let Dima
+This is maintained by Dima Kogan <dima@secretsauce.net>. Please let Dima
 know if something is unclear/broken/missing
 

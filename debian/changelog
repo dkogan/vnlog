@@ -2,16 +2,16 @@ asciilog (1.19) unstable; urgency=medium
 
   * I ship asciilog-align in the 'asciilog' package
 
- -- Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>  Sat, 02 Dec 2017 23:21:59 -0800
+ -- Dima Kogan <dima@secretsauce.net>  Sat, 02 Dec 2017 23:21:59 -0800
 
 asciilog (1.18) unstable; urgency=medium
 
   * Updates
 
- -- Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>  Tue, 28 Nov 2017 17:58:19 -0800
+ -- Dima Kogan <dima@secretsauce.net>  Tue, 28 Nov 2017 17:58:19 -0800
 
 asciilog (1.14) stretch; urgency=medium
 
   * first Debian package build
 
- -- Dima Kogan <Dmitriy.Kogan@jpl.nasa.gov>  Sat, 04 Mar 2017 00:01:32 -0800
+ -- Dima Kogan <dima@secretsauce.net>  Sat, 04 Mar 2017 00:01:32 -0800
