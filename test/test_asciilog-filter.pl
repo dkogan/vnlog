@@ -36,7 +36,7 @@ EOF
 
 
 
-check( <<'EOF', qw(.) );
+check( <<'EOF', qw(-p .) );
 # a b c
 1 2 3
 4 - 6
@@ -44,7 +44,7 @@ check( <<'EOF', qw(.) );
 10 11 12
 EOF
 
-check( <<'EOF', qw(a b) );
+check( <<'EOF', '-p', 'a,b' );
 # a b
 1 2
 4 -
@@ -52,7 +52,7 @@ check( <<'EOF', qw(a b) );
 10 11
 EOF
 
-check( <<'EOF', qw([ab]) );
+check( <<'EOF', qw(-p a -p b) );
 # a b
 1 2
 4 -
@@ -60,7 +60,23 @@ check( <<'EOF', qw([ab]) );
 10 11
 EOF
 
-check( <<'EOF', qw(--has a .) );
+check( <<'EOF', qw(--print a --pick b) );
+# a b
+1 2
+4 -
+7 9
+10 11
+EOF
+
+check( <<'EOF', qw( -p [ab]) );
+# a b
+1 2
+4 -
+7 9
+10 11
+EOF
+
+check( <<'EOF', qw(--has a -p .) );
 # a b c
 1 2 3
 4 - 6
@@ -68,45 +84,51 @@ check( <<'EOF', qw(--has a .) );
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b .) );
+check( <<'EOF', qw(--has b) );
 # a b c
 1 2 3
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has c .) );
+check( <<'EOF', qw(--has c -p .) );
 # a b c
 1 2 3
 4 - 6
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has), 'b,c', '.' );
+check( <<'EOF', '--has', 'b,c');
 # a b c
 1 2 3
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b --has c .) );
+check( <<'EOF', '--has', 'b,c');
 # a b c
 1 2 3
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b --has c .) );
+check( <<'EOF', qw(--has b --has c -p .) );
 # a b c
 1 2 3
 10 11 12
 EOF
 
-check( <<'EOF', qw(--has b --has c a) );
+check( <<'EOF', qw(--has b --has c) );
+# a b c
+1 2 3
+10 11 12
+EOF
+
+check( <<'EOF', qw(--has b --has c -p a) );
 # a
 1
 10
 EOF
 
-check( <<'EOF', qw(c us2s(a)) );
+check( <<'EOF', qw(-p c -p us2s(a)) );
 # c us2s(a)
 3 1e-06
 6 4e-06
@@ -114,7 +136,7 @@ check( <<'EOF', qw(c us2s(a)) );
 12 1e-05
 EOF
 
-check( <<'EOF', qw(c us2s(us2s(a))) );
+check( <<'EOF', '-p', 'c,us2s(us2s(a))' );
 # c us2s(us2s(a))
 3 1e-12
 6 4e-12
@@ -122,7 +144,7 @@ check( <<'EOF', qw(c us2s(us2s(a))) );
 12 1e-11
 EOF
 
-check( <<'EOF', qw(rel(a) b c));
+check( <<'EOF', qw(-p rel(a) -p b -p c));
 # rel(a) b c
 0 2 3
 3 - 6
@@ -130,7 +152,7 @@ check( <<'EOF', qw(rel(a) b c));
 9 11 12
 EOF
 
-check( <<'EOF', qw(rel(a) b diff(a) c a));
+check( <<'EOF', qw(-p rel(a) -p b -p diff(a) -p c -p a));
 # rel(a) b diff(a) c a
 0 2 0 3 1
 3 - 3 6 4
@@ -138,7 +160,7 @@ check( <<'EOF', qw(rel(a) b diff(a) c a));
 9 11 3 12 10
 EOF
 
-check( <<'EOF', [qw(rel(a) b c)], [qw(rel(a))]);
+check( <<'EOF', ['-p', 'rel(a),b,c'], [qw(-p rel(a))]);
 # rel(a)
 0
 3
@@ -146,7 +168,7 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(rel(a))]);
 9
 EOF
 
-check( <<'EOF', [qw(rel(a) b c)], [qw(rel(rel(a)))]);
+check( <<'EOF', ['-p', 'rel(a),b,c'], [qw(-p rel(rel(a)))]);
 # rel(rel(a))
 0
 3
@@ -154,7 +176,7 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(rel(rel(a)))]);
 9
 EOF
 
-check( <<'EOF', [qw(rel(a) b c)], [qw(diff(rel(a)))]);
+check( <<'EOF', ['-p', 'rel(a),b,c'], [qw(-p diff(rel(a)))]);
 # diff(rel(a))
 0
 3
@@ -162,7 +184,7 @@ check( <<'EOF', [qw(rel(a) b c)], [qw(diff(rel(a)))]);
 3
 EOF
 
-check( <<'EOF', 'us2s(t)', {data => $data_t});
+check( <<'EOF', qw(-p us2s(t)), {data => $data_t});
 # us2s(t)
 100
 101
@@ -170,7 +192,7 @@ check( <<'EOF', 'us2s(t)', {data => $data_t});
 103
 EOF
 
-check( <<'EOF', 'rel(t)', {data => $data_t});
+check( <<'EOF', qw(-p rel(t)), {data => $data_t});
 # rel(t)
 0
 1000000
@@ -178,7 +200,7 @@ check( <<'EOF', 'rel(t)', {data => $data_t});
 3000000
 EOF
 
-check( <<'EOF', 'rel(us2s(t))', {data => $data_t});
+check( <<'EOF', qw(-p rel(us2s(t))), {data => $data_t});
 # rel(us2s(t))
 0
 1
@@ -186,7 +208,7 @@ check( <<'EOF', 'rel(us2s(t))', {data => $data_t});
 3
 EOF
 
-check( <<'EOF', 'us2s(rel(t))', {data => $data_t});
+check( <<'EOF', qw(-p us2s(rel(t))), {data => $data_t});
 # us2s(rel(t))
 0
 1
@@ -194,98 +216,98 @@ check( <<'EOF', 'us2s(rel(t))', {data => $data_t});
 3
 EOF
 
-check( <<'EOF', qw(--has b [ab]) );
+check( <<'EOF', qw(--has b -p [ab]) );
 # a b
 1 2
 7 9
 10 11
 EOF
 
-check( <<'EOF', qw(--has b diff([ab])) );
+check( <<'EOF', qw(--has b -p diff([ab])) );
 # diff(a) diff(b)
 0 0
 6 7
 3 2
 EOF
 
-check( <<'EOF', [qw(--has b diff(a) diff(b))], [qw(--matches diff(b)>3)], {language => 'AWK'} );
+check( <<'EOF', ['--has', 'b', '-p', 'diff(a),diff(b)'], ['diff(b)>3'], {language => 'AWK'} );
 # diff(a) diff(b)
 6 7
 EOF
 
-check( <<'EOF', [qw(a rel(a))], [qw(--matches a<4)], {language => 'AWK'} );
+check( <<'EOF', ['-p', 'a,rel(a)'], ['a<4'], {language => 'AWK'} );
 # a rel(a)
 1 0
 EOF
 
-check( <<'EOF', [qw(a rel(a))], [qw(--matches rel(a)<4)], {language => 'AWK'} );
+check( <<'EOF', ['-p', 'a,rel(a)'], ['rel(a)<4'], {language => 'AWK'} );
 # a rel(a)
 1 0
 4 3
 EOF
 
-check( <<'EOF', [qw(rel(a) a)], [qw(--matches a<4)], {language => 'AWK'} );
+check( <<'EOF', ['-p', 'rel(a),a'], ['a<4'], {language => 'AWK'} );
 # rel(a) a
 0 1
 EOF
 
-check( <<'EOF', [qw(rel(a) a)], [qw(--matches rel(a)<4)], {language => 'AWK'} );
+check( <<'EOF', ['-p', 'rel(a),a'], ['rel(a)<4'], {language => 'AWK'} );
 # rel(a) a
 0 1
 3 4
 EOF
 
-check( <<'EOF', [qw(rel(a) a)], ['--eval', '{print rel(a)}'], {language => 'AWK'} );
+check( <<'EOF', ['-p', 'rel(a),a'], ['--eval', '{print rel(a)}'], {language => 'AWK'} );
 0
 3
 6
 9
 EOF
 
-check( <<'EOF', [qw(rel(a) a)], ['--eval', 'say $rel(a)'], {language => 'perl'} );
+check( <<'EOF', ['-p', 'rel(a),a'], ['--eval', 'say $rel(a)'], {language => 'perl'} );
 0
 3
 6
 9
 EOF
 
-check( <<'EOF', qw(--matches a>5 .), {language => 'AWK'} );
+check( <<'EOF', 'a>5', {language => 'AWK'} );
 # a b c
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--matches $a>5 .), {language => 'perl'} );
+check( <<'EOF', '$a>5', {language => 'perl'} );
 # a b c
 7 9 -
 10 11 12
 EOF
 
-check( <<'EOF', qw(--matches a>5 --no-skipempty c), {language => 'AWK'} );
+check( <<'EOF', qw(a>5 --no-skipempty -p c), {language => 'AWK'} );
 # c
 -
 12
 EOF
 
-check( <<'EOF', qw(--matches $a>5 --no-skipempty c), {language => 'perl'} );
+check( <<'EOF', qw($a>5 --no-skipempty -p c), {language => 'perl'} );
 # c
 -
 12
 EOF
 
-check( <<'EOF', qw(--matches a>5), '--eval', '{print a+b}', {language => 'AWK'} );
+check( <<'EOF', 'a>5', '--eval', '{print a+b}', {language => 'AWK'} );
 16
 21
 EOF
 
-check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', {language => 'perl'} );
+check( <<'EOF', '$a>5', '--eval', 'my $v = $a + $b + 2; say $v', {language => 'perl'} );
 18
 23
 EOF
 
 
 # awk and perl write out the data with different precisions, so I test them separately for now
-check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
+check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
 # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
 0 0 55.1528 -14.7495
 12.1319 -1.6905 77.6179 -20.9478
@@ -295,7 +317,7 @@ check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {langu
 EOF
 
 
-check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {language => 'perl', data => $data_latlon} );
+check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'perl', data => $data_latlon} );
 # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
 0 0 55.1528170494324 -14.7495300237067
 12.1319447101403 -1.69050470904804 77.6179395005555 -20.9477574245461

@@ -9,7 +9,7 @@ use feature qw(say state);
 
 
 my $usage =  <<EOF;
-$0 [--has c0,c1,...] [--has c2] [--matches expr|\@file] ... c3 c4 +c5 f(c0) g(c1) ...
+$0 [--has c0,c1,...] [--has c2] --print|--pick|-p c3,c4,+c5,f(c0),g(c1) [match_expr|\@match_expr_file] ...
 
     Other available options:
       --eval expr|\@file
@@ -24,11 +24,12 @@ $0 [--has c0,c1,...] [--has c2] [--matches expr|\@file] ... c3 c4 +c5 f(c0) g(c1
     --default. The --matches and --eval expressions are either in awk or perl,
     --depending on --perl
 
-    Rows selected with --has or --matches.
+    Columns selected by asking for them with -p, either with multiple -p options
+    or with comma-separated lists. Column specs can be regexen. Precede col name
+    with '+' to also add that column to --has. A few functions exist to apply
+    simple pre-processing transformations to the columns.
 
-    Columns selected by naming them on the cmdline. Column specs can be regexen.
-    Precede col name with '+' to also add that column to --has. A few functions
-    exist to select transformed columns.
+    Rows selected with --has and/or arbitrary match expressions.
 
     --unbuffered flushes each line after each print. Useful for streaming data.
 
@@ -45,7 +46,7 @@ if(! @ARGV)
 my %options = (skipempty => 1);
 GetOptions(\%options,
            "has=s@",
-           "matches=s@",
+           "pick|print|p=s@",
            "eval=s",
            "skipempty!",
            "skipcomments!",
@@ -54,14 +55,18 @@ GetOptions(\%options,
            "perl",
            "unbuffered",
            "help") or die($usage);
-$options{has}     //= [];
-$options{matches} //= [];
+$options{has}  //= [];
+$options{pick} //= [];
+
+# anything remaining on the commandline are 'matches' expressions
+$options{matches} = \@ARGV;
+
 if( defined $options{eval} )
 {
     $options{skipcomments} = 1;
 }
 
-if( defined $options{eval} && @ARGV )
+if( defined $options{eval} && @{$options{pick}} )
 {
     say STDERR "--eval is given, so no column selectors should be given also";
     die $usage;
@@ -73,26 +78,25 @@ if( defined $options{help} )
     exit 0;
 }
 
-# any requested columns preceded with '+' go into --has. And I strip out the '+'
-for my $iarg (0..$#ARGV)
+# parse the , in $options{has} and $options{pick}
+for my $listkey (qw(has pick))
 {
-    if( $ARGV[$iarg] =~ /^\+(.+)/ )
+    @{$options{$listkey}} = map split(/,/, $_), @{$options{$listkey}};
+}
+
+# any requested columns preceded with '+' go into --has. And I strip out the '+'
+for my $ipick(0..$#{$options{pick}})
+{
+    if( ${$options{pick}}[$ipick] =~ /^\+(.+)/ )
     {
-        $ARGV[$iarg] = $1;
-        $options{has} //= [];
-        push @{$options{has}}, $ARGV[$iarg];
+        ${$options{pick}}[$ipick] = $1;
+        push @{$options{has}}, ${$options{pick}}[$ipick];
     }
 }
 
-my @cols_want = @ARGV;
+my @cols_want           = @{$options{pick}};
+my @must_have_col_names = @{$options{has}};
 my @must_have_col_indices_in;
-
-# parse the , in $options{has}
-my @must_have_col_names;
-for my $c (@{$options{has}})
-{
-    push @must_have_col_names, split(/,/,$c)
-}
 
 # if no columns requested, just print everything
 if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
