@@ -235,7 +235,7 @@ check( <<'EOF', [qw(rel(a) a)], [qw(--matches rel(a)<4)], {language => 'AWK'} );
 3 4
 EOF
 
-check( <<'EOF', [qw(rel(a) a)], ['--eval', 'print rel(a)'], {language => 'AWK'} );
+check( <<'EOF', [qw(rel(a) a)], ['--eval', '{print rel(a)}'], {language => 'AWK'} );
 0
 3
 6
@@ -273,7 +273,7 @@ check( <<'EOF', qw(--matches $a>5 --no-skipempty c), {language => 'perl'} );
 12
 EOF
 
-check( <<'EOF', qw(--matches a>5), '--eval', 'print a+b', {language => 'AWK'} );
+check( <<'EOF', qw(--matches a>5), '--eval', '{print a+b}', {language => 'AWK'} );
 16
 21
 EOF

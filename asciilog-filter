@@ -768,7 +768,7 @@ sub makeAwkProgram
     if( $options{eval} )
     {
         my $expr = expr_col_names_to_indices('awk', get_expr_string($options{eval}));
-        $awkprogram .= " { $expr } ";
+        $awkprogram .= "$expr";
 
         # don't need $awk_state_stanzas_before and $awk_state_stanzas_after:
         # these are for rel() and diff(), and I'm disallowing column selectors
@@ -1054,6 +1054,23 @@ depending on language and so on. No column-selecting arguments should be given.
 
 If a C<--eval> expression begins with C<@>, then the text following the C<@> is
 assumed to be a filename from which the expression should be read.
+
+In perl the arbitrary expression fits in like this:
+
+ while(<>) # read each line
+ {
+   next unless matches; # skip non-matching lines
+   eval expression;     # evaluate the arbitrary expression
+ }
+
+In awk the expr is a full set of pattern/action statements. So to print the sum
+of C<a> and C<b>:
+
+ asciilog-filter --eval '{print a+b}'
+
+To print the sum of some column:
+
+ asciilog-filter --eval '{sum += x} END {print sum}'
 
 =head2 --[no]skipempty
 
