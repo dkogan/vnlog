@@ -1,3 +1,8 @@
+* Notice
+
+This is undergoing a rework. Don't read (and believe) the documentation just
+yet.
+
 * Summary
 We have a log file: whitespace-separated ascii text, comments start with #,
 first comment is field labels.
