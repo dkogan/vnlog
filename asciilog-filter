@@ -810,6 +810,12 @@ sub get_unbuffered_line
 }
 __END__
 
+=head1 NOTICE
+
+This is undergoing a rework. Don't read (and believe) the documentation just
+yet.
+
+
 =head1 NAME
 
 asciilog-filter - filters ascii logs to select particular rows, fields
