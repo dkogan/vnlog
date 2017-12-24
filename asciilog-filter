@@ -4,6 +4,7 @@ use warnings;
 use Getopt::Long qw(:config no_getopt_compat);
 use List::Util 'max';
 use List::MoreUtils qw(any all);
+use Asciilog::Util 'get_unbuffered_line';
 
 use feature qw(say state);
 
@@ -789,25 +790,6 @@ sub makeAwkProgram
     return $awkprogram;
 }
 
-# Reads a line from STDIN one byte at a time. This means that as far as the OS
-# is concerned we never read() past our line. And when we exec() to awk, all the
-# data is available. This is inefficient, but we only use this function to read
-# up to the legend, which is fine.
-sub get_unbuffered_line
-{
-    my $fd = shift;
-
-    my $line = '';
-
-    while(1)
-    {
-        my $c = '';
-        return undef unless 1 == sysread($fd, $c, 1);
-
-        $line .= $c;
-        return $line if $c eq "\n";
-    }
-}
 __END__
 
 =head1 NOTICE

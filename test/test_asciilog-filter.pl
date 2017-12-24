@@ -378,7 +378,9 @@ sub check
             push @args_here, '--perl' if $doperl;
 
             $out = '';
-            run( ["$Bin/../asciilog-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
+            run( ["perl",
+                  "-I$Bin/../lib",
+                  "$Bin/../asciilog-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
             $in = $out;
         }
 
