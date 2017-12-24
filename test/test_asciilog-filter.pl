@@ -214,7 +214,7 @@ check( <<'EOF', qw(--matches a>5 .), {language => 'AWK'} );
 10 11 12
 EOF
 
-check( <<'EOF', qw(--matches $a>5 .), {language => 'PERL'} );
+check( <<'EOF', qw(--matches $a>5 .), {language => 'perl'} );
 # a b c
 7 9 -
 10 11 12
@@ -226,7 +226,7 @@ check( <<'EOF', qw(--matches a>5 --no-skipempty c), {language => 'AWK'} );
 12
 EOF
 
-check( <<'EOF', qw(--matches $a>5 --no-skipempty c), {language => 'PERL'} );
+check( <<'EOF', qw(--matches $a>5 --no-skipempty c), {language => 'perl'} );
 # c
 -
 12
@@ -237,7 +237,7 @@ check( <<'EOF', qw(--matches a>5), '--eval', 'print a+b', {language => 'AWK'} );
 21
 EOF
 
-check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', {language => 'PERL'} );
+check( <<'EOF', qw(--matches $a>5), '--eval', 'my $v = $a + $b + 2; say $v', {language => 'perl'} );
 18
 23
 EOF
@@ -254,7 +254,7 @@ check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {langu
 EOF
 
 
-check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {language => 'PERL', data => $data_latlon} );
+check( <<'EOF', 'rel_n(lat)', 'rel_e(lon)', 'rel_n(lat2)', 'rel_e(lon2)', {language => 'perl', data => $data_latlon} );
 # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
 0 0 55.1528170494324 -14.7495300237067
 12.1319447101403 -1.69050470904804 77.6179395005555 -20.9477574245461
@@ -282,7 +282,7 @@ sub check
         my $opts = pop @args;
         if($opts->{language})
         {
-            push @langs, ($opts->{language} =~ /PERL/ ? 1 : 0);
+            push @langs, ($opts->{language} =~ /perl/i ? 1 : 0);
         }
         if($opts->{data})
         {
