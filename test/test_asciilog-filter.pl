@@ -208,6 +208,47 @@ check( <<'EOF', qw(--has b diff([ab])) );
 3 2
 EOF
 
+check( <<'EOF', [qw(--has b diff(a) diff(b))], [qw(--matches diff(b)>3)], {language => 'AWK'} );
+# diff(a) diff(b)
+6 7
+EOF
+
+check( <<'EOF', [qw(a rel(a))], [qw(--matches a<4)], {language => 'AWK'} );
+# a rel(a)
+1 0
+EOF
+
+check( <<'EOF', [qw(a rel(a))], [qw(--matches rel(a)<4)], {language => 'AWK'} );
+# a rel(a)
+1 0
+4 3
+EOF
+
+check( <<'EOF', [qw(rel(a) a)], [qw(--matches a<4)], {language => 'AWK'} );
+# rel(a) a
+0 1
+EOF
+
+check( <<'EOF', [qw(rel(a) a)], [qw(--matches rel(a)<4)], {language => 'AWK'} );
+# rel(a) a
+0 1
+3 4
+EOF
+
+check( <<'EOF', [qw(rel(a) a)], ['--eval', 'print rel(a)'], {language => 'AWK'} );
+0
+3
+6
+9
+EOF
+
+check( <<'EOF', [qw(rel(a) a)], ['--eval', 'say $rel(a)'], {language => 'perl'} );
+0
+3
+6
+9
+EOF
+
 check( <<'EOF', qw(--matches a>5 .), {language => 'AWK'} );
 # a b c
 7 9 -

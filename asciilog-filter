@@ -353,22 +353,49 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
-sub expr_col_names_to_indices_perl
+sub expr_col_names_to_indices
 {
-    return $_[0] =~
-      s/ \$(\w+) /
-      !defined $colindices_in{$1} ? "\$$1" :
-      '$feval[' . $colindices_in{$1} . ']'
-      /egrx;
-}
+    # I take in a string with awk/perl code, and replace field references to
+    # column references that the awk/perl program will understand
+    #
+    # The tricky thing here is that the field names could have come from a
+    # transform expression, so I can have a field name 'a' AND another field
+    # name 'rel(a)'. If I look for 'a' with a simple regex match of \ba\b then I
+    # may erroneously match rel(a).
+    #
+    # Thus I look for each field one at a time, starting from the longest one,
+    # and moving down the list.
 
-sub expr_col_names_to_indices_awk
-{
-    return $_[0] =~
-      s/ (\w+) /
-      !defined $colindices_in{$1} ? $1 :
-      '$' . ($colindices_in{$1}+1)
-      /egrx;
+    my ($language, $out) = @_;
+
+    for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_in)
+    {
+        # Pre- and post-field-name regexen. If the field name begins/ends with
+        # an alphanumeric character (the usual case), this is the word boundary
+        # \b. Otherwise an empty string. This is here so that field names such
+        # as 'rel(a)' can match despite not ending in something that matches a
+        # word boundary
+        if( $language eq 'perl' )
+        {
+            my $post = $key =~ /\w$/ ? '\b' : '';
+            my $re = qr/\$\Q$key\E$post/;
+            $out =~ s/$re/\$feval[$colindices_in{$key}]/g;
+        }
+        elsif( $language eq 'awk' )
+        {
+            # column index that awk knows about
+            my $colidx = $colindices_in{$key} + 1;
+            my $pre  = $key =~ /^\w/ ? '\b' : '';
+            my $post = $key =~ /\w$/ ? '\b' : '';
+            my $re = qr/$pre\Q$key\E$post/; # \Q,\E to quote the ()
+            $out =~ s/$re/\$$colidx/g;
+        }
+        else
+        {
+            die "Unknown language '$language";
+        }
+    }
+    return $out;
 }
 
 sub get_expr_string
@@ -394,7 +421,7 @@ sub get_expr_string
 
 my $must_match_expr =
   join ' && ',
-  map { expr_col_names_to_indices_perl($_) }
+  map { expr_col_names_to_indices( 'perl', $_) }
   map { get_expr_string($_) } @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
@@ -403,7 +430,7 @@ my $evalstr = 'sub matches { my @feval = map {q{-} eq $_ ? undef : $_ } @f; retu
 
 if ( $options{eval} )
 {
-    my $expr = expr_col_names_to_indices_perl( get_expr_string($options{eval}) );
+    my $expr = expr_col_names_to_indices( 'perl', get_expr_string($options{eval}) );
     $evalstr .= "\n" . 'sub evalexpr { my @feval = map {q{-} eq $_ ? undef : $_ } @f; ' . $expr . ' ; }';
 }
 
@@ -726,7 +753,7 @@ sub makeAwkProgram
 
     for my $expr( @{$options{matches}} )
     {
-        $expr = expr_col_names_to_indices_awk(get_expr_string($expr));
+        $expr = expr_col_names_to_indices('awk', get_expr_string($expr));
         $awkprogram .= ' !' . "($expr) { next } ";
     }
 
@@ -740,7 +767,7 @@ sub makeAwkProgram
 
     if( $options{eval} )
     {
-        my $expr = expr_col_names_to_indices_awk(get_expr_string($options{eval}));
+        my $expr = expr_col_names_to_indices('awk', get_expr_string($options{eval}));
         $awkprogram .= " { $expr } ";
 
         # don't need $awk_state_stanzas_before and $awk_state_stanzas_after:
@@ -887,8 +914,18 @@ column would be found. We can explicitly pass a regex to deal with this:
 
 To select specific rows, we can use C<--has col> to get only those rows that
 have a non-empty value in column C<col>. C<--matches> is similar, but evaluates
-arebitrary expressions. For instance C<--matches 'size E<gt> 10'> would pass only
-those rows whose C<size> column contains a value > 10.
+arebitrary expressions. For instance C<--matches 'size E<gt> 10'> would select
+only those rows whose C<size> column contains a value > 10. Note that
+C<--matches> can I<only> see data currently in the input asciilog, and can
+I<not> apply L<transform expressions|Transforms>. So if you want C<--matches
+rel(x)E<gt>5> then you must first invoke C<asciilog-filter> to produce this
+column. I.e. this doesn't work:
+
+ <data asciilog-filter --matches 'rel(x)>5'
+
+But this /does/ work:
+
+ <data asciilog-filter . 'rel(x)' | asciilog-filter --matches 'rel(x)>5'
 
 If we want to select a column I<and> pick only rows that have a value in this
 column, a shorthand syntax exists:
@@ -901,9 +938,14 @@ is equivalent to
 
 =head2 Transforms
 
-We can post-process our data with transforms. To apply a transform =f= and then
-a transform =g= to column =x=, pass in =g(f(x))=. The transforms currently
-available are
+We can post-process our data with some simple transforms. To apply a transform
+=f= and then a transform =g= to column =x=, pass in =g(f(x))=, as expected. Note
+that the resulting legend contains fields with =()= in their names, but these
+remain filter-able with further =asciilog-filter= invocations, and C<--matches>
+and C<--eval> remain functional. The only weirdness is that if we're using perl
+you need to say C<--matches $rel(x)E<gt>5> instead of C<--matches rel($x)E<gt>5>.
+
+The transforms currently available are
 
 =over
 
@@ -980,7 +1022,13 @@ expression that is evaluated for each row. If it evaluates to true, that row is
 output. This expression is passed directly to the perl or awk backend, so be
 aware of which one you are using. This feature is slow in perl, so awk is
 strongly recommended here. To refer to a field named C<xxx> in the expression,
-say C<xxx> in awk and C<$xxx> in perl.
+say C<xxx> in awk and C<$xxx> in perl. There's a small caveat here: C<xxx> is a
+field-name, even if it contains non-alphanumerics, so if you want to pull out
+only those records where C<rel(x) E<gt> 5>, then in perl you say this:
+
+ <data asciilog-filter . 'rel(x)' | asciilog-filter --perl --matches '$rel(x) > 5'
+
+Note the C<$rel(x)> and /not/ C<rel($x)>.
 
 Multiple C<--matches> options can be given. The record is output only if I<all>
 the expressions are true.
