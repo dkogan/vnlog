@@ -8,6 +8,8 @@ BIN_SOURCES := test/test1.c
 
 TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix asciilog-align
 
+b64_cencode.o: CFLAGS += -Wno-implicit-fallthrough
+
 # Make can't deal with ':' in filenames, so I hack it
 coloncolon := __colon____colon__
 doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))  $(patsubst lib/Asciilog/%.pm,man3/Asciilog$(coloncolon)%.3pm,$(wildcard lib/Asciilog/*.pm))
