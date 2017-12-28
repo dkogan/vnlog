@@ -1,3 +1,23 @@
+asciilog (1.50) unstable; urgency=medium
+
+  * First release as free software
+  * Upstream updates:
+
+    - Breaking change: asciilog-filter selects ROWS, not columns by
+      default. I.e. '--matches' -> '' and '' -> '-p'
+
+    - Breaking change: asciilog-filter in awk mode: --eval takes full
+      pattern/action statements. Thus previously-functional asciilog-filter
+      --eval ... -> asciilog-filter --eval '{...}'
+
+    - Clarified what happens to processing results of transformed
+      expressions
+
+  * This is a testing release. Some things aren't yet finalized, and the
+    documentation is currently misleading
+
+ -- Dima Kogan <dima@secretsauce.net>  Wed, 27 Dec 2017 16:52:17 -0800
+
 asciilog (1.19) unstable; urgency=medium
 
   * I ship asciilog-align in the 'asciilog' package
