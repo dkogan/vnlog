@@ -66,6 +66,8 @@ The rest is guaranteed to be available for future reading. This is useful for
 tools that bootstrap asciilog processing by reading up-to the legend, and then
 C<exec> some other tool to process the rest.
 
+=back
+
 =head1 REPOSITORY
 
 L<https://github.com/dkogan/asciilog>
