@@ -1,7 +1,7 @@
 Source: asciilog
 Priority: optional
 Section: devel
-Build-Depends: debhelper (>= 9), mrbuild (>= 0.55),
+Build-Depends: debhelper (>= 9), mrbuild (>= 0.56),
  libipc-run-perl,
  libtext-diff-perl,
  libstring-shellquote-perl,
