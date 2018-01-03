@@ -257,7 +257,6 @@ void _asciilog_emit_record(struct asciilog_context_t* ctx, int Nfields)
 
     flockfile(ctx->root->_fp);
     {
-        // There's no anchor field. Output all the fields from this context
         for(int i=0; i<Nfields-1; i++)
         {
             _emit_field(ctx, i);
