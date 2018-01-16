@@ -177,6 +177,8 @@ sub substitute_field_keys
 {
     my ($options, $keys) = @_;
 
+    return unless defined $options->{key};
+
     my %key_indices;
     for my $i(0..$#$keys)
     {
