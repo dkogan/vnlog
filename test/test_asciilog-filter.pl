@@ -8,6 +8,8 @@ use Text::Diff 'diff';
 use Carp qw(cluck confess);
 use FindBin '$Bin';
 
+use Term::ANSIColor;
+my $Nfailed = 0;
 
 my $data_default = <<'EOF';
 # a b c
@@ -326,6 +328,16 @@ check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language
 44.5382939050826 -11.3140998289326 112.492204495462 -29.505102855998
 EOF
 
+
+if($Nfailed == 0 )
+{
+    say colored(["green"], "All tests passed!");
+}
+else
+{
+    say colored(["red"], "$Nfailed tests failed!");
+}
+
 1;
 
 
@@ -388,6 +400,7 @@ sub check
         if ( length $diff )
         {
             cluck "Test failed when doperl=$doperl; diff: '$diff'";
+            $Nfailed++;
         }
     }
 }
