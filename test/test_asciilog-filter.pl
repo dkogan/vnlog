@@ -391,7 +391,6 @@ sub check
 
             $out = '';
             run( ["perl",
-                  "-I$Bin/../lib",
                   "$Bin/../asciilog-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
             $in = $out;
         }
