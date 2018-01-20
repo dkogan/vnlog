@@ -14,7 +14,7 @@ our @EXPORT_OK = qw(get_unbuffered_line prepare_inner_command);
 
 
 use Asciilog::Parser;
-use Fcntl qw(F_GETFD F_SETFD F_DUPFD FD_CLOEXEC);
+use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 use Getopt::Long 'GetOptionsFromArray';
 Getopt::Long::Configure('gnu_getopt');
 
