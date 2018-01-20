@@ -46,18 +46,21 @@ sub open_file_as_pipe
 {
     my ($filename) = @_;
 
+    my $fh;
+
     if ($filename eq '-')
     {
-        return *STDIN;
+        $filename = '/dev/stdin';
     }
-
-    my $fh;
-    if ( ! -r $filename )
+    else
     {
-        die "'$filename' is not readable";
+        if ( ! -r $filename )
+        {
+            die "'$filename' is not readable";
+        }
     }
 
-    # This invocation of 'grep' is important. I want to read the legend in this
+    # This invocation of 'mawk' is important. I want to read the legend in this
     # perl program from a FILE, and then exec the underlying application, with
     # the inner application using the post-legend file-descriptor. Conceptually
     # this works, BUT the inner application expects to get a filename that it
@@ -74,7 +77,6 @@ sub open_file_as_pipe
     }
 
     # I'm explicitly passing these to an exec, so FD_CLOSEXEC must be off
-    my $fd    = fileno $fh;
     my $flags = fcntl $fh, F_GETFD, 0;
     fcntl $fh, F_SETFD, ($flags & ~FD_CLOEXEC);
 
