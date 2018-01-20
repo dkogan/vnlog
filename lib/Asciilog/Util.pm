@@ -70,7 +70,45 @@ sub open_file_as_pipe
     # again. By using a filtering process (grep here), /dev/fd/N is a pipe, not
     # a file. And opening this pipe DOES start reading the file from the
     # post-legend location
-    open $fh, '-|', "grep -v '^ *##' '$filename'";
+
+
+
+
+
+    # mawk script to strip away comments. This is the pre-filter to the data
+    my $mawk_strip_comments = <<'EOF';
+    {
+        if (havelegend)
+        {
+            sub("[\t ]*#.*","");     # have legend. Strip all comments
+            if (match($0,"[^\t ]"))  # If any non-whitespace remains, print
+            {
+                print
+            }
+        }
+        else
+        {
+            sub("[\t ]*##.*","");    # strip all ## comments
+            if (!match($0,"[^\t ]")) # skip if only whitespace remains
+            {
+                next
+            }
+
+            if (!match($0, "^[\t ]*#")) # Only single # comments are possible
+                                        # If we hit something else, barf
+            {
+                print "ERROR: Data before legend";
+                exit
+            }
+
+            havelegend = 1;          # got a legend. spit it out
+            print
+        }
+    }
+EOF
+
+    open $fh, '-|', "mawk '$mawk_strip_comments' '$filename'";
+
     if ( !$fh )
     {
         die "Couldn't open file '$filename'";
