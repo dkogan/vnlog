@@ -238,26 +238,33 @@ sub reconstruct_substituted_command
             die "Couldn't uniquely figure out where '$option' came from. This is a bug. Specs: '@$specs'";
         }
 
+        my $dashoption = length($option) == 1 ? "-$option" : "--$option";
+        my $push_value = sub
+        {
+            push @argv, $dashoption;
+            push @argv, $_[0] if $_[0] ne '';
+        };
+
+
         if( @specs_noarg )
         {
-            push @argv, "--$option";
-        }
-        elsif( @specs_yesarg )
-        {
-            my $value = $options->{$option};
-            push @argv, "--$option=$value";
+            push @argv, "$dashoption";
         }
         else
         {
-            # optional arg. Value of '' means "no arg"
+            # required or optional arg. push_value() will omit the arg if the
+            # value is ''
             my $value = $options->{$option};
-            if( $value eq '')
+            if( ref $options->{$option} )
             {
-                push @argv, "--$option";
+                for my $value(@{$options->{$option}})
+                {
+                    &$push_value($value);
+                }
             }
             else
             {
-                push @argv, "--$option=$value";
+                &$push_value($value);
             }
         }
     }
