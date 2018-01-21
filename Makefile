@@ -36,6 +36,7 @@ EXTRA_CLEAN += test/asciilog_fields_generated*.h test/*.got
 test check: all
 	test/test_asciilog-filter.pl
 	test/test_asciilog-sort.pl
+	test/test_asciilog-join.pl
 	test/test_c_api.sh
 	@echo "All tests passed!"
 .PHONY: test check
