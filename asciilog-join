@@ -58,12 +58,12 @@ if( scalar(@$filenames) != 2 )
 if(defined $options->{j} &&
    (defined $options->{1} || defined $options->{2}))
 {
-    die "Either (both -1 and -2) should be given or -j, but not both. -j along is recommended";
+    die "Either (both -1 and -2) or -j MUST be given, but not both. -j is recommended";
 }
 if(( defined $options->{1} && !defined $options->{2}) ||
    (!defined $options->{1} &&  defined $options->{2}))
 {
-    die "Either (both -1 and -2) should be given or -j, but not both. -j along is recommended";
+    die "Either (both -1 and -2) or -j MUST be given, but not both. -j is recommended";
 }
 if( defined $options->{1})
 {
@@ -76,6 +76,12 @@ if( defined $options->{1})
     delete $options->{1};
     delete $options->{2};
 }
+
+if( !defined $options->{j} )
+{
+    die "Either (both -1 and -2) or -j MUST be given, but not both. -j is recommended";
+}
+
 if( defined $options->{a} )
 {
     my $N = scalar @{$options->{a}};
@@ -114,20 +120,46 @@ if( !defined $options->{o} )
 }
 
 my $inputs = read_and_preparse_input($filenames);
-substitute_field_keys($options, $inputs);
+my $keys_output = substitute_field_keys($options, $inputs);
+
+# use Data::Dumper;
+# say Dumper $options;
+# exit;
 
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
+
+say '# ' . join(' ', @$keys_output);
+
+# use Data::Dumper;
+# say Dumper $ARGV_new;
+# exit;
 
 exec 'join', @$ARGV_new;
 
 
+
+
+sub push_nonjoin_keys
+{
+    my ($keys_output, $keys, $key_join) = @_;
+    for my $i (0..$#$keys)
+    {
+        if ( $keys->[$i] ne $key_join)
+        {
+            push @$keys_output, $keys->[$i];
+        }
+    }
+}
+
 sub substitute_field_keys
 {
+    # I handle -j and -o. Prior to this I converted -1 and -2 into -j
+
     my ($options, $inputs) = @_;
 
-    # I handle -j and -o. Above I convert -1 and -2 into -j
 
 
+    # First I compute the field-index mapping for general imminent use
     my @key_indices;
     for my $i_input(0..$#$inputs)
     {
@@ -135,103 +167,86 @@ sub substitute_field_keys
         my %key_indices_here;
         for my $i (0..$#$keys)
         {
+            if( defined $key_indices_here{$keys->[$i]})
+            {
+                die "File '$inputs->[$i_input]{filename}' contains key '$keys->[$i]' more than once!";
+            }
             $key_indices_here{$keys->[$i]} = $i + 1; # keys are indexed from 1
         }
         push @key_indices, \%key_indices_here;
     }
 
-    if( defined $options->{j})
+
+
+    # I convert -j into -1 and -2 because the two files might
+    # have a given named field in a different position
+
+    my $join_field_name = $options->{j};
+    if(! exists $key_indices[0]{$join_field_name})
     {
-        # I have -j. I convert these into -1 and -2 because the two files might
-        # have a given named field in a different position
-
-        my $f = $options->{j};
-        if(! exists $key_indices[0]{$f})
-        {
-            die "Requested key '$f' not found in the input asciilog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
-        }
-        if(! exists $key_indices[1]{$f})
-        {
-            die "Requested key '$f' not found in the input asciilog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
-        }
-
-        delete $options->{j};
-        $options->{1} = $key_indices[0]{$f};
-        $options->{2} = $key_indices[1]{$f};
+        die "Requested key '$join_field_name' not found in the input asciilog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
+    }
+    if(! exists $key_indices[1]{$join_field_name})
+    {
+        die "Requested key '$join_field_name' not found in the input asciilog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
     }
 
+    delete $options->{j};
+    $options->{1} = $key_indices[0]{$join_field_name};
+    $options->{2} = $key_indices[1]{$join_field_name};
+
+
+
+
+    my @keys_out;
     if( defined $options->{o} and $options->{o} ne 'auto')
     {
-        my @format = split(/[ ,]/, $options->{o});
-
-        @format = map {
-            if( $_ eq '0')
+        my @format_in  = split(/[ ,]/, $options->{o});
+        my @format_out;
+        for my $format_element(@format_in)
+        {
+            if( $format_element eq '0')
             {
-                '0';
+                push @format_out, '0';
+                push @keys_out, $join_field_name;
             }
             else
             {
-                /(.*)\.(.*)/ or die "-o given '$_', but each field must be either 'FILE.FIELD' or '0'";
+                $format_element =~ /(.*)\.(.*)/ or die "-o given '$format_element', but each field must be either 'FILE.FIELD' or '0'";
                 my ($file,$field) = ($1,$2);
                 if($file ne '1' && $file ne '2')
                 {
-                    die "-o given '$_', where a field parsed to 'FILE.FIELD', but FILE must be either '1' or '2'";
+                    die "-o given '$format_element', where a field parsed to 'FILE.FIELD', but FILE must be either '1' or '2'";
                 }
                 if(! defined $key_indices[$file-1]{$field})
                 {
-                    die "-o given '$_', where a field parsed to 'FILE.FIELD', but FIELD '$field' doesn't exist in file '$inputs->[$file-1]{filename}. Have known keys '@{$inputs->[$file-1]{keys}}'";
+                    die "-o given '$format_element', where a field parsed to 'FILE.FIELD', but FIELD '$field' doesn't exist in file '$inputs->[$file-1]{filename}. Have known keys '@{$inputs->[$file-1]{keys}}'";
                 }
-                "$file.$key_indices[$file-1]{$field}";
-            }
-        } @format;
 
-        $options->{o} = join(',', @format);
+                push @format_out, "$file.$key_indices[$file-1]{$field}";
+                push @keys_out, $field;
+            }
+        }
+
+        $options->{o} = join(',', @format_out);
     }
+    else
+    {
+        # automatic field ordering. I.e
+        #   join field
+        #   all non-join fields from file1, in order
+        #   all non-join fields from file2, in order
+        push @keys_out, $join_field_name;
+
+        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name);
+        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name);
+    }
+
+    return \@keys_out;
 }
 
 
-__END__
 
-
-#   {GETOPT_HELP_OPTION_DECL},
-#   {GETOPT_VERSION_OPTION_DECL},
-
-# my %opts = read_and_preparse_input(\@ARGV, $specs);
-
-
-
-
-
-
-
-
-# parse commandline to find all non-option args
-#
-# open all these as files, and read in all the legend lines
-#
-# exec and pass the open FDs on
-
-
-
-
-
-
-
-
-
-# finish docs
-# get this working with files on the cmdline, not just with stdin
-# bsd sort?
-# fancy --key specs
-# interstitial comments?
-# comm, sort, join, paste, split
-
-
-
-
-
-
-__END__
 
 =head1 NAME
 
