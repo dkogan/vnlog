@@ -79,6 +79,7 @@ for my $key(keys %$options)
     }
 }
 
+$options->{'ignore-leading-blanks'} = 1;
 
 my ($ARGV_new, $inputs) = prepare_inner_command( \@ARGV, \@specs );
 
