@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Asciilog::Util qw(parse_options interpret_argv ensure_all_legends_equivalent reconstruct_substituted_command);
+use Asciilog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
 
 
 
@@ -79,7 +79,7 @@ for my $key(keys %$options)
 
 $options->{'ignore-leading-blanks'} = 1;
 
-my $inputs = interpret_argv($filenames);
+my $inputs = read_and_preparse_input($filenames);
 ensure_all_legends_equivalent($inputs);
 substitute_field_keys($options, $inputs->[0]{keys});
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);

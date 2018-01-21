@@ -6,7 +6,7 @@ use feature ':5.10';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options interpret_argv ensure_all_legends_equivalent reconstruct_substituted_command);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -200,7 +200,7 @@ sub ensure_all_legends_equivalent
     return 1;
 
 }
-sub interpret_argv
+sub read_and_preparse_input
 {
     my ($filenames) = @_;
 
