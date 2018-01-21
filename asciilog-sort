@@ -97,6 +97,10 @@ sub substitute_field_keys
     my %key_indices;
     for my $i(0..$#$keys)
     {
+        if ( defined $key_indices{$keys->[$i]})
+        {
+            die "File '$inputs->[0]{filename}' contains key '$keys->[$i]' more than once!";
+        }
         $key_indices{$keys->[$i]} = $i + 1; # keys are indexed from 1
     }
 
