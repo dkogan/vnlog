@@ -90,45 +90,11 @@ exec 'sort', @$ARGV_new;
 __END__
 
 
-#   {GETOPT_HELP_OPTION_DECL},
-#   {GETOPT_VERSION_OPTION_DECL},
-
-# my %opts = interpret_argv(\@ARGV, $specs);
-
-
-
-
-
-
-
-
-# parse commandline to find all non-option args
-#
-# open all these as files, and read in all the legend lines
-#
-# exec and pass the open FDs on
-
-
-
-
-
-
-
-
 
 # finish docs
-# get this working with files on the cmdline, not just with stdin
 # bsd sort?
-# fancy --key specs
-# interstitial comments?
-# comm, cut, sort, join, paste, split
+# comm, sort, join, paste, split
 
-
-
-
-
-
-__END__
 
 =head1 NAME
 
