@@ -3,15 +3,16 @@ use strict;
 use warnings;
 
 use feature ':5.10';
-use IPC::Run 'run';
-use Text::Diff 'diff';
-use Carp qw(cluck confess);
-use FindBin '$Bin';
 
-use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
+use FindBin '$Bin';
+use lib $Bin;
+
+use TestHelpers qw(test_init check);
 
 use Term::ANSIColor;
 my $Nfailed = 0;
+
+
 
 my $data1 = <<'EOF';
 ## xxx
@@ -42,6 +43,12 @@ my $data_not_ab = <<'EOF';
 1 2 3
 4 5 6
 EOF
+
+
+test_init('asciilog-sort', \$Nfailed,
+          '$data1'       => $data1,
+          '$data2'       => $data2,
+          '$data_not_ab' => $data_not_ab);
 
 
 
@@ -265,104 +272,3 @@ else
 }
 
 1;
-
-
-
-
-sub check
-{
-    # arguments:
-    #
-    # - expected output. 'ERROR' means the invocation should fail
-    # - arguments to the tool.
-    #   - if an arg is '$xxx', replace that arg with a pipe containing the data
-    #     in $xxx
-    #   - if an arg is '-$xxx', replace that arg with '-', pipe $xxx into STDIN
-    #   - if an arg is '--$xxx', remove the arg entirely, pipe $xxx into STDIN
-    my ($expected, @args) = @_;
-
-    my @pipes;
-
-    my $in = undef;
-    for my $iarg(0..$#args)
-    {
-        if($args[$iarg] =~ /^\$/)
-        {
-            # I'm passing it data. Make a pipe, stuff the data into one end, and
-            # give the other end to the child
-            my ($fhread, $fhwrite);
-            pipe $fhread, $fhwrite;
-            print $fhwrite eval $args[$iarg];
-            close $fhwrite;
-            $args[$iarg] = "/dev/fd/" . fileno($fhread);
-
-            # The read handle must be inherited by the child, so I make sure it
-            # survives the exec
-            my $flags = fcntl $fhread, F_GETFD, 0;
-            fcntl $fhread, F_SETFD, ($flags & ~FD_CLOEXEC);
-
-            push @pipes, $fhread;
-        }
-        elsif($args[$iarg] =~ /^-\$/)
-        {
-            # I'm passing it data via stdin
-            if(defined $in)
-            {
-                die "A test passed in more than one chunk of data on stdin";
-            }
-            $in = eval substr($args[$iarg], 1);
-            $args[$iarg] = '-';
-        }
-        elsif($args[$iarg] =~ /^--\$/)
-        {
-            # I'm passing it data via stdin
-            if(defined $in)
-            {
-                die "A test passed in more than one chunk of data on stdin";
-            }
-            $in = eval substr($args[$iarg], 2);
-            $args[$iarg] = undef; # mark the arg for removal
-        }
-    }
-
-    # remove marked args
-    @args = grep {defined $_} @args;
-
-    my $out = '';
-    my $err = '';
-    $in //= '';
-    my $result =
-      run( ["perl",
-            "$Bin/../asciilog-sort", @args], \$in, \$out, \$err );
-
-    if($expected ne 'ERROR')
-    {
-        if( !$result )
-        {
-            cluck "Test failed. Expected success, but got failure";
-            $Nfailed++;
-        }
-        else
-        {
-            my $diff = diff(\$expected, \$out);
-            if ( length $diff )
-            {
-                cluck "Test failed. diff: '$diff'";
-                $Nfailed++;
-            }
-        }
-    }
-    else
-    {
-        if( $result )
-        {
-            cluck "Test failed. Expected failure, but got success";
-            $Nfailed++;
-        }
-    }
-
-    for my $pipe(@pipes)
-    {
-        close $pipe;
-    }
-}
