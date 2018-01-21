@@ -16,16 +16,24 @@ my $Nfailed = 0;
 
 
 my $data1 = <<'EOF';
+## asdf
 # a b e
+## asdf
 1a 22b 5e
+# asdf
 5a 32b 4e
+## zxcv
 6a 42b 7e
 EOF
 
 my $data2 = <<'EOF';
+## zxcv
 # b c d e
+## zxcv
 22b 1c 5d 1e
+# asdf
 32b 5c 6d 2e
+## zxcv
 52b 6c 7d 3e
 EOF
 
