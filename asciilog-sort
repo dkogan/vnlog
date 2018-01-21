@@ -7,11 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Data::Dumper;
-
-
-use Asciilog::Util 'prepare_inner_command';
-
+use Asciilog::Util qw(parse_options interpret_argv ensure_all_legends_equivalent reconstruct_substituted_command);
 
 
 
@@ -54,38 +50,76 @@ my @specs = ( # options with no args
 
               "help");
 
-my %options_unsupported = ( # probably could support this, but don't feel like
-                            # it
-                           'files0-from' => 1,
+my %options_unsupported = ( 'files0-from' => <<'EOF',
+Support for this could be added but has not been (yet)
+EOF
 
-                           # Can't support this. sort calls ftruncate(file), so
-                           # if I write out the legend before calling sort, this
-                           # is clobbered. Or if I use a pipe, the ftruncate()
-                           # will fail and sort barfs
-                           'output'      => 1,
-
-                           # nope. asciilog is built on assuming particular
-                           # field and record separators
-                           'field-separator' => 1,
-                           'zero-terminated' => 1);
+                            'output'      => <<'EOF',
+Can't support this. sort calls ftruncate(file), so if I write out the legend
+before calling sort, this is clobbered. Or if I use a pipe, the ftruncate() will
+fail and sort barfs
+EOF
+                            'field-separator' => <<'EOF',
+asciilog is built on assuming a particular field separator
+EOF
+                            'zero-terminated' => <<'EOF'
+asciilog is built on assuming a particular record separator
+EOF
+                          );
 
 my ($filenames,$options) = parse_options(\@ARGV, \@specs);
-
 for my $key(keys %$options)
 {
     if($options_unsupported{$key})
     {
-        die("I don't support --$key");
+        my $keyname = length($key) == 1 ? "-$key" : "--$key";
+        die("I don't support $keyname: $options_unsupported{$key}");
     }
 }
 
 $options->{'ignore-leading-blanks'} = 1;
 
-my ($ARGV_new, $inputs) = prepare_inner_command( \@ARGV, \@specs );
+my $inputs = interpret_argv($filenames);
+ensure_all_legends_equivalent($inputs);
+substitute_field_keys($options, $inputs->[0]{keys});
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
 say '# ' . join(' ', @{$inputs->[0]{keys}});
 exec 'sort', @$ARGV_new;
 
+
+sub substitute_field_keys
+{
+    my ($options, $keys) = @_;
+
+    return unless defined $options->{key};
+
+    my %key_indices;
+    for my $i(0..$#$keys)
+    {
+        $key_indices{$keys->[$i]} = $i + 1; # keys are indexed from 1
+    }
+
+    # manpage of sort says that key definitions are given as
+    # "F[.C][OPTS][,F[.C][OPTS]]"
+    my @keyspecs = split(',', $options->{key});
+
+    $options->{key} =
+      join(',',
+           map
+           {
+               /^([^\.]+)(\..+)?$/ or die "Couldn't parse '$_' as a sort KEYDEF";
+
+               my $extra = $2 // '';
+               if (!exists $key_indices{$1})
+               {
+                   die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
+               }
+
+               $key_indices{$1} . $extra;
+           }
+           @keyspecs);
+}
 
 __END__
 

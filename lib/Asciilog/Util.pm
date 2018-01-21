@@ -6,18 +6,19 @@ use feature ':5.10';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line prepare_inner_command);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options interpret_argv ensure_all_legends_equivalent reconstruct_substituted_command);
 
 
-# The bulk of these is for the coreutils wrappers such as sort, join, cut and so
-# on
+# The bulk of these is for the coreutils wrappers such as sort, join, paste and
+# so on
 
 
+use FindBin '$Bin';
+use lib "$Bin/lib";
 use Asciilog::Parser;
 use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 use Getopt::Long 'GetOptionsFromArray';
 Getopt::Long::Configure('gnu_getopt');
-
 
 
 
@@ -201,9 +202,8 @@ sub ensure_all_legends_equivalent
 }
 sub interpret_argv
 {
-    my ($ARGV, $specs) = @_;
+    my ($filenames) = @_;
 
-    my ($filenames,$options) = parse_options($ARGV, $specs);
     my @inputs = map { {filename => $_} } @$filenames;
     for my $input (@inputs)
     {
@@ -211,39 +211,7 @@ sub interpret_argv
         $input->{keys} = pull_key($input);
     }
 
-    return (\@inputs, $options);
-}
-sub substitute_field_keys
-{
-    my ($options, $keys) = @_;
-
-    return unless defined $options->{key};
-
-    my %key_indices;
-    for my $i(0..$#$keys)
-    {
-        $key_indices{$keys->[$i]} = $i + 1; # sort indexes from 1
-    }
-
-    # manpage of sort says that key definitions are given as
-    # "F[.C][OPTS][,F[.C][OPTS]]"
-    my @keyspecs = split(',', $options->{key});
-
-    $options->{key} =
-      join(',',
-           map
-           {
-               /^([^\.]+)(\..+)?$/ or die "Couldn't parse '$_' as a sort KEYDEF";
-
-               my $extra = $2 // '';
-               if (!exists $key_indices{$1})
-               {
-                   die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
-               }
-
-               $key_indices{$1} . $extra;
-           }
-           @keyspecs);
+    return \@inputs;
 }
 sub reconstruct_substituted_command
 {
@@ -298,19 +266,6 @@ sub reconstruct_substituted_command
     push @argv, map { my $fd = fileno $_->{fh}; "/dev/fd/$fd" } @$inputs;
 
     return \@argv;
-}
-
-sub prepare_inner_command
-{
-    my ($ARGV_orig, $specs) = @_;
-
-    my @ARGV = @$ARGV_orig;
-
-    my ($inputs, $options) = interpret_argv( \@ARGV, $specs );
-    ensure_all_legends_equivalent($inputs);
-    substitute_field_keys($options, $inputs->[0]{keys});
-    return (reconstruct_substituted_command($inputs, $options, $specs),
-           $inputs);
 }
 
 
