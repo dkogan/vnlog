@@ -1,0 +1,305 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use feature 'say';
+use autodie;
+
+use FindBin '$Bin';
+use lib "$Bin/lib";
+
+use List::Util 'all';
+use Asciilog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command);
+
+
+
+
+# This comes from the getopt_long() invocation in join.c in GNU coreutils
+my @specs = ( # options with no args
+             "ignore-case|i",
+             "check-order",
+             "nocheck-order",
+             "zero-terminated|z",
+             "header",
+
+             # options that take an arg
+             "a=s@", "e=s", "1=s", "2=s", "j=s", "o=s", "t=s", "v=s@",
+
+             "help");
+
+my %options_unsupported = ( 't' => <<'EOF',
+asciilog is built on assuming a particular field separator
+EOF
+                            'e' => <<'EOF',
+asciilog assumes - as an "undefined" field value. -e thus not allowed
+EOF
+                            'header' => <<'EOF',
+asciilog already handles field headers; this is pointless
+EOF
+
+                            'zero-terminated' => <<'EOF'
+asciilog is built on assuming a particular record separator
+EOF
+                          );
+
+my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+for my $key(keys %$options)
+{
+    if($options_unsupported{$key})
+    {
+        my $keyname = length($key) == 1 ? "-$key" : "--$key";
+        die("I don't support $keyname: $options_unsupported{$key}");
+    }
+}
+
+if( scalar(@$filenames) != 2 )
+{
+    die "Exactly two inputs should have been given";
+}
+if(defined $options->{j} &&
+   (defined $options->{1} || defined $options->{2}))
+{
+    die "Either (both -1 and -2) should be given or -j, but not both. -j along is recommended";
+}
+if(( defined $options->{1} && !defined $options->{2}) ||
+   (!defined $options->{1} &&  defined $options->{2}))
+{
+    die "Either (both -1 and -2) should be given or -j, but not both. -j along is recommended";
+}
+if( defined $options->{1})
+{
+    if($options->{1} ne $options->{2})
+    {
+        die "-1 and -2 should refer to the same field. Using -j is recommended";
+    }
+
+    $options->{j} = $options->{1};
+    delete $options->{1};
+    delete $options->{2};
+}
+if( defined $options->{a} )
+{
+    my $N = scalar @{$options->{a}};
+    if( $N < 1 || $N > 2 )
+    {
+        die "-a should have been passed at most 2 times";
+    }
+
+    if( !all {/^[12]$/} @{$options->{a}} )
+    {
+        die "-a MUST be given either 1 or 2";
+    }
+}
+if( defined $options->{v} )
+{
+    my $N = scalar @{$options->{v}};
+    if( $N < 1 || $N > 2 )
+    {
+        die "-v should have been passed at most 2 times";
+    }
+
+    if( !all {/^[12]$/} @{$options->{v}} )
+    {
+        die "-v MUST be given either 1 or 2";
+    }
+}
+
+
+# asciilog uses - to represent empty fields
+$options->{e} = '-';
+
+if( !defined $options->{o} )
+{
+    # Some format MUST be given. Otherwise join doesn't respect -e
+    $options->{o} = 'auto';
+}
+
+my $inputs = read_and_preparse_input($filenames);
+substitute_field_keys($options, $inputs);
+
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
+
+exec 'join', @$ARGV_new;
+
+
+sub substitute_field_keys
+{
+    my ($options, $inputs) = @_;
+
+    # I handle -j and -o. Above I convert -1 and -2 into -j
+
+
+    my @key_indices;
+    for my $i_input(0..$#$inputs)
+    {
+        my $keys = $inputs->[$i_input]{keys};
+        my %key_indices_here;
+        for my $i (0..$#$keys)
+        {
+            $key_indices_here{$keys->[$i]} = $i + 1; # keys are indexed from 1
+        }
+        push @key_indices, \%key_indices_here;
+    }
+
+    if( defined $options->{j})
+    {
+        # I have -j. I convert these into -1 and -2 because the two files might
+        # have a given named field in a different position
+
+        my $f = $options->{j};
+        if(! exists $key_indices[0]{$f})
+        {
+            die "Requested key '$f' not found in the input asciilog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
+        }
+        if(! exists $key_indices[1]{$f})
+        {
+            die "Requested key '$f' not found in the input asciilog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
+        }
+
+        delete $options->{j};
+        $options->{1} = $key_indices[0]{$f};
+        $options->{2} = $key_indices[1]{$f};
+    }
+
+    if( defined $options->{o} and $options->{o} ne 'auto')
+    {
+        my @format = split(/[ ,]/, $options->{o});
+
+        @format = map {
+            if( $_ eq '0')
+            {
+                '0';
+            }
+            else
+            {
+                /(.*)\.(.*)/ or die "-o given '$_', but each field must be either 'FILE.FIELD' or '0'";
+                my ($file,$field) = ($1,$2);
+                if($file ne '1' && $file ne '2')
+                {
+                    die "-o given '$_', where a field parsed to 'FILE.FIELD', but FILE must be either '1' or '2'";
+                }
+                if(! defined $key_indices[$file-1]{$field})
+                {
+                    die "-o given '$_', where a field parsed to 'FILE.FIELD', but FIELD '$field' doesn't exist in file '$inputs->[$file-1]{filename}. Have known keys '@{$inputs->[$file-1]{keys}}'";
+                }
+                "$file.$key_indices[$file-1]{$field}";
+            }
+        } @format;
+
+        $options->{o} = join(',', @format);
+    }
+}
+
+
+__END__
+
+
+#   {GETOPT_HELP_OPTION_DECL},
+#   {GETOPT_VERSION_OPTION_DECL},
+
+# my %opts = read_and_preparse_input(\@ARGV, $specs);
+
+
+
+
+
+
+
+
+# parse commandline to find all non-option args
+#
+# open all these as files, and read in all the legend lines
+#
+# exec and pass the open FDs on
+
+
+
+
+
+
+
+
+
+# finish docs
+# get this working with files on the cmdline, not just with stdin
+# bsd sort?
+# fancy --key specs
+# interstitial comments?
+# comm, sort, join, paste, split
+
+
+
+
+
+
+__END__
+
+=head1 NAME
+
+asciilog-sort - sorts a log file, preserving the legend
+
+=head1 SYNOPSIS
+
+ $ asciilog-sort tst.asciilog
+ # x y z
+ 1 2 3
+ ...
+
+=head1 DESCRIPTION
+
+The basic usage is
+
+ asciilog-sort [arguments passed to sort] logfile
+
+The last argument is assumed to be the log file, and all the preceding arguments
+are passed to <sort> verbatim.
+
+A common asciilog use case is to run a data-generating process, C<tee> the
+output to a log file, while plotting some of the results:
+
+ $ run_widget | tee tst.asciilog | asciilog-filter quality | feedgnuplot --stream
+
+As this runs, maybe we want to make a realtime plot of some other fields in teh
+log. We thus need to create a pipe that produces the data as it comes in.
+Generall the C<sort> tool can do this if invoked with the C<-f> option. But this
+would just print the trailing log lines as they come in, and it would I<not>
+print the legend, which is at the start of the file. This legend is needed to
+keep our column labels, so that we can process the log with other tools. To do
+that, we can use this tool instead of a plain C<sort -f>. This tool simply
+prints out the log until it sees a legend (inclusively), and then runs the
+C<sort -f> as usual. So we can do
+
+ $ asciilog-sort tst.asciilog | asciilog-filter x y z | feedgnuplot --stream --3d --lines
+
+This usage will start printing out all the data written to the log file as it
+comes in. Thus all data that is I<already> in the log is ignored. If this is
+undesireable, we can use the fact that this tool is a very thin wrapper around
+the C<sort> utility, and all aruments are passed to C<sort> verbatim. It is
+possible to ask C<sort> to print out all lines except the first (so that we
+don't print the legend twice, assuming the legend is on the first line) and
+I<then> to output new data:
+
+ $ asciilog-sort -n+2 tst.asciilog | ....
+
+=head1 REQUIRED ARGUMENTS
+
+We need the log file as the only argument
+
+=head1 REPOSITORY
+
+https://github.com/dkogan/asciilog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <dima@secretsauce.net> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2016 California Institute of Technology.
+Copyright 2017 Dima Kogan
+
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option) any
+later version.
+
+=cut
