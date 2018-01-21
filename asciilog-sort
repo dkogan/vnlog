@@ -54,7 +54,34 @@ my @specs = ( # options with no args
 
               "help");
 
+my %options_unsupported = ( # probably could support this, but don't feel like
+                            # it
+                           'files0-from' => 1,
+
+                           # Can't support this. sort calls ftruncate(file), so
+                           # if I write out the legend before calling sort, this
+                           # is clobbered. Or if I use a pipe, the ftruncate()
+                           # will fail and sort barfs
+                           'output'      => 1,
+
+                           # nope. asciilog is built on assuming particular
+                           # field and record separators
+                           'field-separator' => 1,
+                           'zero-terminated' => 1);
+
+my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+
+for my $key(keys %$options)
+{
+    if($options_unsupported{$key})
+    {
+        die("I don't support --$key");
+    }
+}
+
+
 my ($ARGV_new, $inputs) = prepare_inner_command( \@ARGV, \@specs );
+
 say '# ' . join(' ', @{$inputs->[0]{keys}});
 exec 'sort', @$ARGV_new;
 
