@@ -44,10 +44,22 @@ my $data_not_ab = <<'EOF';
 4 5 6
 EOF
 
+my $data3 = <<'EOF';
+# a b c d
+4 150 156 3
+211 24 3 231
+4 150 156 23
+211 24 2 231
+32 150 156 3
+111 24 3 231
+EOF
+
+
 
 test_init('asciilog-sort', \$Nfailed,
           '$data1'       => $data1,
           '$data2'       => $data2,
+          '$data3'       => $data3,
           '$data_not_ab' => $data_not_ab);
 
 
@@ -256,6 +268,27 @@ check( 'ERROR', qw(-t f),   '$data1' );
 check( 'ERROR', qw(-z),     '$data1' );
 check( 'ERROR', qw(-o xxx), '$data1' );
 
+# fancy key-ing. Sort numerically on each field, Front one most significant
+check( <<'EOF', '-k', 'a,a.0n', '-k', 'b,b.0n', '-k', 'c,c.0n', '-k', 'd,d.0n', '$data3' );
+# a b c d
+4 150 156 3
+4 150 156 23
+32 150 156 3
+111 24 3 231
+211 24 2 231
+211 24 3 231
+EOF
+
+# fancy key-ing. Sort numerically on each field, except the last. Front one most significant
+check( <<'EOF', '-k', 'a,a.0n', '-k', 'b,b.0n', '-k', 'c,c.0n', '-k', 'd,d.0', '$data3' );
+# a b c d
+4 150 156 23
+4 150 156 3
+32 150 156 3
+111 24 3 231
+211 24 2 231
+211 24 3 231
+EOF
 
 
 
