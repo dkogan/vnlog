@@ -34,7 +34,7 @@ my @specs = ( # options with no args
               # options with args
               "compress-program=s",
               "files0-from=s",
-              "key|k=s",
+              "key|k=s@",
               "random-source=s",
               "sort=s",
               "output|o=s",
@@ -106,23 +106,27 @@ sub substitute_field_keys
 
     # manpage of sort says that key definitions are given as
     # "F[.C][OPTS][,F[.C][OPTS]]"
-    my @keyspecs = split(',', $options->{key});
+    my $Nkeyoptions = scalar @{$options->{key}};
+    for my $i_keyoption (0..$Nkeyoptions-1)
+    {
+        my @keyspecs = split(',', $options->{key}[$i_keyoption]);
 
-    $options->{key} =
-      join(',',
-           map
-           {
-               /^([^\.]+)(\..+)?$/ or die "Couldn't parse '$_' as a sort KEYDEF";
-
-               my $extra = $2 // '';
-               if (!exists $key_indices{$1})
+        $options->{key}[$i_keyoption] =
+          join(',',
+               map
                {
-                   die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
-               }
+                   /^([^\.]+)(\..+)?$/ or die "Couldn't parse '$_' as a sort KEYDEF";
 
-               $key_indices{$1} . $extra;
-           }
-           @keyspecs);
+                   my $extra = $2 // '';
+                   if (!exists $key_indices{$1})
+                   {
+                       die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
+                   }
+
+                   $key_indices{$1} . $extra;
+               }
+               @keyspecs);
+    }
 }
 
 __END__
