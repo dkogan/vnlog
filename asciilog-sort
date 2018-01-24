@@ -127,7 +127,7 @@ sub substitute_field_keys
         }
 
         my $key  = $key_indices{$1};
-        my $opts = $2;
+        my $opts = $2 // '';
 
         $options->{key}[$i_keyoption] = "$key,$key$opts";
     }
