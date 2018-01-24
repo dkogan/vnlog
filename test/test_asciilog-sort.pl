@@ -214,49 +214,6 @@ check( <<'EOF', qw(-n --key=b), '$data1', '$data2' );
 5 7.29
 EOF
 
-check( <<'EOF', qw(--key=b.2), '$data1', '$data2' );
-# a b
-20 0.09
-5 7.29
-3 0.49
-1 1.69
-4 2.89
-5 -10
-9 -2
-8 -4
-7 -6
-6 -8
-EOF
-
-check( <<'EOF', qw(-n --key=b.2), '$data1', '$data2' );
-# a b
-20 0.09
-5 7.29
-3 0.49
-1 1.69
-4 2.89
-9 -2
-8 -4
-7 -6
-6 -8
-5 -10
-EOF
-
-check( <<'EOF', qw(--key=b.2n), '$data1', '$data2' );
-# a b
-5 -10
-6 -8
-7 -6
-8 -4
-9 -2
-20 0.09
-3 0.49
-1 1.69
-4 2.89
-5 7.29
-EOF
-
-
 # don't have this field
 check( 'ERROR', qw(-k x), '$data1', '-$data2' );
 
@@ -268,8 +225,10 @@ check( 'ERROR', qw(-t f),   '$data1' );
 check( 'ERROR', qw(-z),     '$data1' );
 check( 'ERROR', qw(-o xxx), '$data1' );
 
-# fancy key-ing. Sort numerically on each field, Front one most significant
-check( <<'EOF', '-k', 'a,a.0n', '-k', 'b,b.0n', '-k', 'c,c.0n', '-k', 'd,d.0n', '$data3' );
+################ fancy key-ing
+
+# Sort numerically on each field. Front one most significant
+check( <<'EOF', '-k', 'a.n', '-k', 'b.n', '-k', 'c.n', '-k', 'd.n', '$data3' );
 # a b c d
 4 150 156 3
 4 150 156 23
@@ -279,8 +238,19 @@ check( <<'EOF', '-k', 'a,a.0n', '-k', 'b,b.0n', '-k', 'c,c.0n', '-k', 'd,d.0n', 
 211 24 3 231
 EOF
 
-# fancy key-ing. Sort numerically on each field, except the last. Front one most significant
-check( <<'EOF', '-k', 'a,a.0n', '-k', 'b,b.0n', '-k', 'c,c.0n', '-k', 'd,d.0', '$data3' );
+# Sort numerically on each field. Last one most significant
+check( <<'EOF', '-k', 'd.n', '-k', 'c.n', '-k', 'b.n', '-k', 'a.n', '$data3' );
+# a b c d
+4 150 156 3
+32 150 156 3
+4 150 156 23
+211 24 2 231
+111 24 3 231
+211 24 3 231
+EOF
+
+# Sort numerically on each field, except the last. First one most significant
+check( <<'EOF', '-k', 'a.n', '-k', 'b.n', '-k', 'c.n', '-k', 'd', '$data3' );
 # a b c d
 4 150 156 23
 4 150 156 3

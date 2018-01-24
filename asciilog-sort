@@ -105,27 +105,31 @@ sub substitute_field_keys
     }
 
     # manpage of sort says that key definitions are given as
-    # "F[.C][OPTS][,F[.C][OPTS]]"
+    # "F[.C][OPTS][,F[.C][OPTS]]". By default, sort works not just off the field
+    # alone, but off the whole line, starting at that field, which is crazy. To
+    # do the sane thing of just looking at the field you can do the after-,
+    # field spec. I.e. to sort JUST on field 2 you'd say 'sort -k 2,2'. That's
+    # weird, and asciilog-sort always passes this syntax, and thus asciilog-sort
+    # doesn't support the , in -k .... asciilog-sort also doesn't support the C.
+    # I DO want to support OPTS, so the asciilog-sort syntax is 'asciilog-sort
+    # -k field[.OPTS] where OPTS are just like in sort: one or more of
+    # [bdfgiMhnRrV]
+
     my $Nkeyoptions = scalar @{$options->{key}};
     for my $i_keyoption (0..$Nkeyoptions-1)
     {
-        my @keyspecs = split(',', $options->{key}[$i_keyoption]);
+        $options->{key}[$i_keyoption] =~ /^([^\.]+)(?:\.([bdfgiMhnRrV]+?))?$/
+          or die "Couldn't parse '$_' as a sort KEYDEF";
 
-        $options->{key}[$i_keyoption] =
-          join(',',
-               map
-               {
-                   /^([^\.]+)(\..+)?$/ or die "Couldn't parse '$_' as a sort KEYDEF";
+        if (!exists $key_indices{$1})
+        {
+            die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
+        }
 
-                   my $extra = $2 // '';
-                   if (!exists $key_indices{$1})
-                   {
-                       die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
-                   }
+        my $key  = $key_indices{$1};
+        my $opts = $2;
 
-                   $key_indices{$1} . $extra;
-               }
-               @keyspecs);
+        $options->{key}[$i_keyoption] = "$key,$key$opts";
     }
 }
 
