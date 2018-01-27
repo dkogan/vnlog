@@ -99,7 +99,7 @@ for my $ipick(0..$#{$options{pick}})
 
 my @cols_want           = @{$options{pick}};
 my @must_have_col_names = @{$options{has}};
-my @must_have_col_indices_in;
+my @must_have_col_indices_input;
 
 # if no columns requested, just print everything
 if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
@@ -113,10 +113,10 @@ if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $o
 
 my @cols_all_legend;
 my @colnames_output;
-my %colindices_in;
+my %colindices_input;
 
-my @indices_in = ();
-my $indices_in_max;
+my @indices_input = ();
+my $indices_input_max;
 
 
 # these are all for transforms: things like rel(a), deg2rad(x) and so on
@@ -159,7 +159,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         @cols_all_legend = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
         foreach my $idx (0..$#cols_all_legend)
         {
-            $colindices_in{$cols_all_legend[$idx]} = $idx;
+            $colindices_input{$cols_all_legend[$idx]} = $idx;
         }
 
         # If we weren't asked for particular columns, take them all. This isn't
@@ -174,32 +174,32 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
             my $accept = sub
             {
-                my @indices_in_here = @_;
+                my @indices_input_here = @_;
 
-                my $Nindices = @indices_in;
+                my $Nindices = @indices_input;
 
-                push @colnames_output, @cols_all_legend[@indices_in_here];
-                push @indices_in,      @indices_in_here;
+                push @colnames_output, @cols_all_legend[@indices_input_here];
+                push @indices_input,      @indices_input_here;
 
                 if( !@funcs )
                 {
-                    push @awk_output_fields, map { '$'.($_+1) } @indices_in_here;
+                    push @awk_output_fields, map { '$'.($_+1) } @indices_input_here;
                 }
                 else
                 {
                     # This loop is important. It is possible to push it to later
                     # by doing this instead:
                     #
-                    #   push @transforms, [\@indices_in_here, parse_transform_funcs(@funcs) ];
+                    #   push @transforms, [\@indices_input_here, parse_transform_funcs(@funcs) ];
                     #
-                    # but then all of @indices_in_here will get a single
+                    # but then all of @indices_input_here will get a single
                     # transformation subroutine object, and all of its internal
                     # state will be shared, which is NOT what you want. For
                     # instance if we're doing rel(.*time) or something, then the
                     # initial timestamp would be shared. This is wrong.
                     #
                     # The indices here index the OUTPUT columns list
-                    foreach my $idx (0..$#indices_in_here)
+                    foreach my $idx (0..$#indices_input_here)
                     {
                         my $idx_out = $idx + $Nindices;
 
@@ -210,18 +210,18 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
                         push @transforms,        [$idx_out, @perl_funcs ];
 
-                        my $idx_in        =  $indices_in_here[$idx];
-                        $awk_statement    =~ s/___input___/'$'.($idx_in+1)/ge;
+                        my $idx_input        =  $indices_input_here[$idx];
+                        $awk_statement    =~ s/___input___/'$'.($idx_input+1)/ge;
                         push @awk_output_fields, $awk_statement;
 
                         if(defined $awk_stanzas_before)
                         {
-                            $awk_stanzas_before      =~ s/___input___/'$'.($idx_in+1)/ge;
+                            $awk_stanzas_before      =~ s/___input___/'$'.($idx_input+1)/ge;
                             $awk_state_stanzas_before .= $awk_stanzas_before;
                         }
                         if(defined $awk_stanzas_after)
                         {
-                            $awk_stanzas_after      =~ s/___input___/'$'.($idx_in+1)/ge;
+                            $awk_stanzas_after      =~ s/___input___/'$'.($idx_input+1)/ge;
                             $awk_state_stanzas_after .= $awk_stanzas_after;
                         }
 
@@ -234,17 +234,17 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
             };
 
 
-            my @indices_in_here;
+            my @indices_input_here;
 
             # do I have an exact column match?
-            @indices_in_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
-            if ( @indices_in_here > 1 )
+            @indices_input_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
+            if ( @indices_input_here > 1 )
             {
                 die "Found more than one column that string-matched '$col_want' exactly";
             }
-            if ( @indices_in_here == 1 )
+            if ( @indices_input_here == 1 )
             {
-                $accept->(@indices_in_here);
+                $accept->(@indices_input_here);
                 next;
             }
 
@@ -264,14 +264,14 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 $col_want = $2;
 
                 # do I have an exact column match now?
-                @indices_in_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
-                if ( @indices_in_here > 1 )
+                @indices_input_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
+                if ( @indices_input_here > 1 )
                 {
                     die "Found more than one column that string-matched '$col_want' exactly";
                 }
-                if ( @indices_in_here == 1 )
+                if ( @indices_input_here == 1 )
                 {
-                    $accept->(@indices_in_here);
+                    $accept->(@indices_input_here);
                     next COLUMN;
                 }
 
@@ -280,21 +280,21 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
             # I'm done looking for transformations, and no exact matches were
             # found. I know there aren't any more '()' in the string, so I try a
             # regex
-            @indices_in_here = grep {$cols_all_legend[$_] =~ qr/$col_want/} 0..$#cols_all_legend;
-            if( @indices_in_here >= 1 )
+            @indices_input_here = grep {$cols_all_legend[$_] =~ qr/$col_want/} 0..$#cols_all_legend;
+            if( @indices_input_here >= 1 )
             {
-                $accept->(@indices_in_here);
+                $accept->(@indices_input_here);
                 next;
             }
 
             die "Couldn't find requested column '$col_want' in the legend line '$_'";
         }
 
-        $indices_in_max = max @indices_in;
+        $indices_input_max = max @indices_input;
 
         if ( $options{dumpindices} )
         {
-            print "@indices_in\n";
+            print "@indices_input\n";
             exit;
         }
 
@@ -310,11 +310,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         {
             foreach my $col (@must_have_col_names)
             {
-                if( !defined $colindices_in{$col})
+                if( !defined $colindices_input{$col})
                 {
                     die "I don't have column '$col'";
                 }
-                push @must_have_col_indices_in, $colindices_in{$col};
+                push @must_have_col_indices_input, $colindices_input{$col};
             }
         }
         last;
@@ -375,7 +375,7 @@ sub expr_col_names_to_indices
 
     my ($language, $out) = @_;
 
-    for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_in)
+    for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_input)
     {
         # Pre- and post-field-name regexen. If the field name begins/ends with
         # an alphanumeric character (the usual case), this is the word boundary
@@ -386,12 +386,12 @@ sub expr_col_names_to_indices
         {
             my $post = $key =~ /\w$/ ? '\b' : '';
             my $re = qr/\$\Q$key\E$post/;
-            $out =~ s/$re/\$feval[$colindices_in{$key}]/g;
+            $out =~ s/$re/\$feval[$colindices_input{$key}]/g;
         }
         elsif( $language eq 'awk' )
         {
             # column index that awk knows about
-            my $colidx = $colindices_in{$key} + 1;
+            my $colidx = $colindices_input{$key} + 1;
             my $pre  = $key =~ /^\w/ ? '\b' : '';
             my $post = $key =~ /\w$/ ? '\b' : '';
             my $re = qr/$pre\Q$key\E$post/; # \Q,\E to quote the ()
@@ -478,16 +478,16 @@ while(<STDIN>)
 
     # skip incomplete records. Can happen if a log line at the end of a file was
     # cut off in the middle
-    next unless $indices_in_max <= $#f;
+    next unless $indices_input_max <= $#f;
 
     # skip records that have empty input columns that must be non-empty
-    next if any {'-' eq $f[$_]} @must_have_col_indices_in;
+    next if any {'-' eq $f[$_]} @must_have_col_indices_input;
 
     # skip all records that don't match given expressions
     next unless matches();
 
 
-    @f = @f[@indices_in];
+    @f = @f[@indices_input];
 
     # skip empty records if we must
     next if $options{skipempty} && all {$_ eq '-' } @f;
@@ -748,13 +748,13 @@ sub makeAwkProgram
     # skip incomplete records. Can happen if a log line at the end of a file
     # was cut off in the middle
     $awkprogram .=
-      (1+$indices_in_max) . " > NF { next } ";
+      (1+$indices_input_max) . " > NF { next } ";
 
     # skip records that have empty input columns that must be non-empty
-    if (@must_have_col_indices_in)
+    if (@must_have_col_indices_input)
     {
         $awkprogram .=
-          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_in);
+          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
         $awkprogram .= ' { next } ';
     }
 
@@ -768,7 +768,7 @@ sub makeAwkProgram
     if ($options{skipempty})
     {
         $awkprogram .=
-          join ' && ', (map { '$'.($_+1)." == \"-\"" } @indices_in);
+          join ' && ', (map { '$'.($_+1)." == \"-\"" } @indices_input);
         $awkprogram .= ' { next } ';
     }
 
