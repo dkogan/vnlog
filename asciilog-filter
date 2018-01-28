@@ -18,7 +18,6 @@ $0 [--has c0,c1,...] [--has c2] --print|--pick|-p c3,c4,+c5,f(c0),g(c1) [match_e
       --eval expr|\@file
       --noskipempty
       --skipcomments
-      --dumpindices
       --dumpexprs
       --perl
       --unbuffered
@@ -53,7 +52,6 @@ GetOptions(\%options,
            "eval=s",
            "skipempty!",
            "skipcomments!",
-           "dumpindices!",
            "dumpexprs!",
            "perl",
            "unbuffered",
@@ -90,6 +88,7 @@ for my $listkey (qw(has pick))
 # any requested columns preceded with '+' go into --has. And I strip out the '+'
 for my $ipick(0..$#{$options{pick}})
 {
+    # handle extra column syntax here
     if( ${$options{pick}}[$ipick] =~ /^\+(.+)/ )
     {
         ${$options{pick}}[$ipick] = $1;
@@ -97,12 +96,12 @@ for my $ipick(0..$#{$options{pick}})
     }
 }
 
-my @cols_want           = @{$options{pick}};
+my @picked_exprs_named  = @{$options{pick}};
 my @must_have_col_names = @{$options{has}};
 my @must_have_col_indices_input;
 
 # if no columns requested, just print everything
-if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
+if( !@picked_exprs_named && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
 {
     while(<STDIN>)
     {
@@ -111,22 +110,21 @@ if( !@cols_want && !@must_have_col_names && !@{$options{matches}} && !defined $o
     }
 }
 
-my @cols_all_legend;
 my @colnames_output;
+
+# input column-name to index map. If I have more than one of the same column,
+# this maps to undef. Not an error unless we try to use the columns
 my %colindices_input;
 
-my @indices_input = ();
-my $indices_input_max;
+my @picked_indices_input = ();
+my $picked_indices_input_max;
 
 
-# these are all for transforms: things like rel(a), deg2rad(x) and so on
-my @transforms;        # perl functions
-my @awk_output_fields; # awk strings representing stuff to print
-# awk stanzas for set up any required state. This is for rel() to store the
-# initial value and diff() to store the previous value
-my ($awk_state_stanzas_before, $awk_state_stanzas_after);
 
-my $saw_rel_n;
+# awk or perl strings representing stuff to print. These are either simple
+# column references (such as $1), or more complex expressions
+my @langspecific_output_fields;
+
 
 
 # Loop searching for the legend.
@@ -156,147 +154,102 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         chomp;
 
         # we got a legend line
-        @cols_all_legend = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
-        foreach my $idx (0..$#cols_all_legend)
+        my @cols_all_legend_input = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
+        foreach my $idx (0..$#cols_all_legend_input)
         {
-            $colindices_input{$cols_all_legend[$idx]} = $idx;
+            if( exists $colindices_input{$cols_all_legend_input[$idx]} )
+            {
+                $colindices_input{$cols_all_legend_input[$idx]} = undef;
+            }
+            else
+            {
+                $colindices_input{$cols_all_legend_input[$idx]} = $idx;
+            }
         }
 
         # If we weren't asked for particular columns, take them all. This isn't
         # a no-op because we can have --has
-        @cols_want = @cols_all_legend unless @cols_want;
+        @picked_exprs_named = @cols_all_legend_input unless @picked_exprs_named;
 
         # grab all the column indices
       COLUMN:
-        foreach my $col_want (@cols_want)
+        foreach my $picked_expr_named (@picked_exprs_named)
         {
-            my @funcs;
-
             my $accept = sub
             {
-                my @indices_input_here = @_;
+                my ($exprs, $name) = @_;
 
-                my $Nindices = @indices_input;
-
-                push @colnames_output, @cols_all_legend[@indices_input_here];
-                push @indices_input,      @indices_input_here;
-
-                if( !@funcs )
+                if( defined $name )
                 {
-                    push @awk_output_fields, map { '$'.($_+1) } @indices_input_here;
+                    if( @$exprs != 1 )
+                    {
+                        die "A named expression can only refer to ONE column";
+                    }
+                    push @colnames_output, $name;
                 }
                 else
                 {
-                    # This loop is important. It is possible to push it to later
-                    # by doing this instead:
-                    #
-                    #   push @transforms, [\@indices_input_here, parse_transform_funcs(@funcs) ];
-                    #
-                    # but then all of @indices_input_here will get a single
-                    # transformation subroutine object, and all of its internal
-                    # state will be shared, which is NOT what you want. For
-                    # instance if we're doing rel(.*time) or something, then the
-                    # initial timestamp would be shared. This is wrong.
-                    #
-                    # The indices here index the OUTPUT columns list
-                    foreach my $idx (0..$#indices_input_here)
-                    {
-                        my $idx_out = $idx + $Nindices;
-
-                        my @perl_funcs         = parse_transform_funcs(@funcs);
-                        my $awk_stanzas_after  = pop @perl_funcs;
-                        my $awk_stanzas_before = pop @perl_funcs;
-                        my $awk_statement      = pop @perl_funcs;
-
-                        push @transforms,        [$idx_out, @perl_funcs ];
-
-                        my $idx_input        =  $indices_input_here[$idx];
-                        $awk_statement    =~ s/___input___/'$'.($idx_input+1)/ge;
-                        push @awk_output_fields, $awk_statement;
-
-                        if(defined $awk_stanzas_before)
-                        {
-                            $awk_stanzas_before      =~ s/___input___/'$'.($idx_input+1)/ge;
-                            $awk_state_stanzas_before .= $awk_stanzas_before;
-                        }
-                        if(defined $awk_stanzas_after)
-                        {
-                            $awk_stanzas_after      =~ s/___input___/'$'.($idx_input+1)/ge;
-                            $awk_state_stanzas_after .= $awk_stanzas_after;
-                        }
-
-                        $colnames_output[$idx_out] =
-                          join('', map { "$_("} reverse @funcs) .
-                          $colnames_output[$idx_out] .
-                          ')' x scalar(@funcs);
-                    }
+                    push @colnames_output, @$exprs;
                 }
+
+                push @langspecific_output_fields,
+                  map {expr_subst_col_names($options{perl} ?
+                                            'perl' : 'awk',
+                                            $_)} @$exprs;
             };
 
 
-            my @indices_input_here;
+
+
+
+
+
+            my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
+            if( !defined $picked_expr )
+            {
+                $picked_expr = $picked_expr_named;
+            }
+
 
             # do I have an exact column match?
-            @indices_input_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
-            if ( @indices_input_here > 1 )
+            if( defined $colindices_input{$picked_expr} )
             {
-                die "Found more than one column that string-matched '$col_want' exactly";
+                # We have exactly ONE matched column
+                $accept->( [$picked_expr], $name);
+                next;
             }
-            if ( @indices_input_here == 1 )
+            if( exists $colindices_input{$picked_expr} )
             {
-                $accept->(@indices_input_here);
+                die "Found more than one column that string-matched '$picked_expr' exactly";
+            }
+
+            # No exact column match. If this is a named expression, I pass it on
+            # to awk/perl
+            if( defined $name )
+            {
+                $accept->([$picked_expr], $name);
                 next;
             }
 
-            # I look for any requested functions. These all look like "f(x)" and
-            # may be nested. f(g(h(x))) is allowed. At each function level, I
-            # look for exact matching columns. I.e. if I'm asked about
-            # "diff(rel(x))" it is possible that I should find a column "x" and
-            # then rel() it and then diff() it; it's also possible that I should
-            # find a column "rel(x)" and then diff() it
-            while($col_want =~ /^           # start
-                                ( [^\(]+ )  # Function name. Non-( characters
-                                \( (.+) \)  # Function arg
-                                $           # End
-                               /x)
+            # No exact matches were found, and not a named expression. Let me
+            # try a regex
+            my $picked_expr_re;
+            eval { $picked_expr_re = qr/$picked_expr/; };
+            if( !$@ )
             {
-                unshift @funcs, $1;
-                $col_want = $2;
-
-                # do I have an exact column match now?
-                @indices_input_here = grep {$col_want eq $cols_all_legend[$_]} 0..$#cols_all_legend;
-                if ( @indices_input_here > 1 )
+                # compiled regex successfully
+                my @matching_input_cols = grep /$picked_expr_re/, @cols_all_legend_input;
+                if( @matching_input_cols >= 1 )
                 {
-                    die "Found more than one column that string-matched '$col_want' exactly";
+                    $accept->(\@matching_input_cols);
+                    next;
                 }
-                if ( @indices_input_here == 1 )
-                {
-                    $accept->(@indices_input_here);
-                    next COLUMN;
-                }
-
             }
 
-            # I'm done looking for transformations, and no exact matches were
-            # found. I know there aren't any more '()' in the string, so I try a
-            # regex
-            @indices_input_here = grep {$cols_all_legend[$_] =~ qr/$col_want/} 0..$#cols_all_legend;
-            if( @indices_input_here >= 1 )
-            {
-                $accept->(@indices_input_here);
-                next;
-            }
-
-            die "Couldn't find requested column '$col_want' in the legend line '$_'";
+            die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
         }
 
-        $indices_input_max = max @indices_input;
-
-        if ( $options{dumpindices} )
-        {
-            print "@indices_input\n";
-            exit;
-        }
+        $picked_indices_input_max = max @picked_indices_input;
 
         # print out the new legend
         unless($options{dumpexprs} || $options{eval})
@@ -323,7 +276,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
     die "Got data line before a legend";
 }
 
-if(!@cols_all_legend)
+if(!%colindices_input)
 {
     die "No legend received. Is the input file empty?";
 }
@@ -332,8 +285,7 @@ if(!@cols_all_legend)
 
 
 
-# data loop
-#
+
 # At this point I'm done dealing with the legend, and it's time to read in and
 # process the data. I can keep going in perl, or I can generate an awk program,
 # and let awk do this work. The reason: awk (mawk especialy) runs much faster.
@@ -360,41 +312,26 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
-sub expr_col_names_to_indices
+sub expr_subst_col_names
 {
     # I take in a string with awk/perl code, and replace field references to
-    # column references that the awk/perl program will understand
-    #
-    # The tricky thing here is that the field names could have come from a
-    # transform expression, so I can have a field name 'a' AND another field
-    # name 'rel(a)'. If I look for 'a' with a simple regex match of \ba\b then I
-    # may erroneously match rel(a).
-    #
-    # Thus I look for each field one at a time, starting from the longest one,
-    # and moving down the list.
-
+    # column references that the awk/perl program will understand. To minimize
+    # the risk of ambiguous matches, I try to match longer strings first
     my ($language, $out) = @_;
 
     for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_input)
     {
-        # Pre- and post-field-name regexen. If the field name begins/ends with
-        # an alphanumeric character (the usual case), this is the word boundary
-        # \b. Otherwise an empty string. This is here so that field names such
-        # as 'rel(a)' can match despite not ending in something that matches a
-        # word boundary
         if( $language eq 'perl' )
         {
             my $post = $key =~ /\w$/ ? '\b' : '';
-            my $re = qr/\$\Q$key\E$post/;
-            $out =~ s/$re/\$feval[$colindices_input{$key}]/g;
+            my $re = qr/\Q$key\E$post/;
+            $out =~ s/$re/\$f->[$colindices_input{$key}]/g;
         }
         elsif( $language eq 'awk' )
         {
             # column index that awk knows about
             my $colidx = $colindices_input{$key} + 1;
-            my $pre  = $key =~ /^\w/ ? '\b' : '';
-            my $post = $key =~ /\w$/ ? '\b' : '';
-            my $re = qr/$pre\Q$key\E$post/; # \Q,\E to quote the ()
+            my $re = qr/\b$key\b/;
             $out =~ s/$re/\$$colidx/g;
         }
         else
@@ -428,18 +365,25 @@ sub get_expr_string
 
 my $must_match_expr =
   join ' && ',
-  map { expr_col_names_to_indices( 'perl', $_) }
+  map { expr_subst_col_names( 'perl', $_) }
   map { get_expr_string($_) } @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
-my @f;
-my $evalstr = 'sub matches { my @feval = map {q{-} eq $_ ? undef : $_ } @f; return ' . $must_match_expr . '; }';
+my $evalstr = 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }';
 
 if ( $options{eval} )
 {
-    my $expr = expr_col_names_to_indices( 'perl', get_expr_string($options{eval}) );
-    $evalstr .= "\n" . 'sub evalexpr { my @feval = map {q{-} eq $_ ? undef : $_ } @f; ' . $expr . ' ; }';
+    my $expr = expr_subst_col_names( 'perl', get_expr_string($options{eval}) );
+    $evalstr .= "\n" . 'sub evalexpr { my ($f) = @_; ' . $expr . ' ; }';
 }
+
+$evalstr .=
+  "\n" . 'sub compute_output_fields { my ($f) = @_; return [' . join(',', @langspecific_output_fields) . ']; }';
+
+
+
+
+
 
 if( $options{dumpexprs} )
 {
@@ -474,40 +418,31 @@ while(<STDIN>)
     }
 
     chomp;
-    @f = split;
+    my @f = map {q{-} eq $_ ? undef : $_ } split;
 
-    # skip incomplete records. Can happen if a log line at the end of a file was
-    # cut off in the middle
-    next unless $indices_input_max <= $#f;
+    # # skip incomplete records. Can happen if a log line at the end of a file was
+    # # cut off in the middle
+    # next unless $picked_indices_input_max <= $#f;
+
 
     # skip records that have empty input columns that must be non-empty
-    next if any {'-' eq $f[$_]} @must_have_col_indices_input;
+    next if any {!defined $f[$_]} @must_have_col_indices_input;
 
     # skip all records that don't match given expressions
-    next unless matches();
-
-
-    @f = @f[@indices_input];
-
-    # skip empty records if we must
-    next if $options{skipempty} && all {$_ eq '-' } @f;
+    next unless matches(\@f);
 
     if( $options{eval} )
     {
-        evalexpr();
+        evalexpr(\@f);
     }
     else
     {
-        # apply transformations
-        for my $transform (@transforms)
-        {
-            my ($index_out, @funcs) = @$transform;
-            foreach my $func (@funcs)
-            {
-                $f[$index_out] = $func->($f[$index_out]);
-            }
-        }
-        print "@f\n";
+        my $fout = compute_output_fields(\@f);
+
+        # # skip empty records if we must
+        # next if $options{skipempty} && all {$_ eq '-' } @$fout;
+
+        print "@$fout\n";
         flush STDOUT if $options{unbuffered};
     }
 }
@@ -517,223 +452,9 @@ while(<STDIN>)
 
 
 
-sub parse_transform_funcs
-{
-    sub parse_transform_func
-    {
-        # Takes in a function name, and outputs a list
-        #
-        #     (perl function, awk function text to print, extra awk
-        #     condition/command directives)
-        my $f = shift;
-
-        if( $f eq 'us2s' )
-        {
-            return
-              ( sub { return $_[0] * 1e-6; },
-                '(___input___) * 1e-6' );
-        }
-        elsif( $f eq 'deg2rad' )
-        {
-            return
-              ( sub { return $_[0] * 3.141592653589793/180.0; },
-                '(___input___) * 3.141592653589793/180.0' );
-        }
-        elsif( $f eq 'rad2deg' )
-        {
-            return
-              ( sub { return $_[0] * 180.0/3.141592653589793; },
-                '(___input___) * 180.0/3.141592653589793' );
-        }
-        elsif( $f eq 'rel' )
-        {
-            # relative to the starting value. The 'state' variable should be a
-            # different instance for each sub instance
-            return
-              ( sub
-                {
-                    state $x0;
-                    $x0 //= $_[0];
-                    return $_[0] - $x0;
-                },
-
-                # statement to print
-                '(___input___) - ___state___',
-
-                # preceding awk stanza
-                '!___state___set {___state___ = (___input___); ___state___set=1}'
-              );
-        }
-        elsif( $f =~ /^rel_[ne]$/ )
-        {
-            # rel_n(lat) and rel_e(lon) take a lat/lon coord in degrees and
-            # output a local N,E coord in meters, relative to the first lat/lon
-            # value
-            #
-            # To a first approximation this is
-            #   (N,E) = R_earth * (delta_lat, cos(lat0) * delta_lon)
-            #
-            # These are a bit special: here a single sub and a single set of
-            # state is used for both rel_n and rel_e. And this state applies to
-            # ALL rel_n, rel_e filters
-            state ($lat0,$lon0,$cos_lat0);
-            my $Rearth = 6371.0e3; # "mean radius" from wikipedia
-
-            if ( $f eq 'rel_n')
-            {
-                $saw_rel_n = 1;
 
 
-                return
-                  ( sub
-                    {
-                        return '-' if '-' eq $_[0];
 
-                        if ( !defined $lat0 )
-                        {
-                            $lat0 = $_[0];
-                            $cos_lat0 = cos($lat0 * 3.141592653589793/180.0);
-                            return 0;
-                        }
-                        return ($_[0] - $lat0) * 3.141592653589793/180.0 * $Rearth;
-                    },
-
-                    # these awk statements are a bit convoluted by nature. Write
-                    # it out to confirm it is correct. The tests confirm it is
-                    # correct.
-                    #
-                    # I don't use the special ___state___ and ___state___set
-                    # variables because the state here is GLOBAL, not local to
-                    # some particular column. I.e. lat0 is the same for ALL
-                    # rel_n(). ___rel_[ne]0___ and ___cos_lat0___ are passed to
-                    # awk unmodified
-
-                    # statement to print
-                    "(___input___) == \"-\" ? \"-\" : ((___input___) * 3.141592653589793/180.0*$Rearth - ___rel_n0___)",
-
-                    # preceding awk stanza
-                    "!___rel_n0___set && (___input___) != \"-\" {" .
-                    "   x = (___input___) * 3.141592653589793/180.0;" .
-                    "   ___rel_n0___ = x * $Rearth;"     .
-                    "   ___cos_lat0___ = cos(x);"      .
-                    "   cos_lat0_scaled = ___cos_lat0___ * 3.141592653589793/180.0 * $Rearth;" .
-                    "   ___rel_n0___set=1" .
-                    "}"
-                  );
-            }
-
-            # 'rel_e'
-            if( !$saw_rel_n )
-            {
-                # rel_n initializes state (cos(lat0)) that rel_e uses, so rel_n
-                # must come first
-                die "If using rel_n() and rel_e(), rel_n() MUST come first. Giving up";
-            }
-
-
-            return
-              ( sub
-                {
-                    return '-' if '-' eq $_[0];
-                    $lon0 //= $_[0];
-                    return ($_[0] - $lon0) * 3.141592653589793/180.0 * $cos_lat0 * $Rearth;
-                },
-
-                # these awk statements are a bit convoluted by nature. Write
-                # it out to confirm it is correct. The tests confirm it is
-                # correct.
-                #
-                # I don't use the special ___state___ and ___state___set
-                # variables because the state here is GLOBAL, not local to some
-                # particular column. I.e. lat0 is the same for ALL rel_n().
-                # ___rel_[ne]0___ and ___cos_lat0___ are passed to awk
-                # unmodified
-
-                # statement to print
-                "(___input___) == \"-\" ? \"-\" : ((___input___) * cos_lat0_scaled - ___rel_e0___)",
-
-                # preceding awk stanza
-                "!___rel_e0___set && (___input___) != \"-\" {" .
-                "   x = (___input___) * 3.141592653589793/180.0;" .
-                "   ___rel_e0___ = x * $Rearth * ___cos_lat0___;"   .
-                "   ___rel_e0___set=1" .
-                "}"
-              );
-        }
-        elsif( $f eq 'diff' )
-        {
-            # relative to the previous value. The 'state' variable should be a
-            # different instance for each sub instance
-            return
-              ( sub
-                {
-                    state $xprev;
-                    my $ret = 0;
-                    if (defined $xprev)
-                    {
-                        $ret = $_[0] - $xprev;
-                    }
-                    $xprev = $_[0];
-                    return $ret;
-                },
-
-                # statement to print
-                '((___input___) - ___state___)*___state___set',
-
-                # preceding awk stanza
-                undef,
-
-                # following awk stanza
-                '{___state___ = (___input___); ___state___set=1}'
-              );
-        }
-        else
-        {
-            die "Unknown transform function '$f'";
-        }
-    }
-
-
-    my @func_names = @_;
-    my @perl_funcs;
-    my $awk_statement = '___input___';
-    my ($awk_stanzas_before, $awk_stanzas_after);
-    for my $f(@func_names)
-    {
-        # get the perl functions, the awk statement text, and any awk stanzas we
-        # need
-        my ($p, $a, $s_before, $s_after) = parse_transform_func($f);
-
-        # the perl functions go into a list, to be applied one at a time during
-        # data processing
-        push @perl_funcs, $p;
-
-        # the awk function composition happens right now when I generate the awk
-        # statement string
-        state $awk_state_idx = 0;
-        my $state = "__state$awk_state_idx";
-        $a =~ s/___input___/$awk_statement/g;
-        $a =~ s/___state___/$state/g;
-
-        if( defined $s_before )
-        {
-            $s_before =~ s/___input___/$awk_statement/g;
-            $s_before =~ s/___state___/$state/g;
-            $awk_stanzas_before  .= " $s_before ";
-        }
-        if( defined $s_after )
-        {
-            $s_after =~ s/___input___/$awk_statement/g;
-            $s_after =~ s/___state___/$state/g;
-            $awk_stanzas_after  .= " $s_after ";
-        }
-
-        $awk_statement = $a;
-        $awk_state_idx++;
-    }
-
-    return (@perl_funcs, $awk_statement, $awk_stanzas_before, $awk_stanzas_after);
-}
 
 sub makeAwkProgram
 {
@@ -745,10 +466,10 @@ sub makeAwkProgram
     $awkprogram .=
       '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
 
-    # skip incomplete records. Can happen if a log line at the end of a file
-    # was cut off in the middle
-    $awkprogram .=
-      (1+$indices_input_max) . " > NF { next } ";
+    # # skip incomplete records. Can happen if a log line at the end of a file
+    # # was cut off in the middle
+    # $awkprogram .=
+    #   (1+$picked_indices_input_max) . " > NF { next } ";
 
     # skip records that have empty input columns that must be non-empty
     if (@must_have_col_indices_input)
@@ -760,33 +481,28 @@ sub makeAwkProgram
 
     for my $expr( @{$options{matches}} )
     {
-        $expr = expr_col_names_to_indices('awk', get_expr_string($expr));
+        $expr = expr_subst_col_names('awk', get_expr_string($expr));
         $awkprogram .= ' !' . "($expr) { next } ";
     }
 
     # skip empty records if we must
-    if ($options{skipempty})
-    {
-        $awkprogram .=
-          join ' && ', (map { '$'.($_+1)." == \"-\"" } @indices_input);
-        $awkprogram .= ' { next } ';
-    }
+    # if ($options{skipempty})
+    # {
+    #     $awkprogram .=
+    #       join ' && ', (map { '$'.($_+1)." == \"-\"" } @picked_indices_input);
+    #     $awkprogram .= ' { next } ';
+    # }
 
     if( $options{eval} )
     {
-        my $expr = expr_col_names_to_indices('awk', get_expr_string($options{eval}));
+        my $expr = expr_subst_col_names('awk', get_expr_string($options{eval}));
         $awkprogram .= "$expr";
-
-        # don't need $awk_state_stanzas_before and $awk_state_stanzas_after:
-        # these are for rel() and diff(), and I'm disallowing column selectors
     }
     else
     {
-        # print selected fields. These already have the transformations applied
-        $awkprogram .= $awk_state_stanzas_before if defined $awk_state_stanzas_before;
+        # print selected fields
         $awkprogram .=
-          '{ print ' . (join(',', @awk_output_fields)) . '} ';
-        $awkprogram .= $awk_state_stanzas_after if defined $awk_state_stanzas_after;
+          '{ print ' . (join(',', @langspecific_output_fields)) . '} ';
     }
 
     return $awkprogram;
@@ -810,6 +526,7 @@ asciilog-filter - filters ascii logs to select particular rows, fields
     $ < /tmp/log
       asciilog-filter '.*time' 'us2s(time)' 'rel(time)' 'rel(us2s(.*time))'
 
+# this is bugged. also get rid of the ()
     # image_time time us2s(time) rel(time) rel(us2s(image_time)) rel(us2s(time))
     1434662133270338 1434662131279978 1434662131.27998 0 0 0
     1434662133270338 1434662131289978 1434662131.28998 10000 0 0.00999999046325684
@@ -943,22 +660,6 @@ The transforms currently available are
 
 =over
 
-=item C<us2s>
-
-convert microseconds to seconds
-
-=item C<deg2rad>
-
-convert degrees to radians
-
-=item C<rad2deg>
-
-convert radians to degrees
-
-=item C<rel>
-
-report data relative to first value
-
 =item C<rel_n>, C<rel_e>
 
 Can be applied to latitude and longitude (in degrees) respectively to report
@@ -967,10 +668,6 @@ to the first latlon, in meters. If using these, you I<must> have one of each and
 C<rel_n> I<must> come first. Generally you'll filter thusly:
 
     'rel_n(lat)' 'rel_e(lon)'
-
-=item C<diff>
-
-report data relative to previous value
 
 =back
 
@@ -1086,11 +783,6 @@ results, but not as quickly.
 Used for debugging. This spits out all the expressions parsed from the
 commandline. These come from C<--matches>, C<--eval> and, if using the awk
 backend, the generated awk program
-
-=head2 --dumpindices
-
-Used for debugging. If given, prints out the indices of all the selected
-columns, and exits.
 
 =head2 --unbuffered
 
