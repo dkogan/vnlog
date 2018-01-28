@@ -116,15 +116,13 @@ my @colnames_output;
 # this maps to undef. Not an error unless we try to use the columns
 my %colindices_input;
 
-my @picked_indices_input = ();
-my $picked_indices_input_max;
+my $colidx_needed_max = -1;
 
 
 
-# awk or perl strings representing stuff to print. These are either simple
+# awk or perl strings representing stuff to output. These are either simple
 # column references (such as $1), or more complex expressions
 my @langspecific_output_fields;
-
 
 
 # Loop searching for the legend.
@@ -192,10 +190,15 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     push @colnames_output, @$exprs;
                 }
 
-                push @langspecific_output_fields,
+                my ($output_fields, $colidx_needed_max_here) =
                   map {expr_subst_col_names($options{perl} ?
                                             'perl' : 'awk',
                                             $_)} @$exprs;
+                push @langspecific_output_fields, $output_fields;
+                if( $colidx_needed_max_here > $colidx_needed_max )
+                {
+                    $colidx_needed_max = $colidx_needed_max_here;
+                }
             };
 
 
@@ -248,8 +251,6 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
             die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
         }
-
-        $picked_indices_input_max = max @picked_indices_input;
 
         # print out the new legend
         unless($options{dumpexprs} || $options{eval})
@@ -319,27 +320,39 @@ sub expr_subst_col_names
     # the risk of ambiguous matches, I try to match longer strings first
     my ($language, $out) = @_;
 
+    my $colidx_needed_max_here = -1;
+
     for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_input)
     {
         if( $language eq 'perl' )
         {
             my $post = $key =~ /\w$/ ? '\b' : '';
             my $re = qr/\Q$key\E$post/;
-            $out =~ s/$re/\$f->[$colindices_input{$key}]/g;
+            my $found = $out =~ s/$re/\$f->[$colindices_input{$key}]/g;
+
+            if($found && $colindices_input{$key} > $colidx_needed_max_here)
+            {
+                $colidx_needed_max_here = $colindices_input{$key};
+            }
         }
         elsif( $language eq 'awk' )
         {
             # column index that awk knows about
             my $colidx = $colindices_input{$key} + 1;
             my $re = qr/\b$key\b/;
-            $out =~ s/$re/\$$colidx/g;
+            my $found = $out =~ s/$re/\$$colidx/g;
+
+            if($found && $colindices_input{$key} > $colidx_needed_max_here)
+            {
+                $colidx_needed_max_here = $colindices_input{$key};
+            }
         }
         else
         {
             die "Unknown language '$language";
         }
     }
-    return $out;
+    return ($out, $colidx_needed_max_here);
 }
 
 sub get_expr_string
@@ -365,7 +378,7 @@ sub get_expr_string
 
 my $must_match_expr =
   join ' && ',
-  map { expr_subst_col_names( 'perl', $_) }
+  map { my ($outexpr) = expr_subst_col_names( 'perl', $_); $outexpr; }
   map { get_expr_string($_) } @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
@@ -373,7 +386,7 @@ my $evalstr = 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }';
 
 if ( $options{eval} )
 {
-    my $expr = expr_subst_col_names( 'perl', get_expr_string($options{eval}) );
+    my ($expr) = expr_subst_col_names( 'perl', get_expr_string($options{eval}) );
     $evalstr .= "\n" . 'sub evalexpr { my ($f) = @_; ' . $expr . ' ; }';
 }
 
@@ -420,10 +433,9 @@ while(<STDIN>)
     chomp;
     my @f = map {q{-} eq $_ ? undef : $_ } split;
 
-    # # skip incomplete records. Can happen if a log line at the end of a file was
-    # # cut off in the middle
-    # next unless $picked_indices_input_max <= $#f;
-
+    # skip incomplete records. Can happen if a log line at the end of a file was
+    # cut off in the middle
+    next unless $colidx_needed_max <= $#f;
 
     # skip records that have empty input columns that must be non-empty
     next if any {!defined $f[$_]} @must_have_col_indices_input;
@@ -439,10 +451,10 @@ while(<STDIN>)
     {
         my $fout = compute_output_fields(\@f);
 
-        # # skip empty records if we must
-        # next if $options{skipempty} && all {$_ eq '-' } @$fout;
+        # skip empty records if we must
+        next if $options{skipempty} && all {!defined $_} @$fout;
 
-        print "@$fout\n";
+        say join('', map {$_ // '-'} @$fout);
         flush STDOUT if $options{unbuffered};
     }
 }
@@ -466,10 +478,9 @@ sub makeAwkProgram
     $awkprogram .=
       '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
 
-    # # skip incomplete records. Can happen if a log line at the end of a file
-    # # was cut off in the middle
-    # $awkprogram .=
-    #   (1+$picked_indices_input_max) . " > NF { next } ";
+    # skip incomplete records. Can happen if a log line at the end of a file
+    # was cut off in the middle
+    $awkprogram .= (1+$colidx_needed_max) . " > NF { next } ";
 
     # skip records that have empty input columns that must be non-empty
     if (@must_have_col_indices_input)
@@ -481,25 +492,24 @@ sub makeAwkProgram
 
     for my $expr( @{$options{matches}} )
     {
-        $expr = expr_subst_col_names('awk', get_expr_string($expr));
+        ($expr) = expr_subst_col_names('awk', get_expr_string($expr));
         $awkprogram .= ' !' . "($expr) { next } ";
     }
 
-    # skip empty records if we must
-    # if ($options{skipempty})
-    # {
-    #     $awkprogram .=
-    #       join ' && ', (map { '$'.($_+1)." == \"-\"" } @picked_indices_input);
-    #     $awkprogram .= ' { next } ';
-    # }
-
     if( $options{eval} )
     {
-        my $expr = expr_subst_col_names('awk', get_expr_string($options{eval}));
+        my ($expr) = expr_subst_col_names('awk', get_expr_string($options{eval}));
         $awkprogram .= "$expr";
     }
     else
     {
+        # skip empty records if we must
+        if ($options{skipempty})
+        {
+            $awkprogram .=
+              join(' && ', map {"\"-\" == $_"} @langspecific_output_fields) . '{ next } ';
+        }
+
         # print selected fields
         $awkprogram .=
           '{ print ' . (join(',', @langspecific_output_fields)) . '} ';
