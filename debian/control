@@ -38,7 +38,7 @@ Package: asciilog
 Section: libdevel
 Architecture: all
 Depends: ${misc:Depends},
- libasciilog0,
+ libasciilog0 (= ${binary:Version}),
  mawk, libtext-table-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
  Various helper tools to make working with asciilogs easier
