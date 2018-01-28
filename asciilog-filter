@@ -124,6 +124,10 @@ my $colidx_needed_max = -1;
 # column references (such as $1), or more complex expressions
 my @langspecific_output_fields;
 
+# How many rel(),diff() calls we have. I generate code based on this
+my $Nrel  = 0;
+my $Ndiff = 0;
+
 
 # Loop searching for the legend.
 #
@@ -169,7 +173,6 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         # a no-op because we can have --has
         @picked_exprs_named = @cols_all_legend_input unless @picked_exprs_named;
 
-        # grab all the column indices
       COLUMN:
         foreach my $picked_expr_named (@picked_exprs_named)
         {
@@ -193,6 +196,9 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 my @output_fields;
                 for my $expr(@$exprs)
                 {
+                    $Nrel  = subst_rel (\$expr);
+                    $Ndiff = subst_diff(\$expr);
+
                     my ($output_field, $colidx_needed_max_here) =
                       expr_subst_col_names($options{perl} ? 'perl' : 'awk',
                                            $expr);
@@ -359,6 +365,33 @@ sub expr_subst_col_names
     return ($out, $colidx_needed_max_here);
 }
 
+sub subst_rel
+{
+    my ($expr) = @_;
+
+    state $relidx = 0;
+
+    while( $$expr =~ /\brel\s*\(/ )
+    {
+        $$expr =~ s/\brel(\s*\()/rel$relidx$1/;
+        $relidx++;
+    }
+    return $relidx;
+}
+sub subst_diff
+{
+    my ($expr) = @_;
+
+    state $diffidx = 0;
+
+    while( $$expr =~ /\bdiff\s*\(/ )
+    {
+        $$expr =~ s/\bdiff(\s*\()/diff$diffidx$1/;
+        $diffidx++;
+    }
+    return $diffidx;
+}
+
 sub get_expr_string
 {
     sub slurp
@@ -415,6 +448,18 @@ if( $@ )
 }
 
 
+# I'm defining the rel()/diff() functions. These should be global, so if I do
+# this inside a for(){}, the functions end up local to that for(). I thus have
+# an ugly manual loop
+my $i = 0;
+EVAL_REL_FUNC:
+eval "sub rel$i" . '{ my ($x) = @_; state $state=undef; if(!defined $state) { $state=$x; } return $x - $state; } ';
+if($i++ < $Nrel) { goto EVAL_REL_FUNC; }
+
+$i = 0;
+EVAL_DIFF_FUNC:
+eval "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ';
+if($i++ < $Ndiff) { goto EVAL_DIFF_FUNC; }
 
 
 RECORD:
@@ -478,6 +523,16 @@ sub makeAwkProgram
     # while() loop above
     my $awkprogram = '';
 
+    for my $i (0..$Nrel-1)
+    {
+        $awkprogram .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
+    }
+    for my $i (0..$Ndiff-1)
+    {
+        $awkprogram .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+    }
+
+
     # skip comments
     $awkprogram .=
       '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
@@ -503,20 +558,35 @@ sub makeAwkProgram
     if( $options{eval} )
     {
         my ($expr) = expr_subst_col_names('awk', get_expr_string($options{eval}));
-        $awkprogram .= "$expr";
+        $awkprogram .= "$expr ";
     }
     else
     {
-        # skip empty records if we must
-        if ($options{skipempty})
+        # skip empty records if we must. I evaluate the fields just one time to
+        # not affect the state inside rel() and diff()
+        if (!$options{skipempty})
         {
+            # print selected fields
             $awkprogram .=
-              join(' && ', map {"\"-\" == $_"} @langspecific_output_fields) . '{ next } ';
+              '{ print ' . (join(',', @langspecific_output_fields)) . ' } ';
         }
+        else
+        {
+            # I evaluate and cache all the fields
+            $awkprogram .=
+              '{ ' .
+              join(' ',
+                   map { "__f$_ = $langspecific_output_fields[$_]; " }
+                   0..$#langspecific_output_fields) .
 
-        # print selected fields
-        $awkprogram .=
-          '{ print ' . (join(',', @langspecific_output_fields)) . '} ';
+                     # Then I do skipempty. Important to do this after evaluating ALL the
+                     # fields to tick all the rel(), diff() state
+                     "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
+                     ") { next }; " .
+
+                     # And THEN I print everything
+                     'print ' . (join(',', map {"__f$_"} 0..$#langspecific_output_fields)) . '} ';
+        }
     }
 
     return $awkprogram;

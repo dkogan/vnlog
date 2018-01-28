@@ -38,7 +38,6 @@ EOF
 
 
 
-
 check( <<'EOF', qw(-p s=b) );
 # s
 2
@@ -93,12 +92,6 @@ check( <<'EOF', qw(-p s=a+1) );
 8
 11
 EOF
-
-
-
-
-exit
-
 
 check( <<'EOF', qw(-p .) );
 # a b c
@@ -192,92 +185,60 @@ check( <<'EOF', qw(--has b --has c -p a) );
 10
 EOF
 
-check( <<'EOF', qw(-p c -p us2s(a)) );
-# c us2s(a)
-3 1e-06
-6 4e-06
-- 7e-06
-12 1e-05
-EOF
-
-check( <<'EOF', '-p', 'c,us2s(us2s(a))' );
-# c us2s(us2s(a))
-3 1e-12
-6 4e-12
-- 7e-12
-12 1e-11
-EOF
-
-check( <<'EOF', qw(-p rel(a) -p b -p c));
-# rel(a) b c
+check( <<'EOF', qw(-p d=rel(a) -p b -p c --noskipempty));
+# d b c
 0 2 3
 3 - 6
 6 9 -
 9 11 12
 EOF
 
-check( <<'EOF', qw(-p rel(a) -p b -p diff(a) -p c -p a));
-# rel(a) b diff(a) c a
+check( <<'EOF', qw(-p d=rel(a) -p b -p c));
+# d b c
+0 2 3
+3 - 6
+6 9 -
+9 11 12
+EOF
+
+check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p c -p a));
+# r b d c a
 0 2 0 3 1
 3 - 3 6 4
 6 9 3 - 7
 9 11 3 12 10
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),b,c'], [qw(-p rel(a))]);
-# rel(a)
+check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r)]);
+# r
 0
 3
 6
 9
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),b,c'], [qw(-p rel(rel(a)))]);
-# rel(rel(a))
+check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r=rel(r))]);
+# r
 0
 3
 6
 9
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),b,c'], [qw(-p diff(rel(a)))]);
-# diff(rel(a))
+check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
+# d
 0
 3
 3
 3
 EOF
 
-check( <<'EOF', qw(-p us2s(t)), {data => $data_t});
-# us2s(t)
-100
-101
-102
-103
-EOF
-
-check( <<'EOF', qw(-p rel(t)), {data => $data_t});
-# rel(t)
+check( <<'EOF', qw(-p r=rel(t)), {data => $data_t});
+# r
 0
 1000000
 2000000
 3000000
-EOF
-
-check( <<'EOF', qw(-p rel(us2s(t))), {data => $data_t});
-# rel(us2s(t))
-0
-1
-2
-3
-EOF
-
-check( <<'EOF', qw(-p us2s(rel(t))), {data => $data_t});
-# us2s(rel(t))
-0
-1
-2
-3
 EOF
 
 check( <<'EOF', qw(--has b -p [ab]) );
@@ -287,48 +248,48 @@ check( <<'EOF', qw(--has b -p [ab]) );
 10 11
 EOF
 
-check( <<'EOF', ['--has', 'b', '-p', 'diff(a),diff(b)'], ['diff(b)>3'], {language => 'AWK'} );
-# diff(a) diff(b)
+check( <<'EOF', ['--has', 'b', '-p', 'da=diff(a),db=diff(b)'], ['db>3'], {language => 'AWK'} );
+# da db
 6 7
 EOF
 
-check( <<'EOF', ['-p', 'a,rel(a)'], ['a<4'], {language => 'AWK'} );
-# a rel(a)
+check( <<'EOF', ['-p', 'a,r=rel(a)'], ['a<4'], {language => 'AWK'} );
+# a r
 1 0
 EOF
 
-check( <<'EOF', ['-p', 'a,rel(a)'], ['rel(a)<4'], {language => 'AWK'} );
-# a rel(a)
+check( <<'EOF', ['-p', 'a,r=rel(a)'], ['r<4'], {language => 'AWK'} );
+# a r
 1 0
 4 3
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),a'], ['a<4'], {language => 'AWK'} );
-# rel(a) a
+check( <<'EOF', ['-p', 'r=rel(a),a'], ['a<4'], {language => 'AWK'} );
+# r a
 0 1
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),a'], ['rel(a)<4'], {language => 'AWK'} );
-# rel(a) a
+check( <<'EOF', ['-p', 'r=rel(a),a'], ['r<4'], {language => 'AWK'} );
+# r a
 0 1
 3 4
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),a'], ['--eval', '{print rel(a)}'], {language => 'AWK'} );
+check( <<'EOF', ['-p', 'r=rel(a),a'], ['--eval', '{print r}'], {language => 'AWK'} );
 0
 3
 6
 9
 EOF
 
-check( <<'EOF', ['-p', 'rel(a),a'], ['--eval', 'say $rel(a)'], {language => 'perl'} );
+check( <<'EOF', ['-p', 'r=rel(a),a'], ['--eval', 'say r'], {language => 'perl'} );
 0
 3
 6
 9
 EOF
 
-check( <<'EOF', 'a>5', {language => 'AWK'} );
+check( <<'EOF', 'a>5' );
 # a b c
 7 9 -
 10 11 12
@@ -361,25 +322,28 @@ check( <<'EOF', 'a>5', '--eval', 'my $v = a + b + 2; say $v', {language => 'perl
 EOF
 
 
-# awk and perl write out the data with different precisions, so I test them separately for now
-check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
-# rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
-0 0 55.1528 -14.7495
-12.1319 -1.6905 77.6179 -20.9478
-23.212 -5.13654 89.4163 -23.2732
-32.7714 -8.51701 101.068 -26.6477
-44.5383 -11.3141 112.492 -29.5051
-EOF
+# # awk and perl write out the data with different precisions, so I test them separately for now
+# check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
+# # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
+# 0 0 55.1528 -14.7495
+# 12.1319 -1.6905 77.6179 -20.9478
+# 23.212 -5.13654 89.4163 -23.2732
+# 32.7714 -8.51701 101.068 -26.6477
+# 44.5383 -11.3141 112.492 -29.5051
+# EOF
 
 
-check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'perl', data => $data_latlon} );
-# rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
-0 0 55.1528170494324 -14.7495300237067
-12.1319447101403 -1.69050470904804 77.6179395005555 -20.9477574245461
-23.2119631755057 -5.13653865865383 89.4163216701965 -23.2732273896387
-32.7713799003105 -8.51700679638622 101.06799325373 -26.6476704659731
-44.5382939050826 -11.3140998289326 112.492204495462 -29.505102855998
-EOF
+# check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'perl', data => $data_latlon} );
+# # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
+# 0 0 55.1528170494324 -14.7495300237067
+# 12.1319447101403 -1.69050470904804 77.6179395005555 -20.9477574245461
+# 23.2119631755057 -5.13653865865383 89.4163216701965 -23.2732273896387
+# 32.7713799003105 -8.51700679638622 101.06799325373 -26.6476704659731
+# 44.5382939050826 -11.3140998289326 112.492204495462 -29.505102855998
+# EOF
+
+
+
 
 
 if($Nfailed == 0 )
