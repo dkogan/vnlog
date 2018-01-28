@@ -38,6 +38,68 @@ EOF
 
 
 
+
+check( <<'EOF', qw(-p s=b) );
+# s
+2
+9
+11
+EOF
+
+check( <<'EOF', qw(-p s=b --noskipempty) );
+# s
+2
+-
+9
+11
+EOF
+
+check( <<'EOF', '-p', 's=b,a' );
+# s a
+2 1
+- 4
+9 7
+11 10
+EOF
+
+check( <<'EOF', '-p', 's=b,a', '--noskipempty');
+# s a
+2 1
+- 4
+9 7
+11 10
+EOF
+
+check( <<'EOF', qw(-p s=a) );
+# s
+1
+4
+7
+10
+EOF
+
+check( <<'EOF', qw(-p s=a+1) );
+# s
+2
+5
+8
+11
+EOF
+
+check( <<'EOF', qw(-p s=a+1) );
+# s
+2
+5
+8
+11
+EOF
+
+
+
+
+exit
+
+
 check( <<'EOF', qw(-p .) );
 # a b c
 1 2 3
@@ -272,29 +334,12 @@ check( <<'EOF', 'a>5', {language => 'AWK'} );
 10 11 12
 EOF
 
-check( <<'EOF', '$a>5', {language => 'perl'} );
-# a b c
-7 9 -
-10 11 12
-EOF
-
-check( <<'EOF', qw(a>5 -p c), {language => 'AWK'} );
+check( <<'EOF', qw(a>5 -p c) );
 # c
 12
 EOF
 
-check( <<'EOF', qw($a>5 -p c), {language => 'perl'} );
-# c
-12
-EOF
-
-check( <<'EOF', qw(a>5 --no-skipempty -p c), {language => 'AWK'} );
-# c
--
-12
-EOF
-
-check( <<'EOF', qw($a>5 --no-skipempty -p c), {language => 'perl'} );
+check( <<'EOF', qw(a>5 --no-skipempty -p c) );
 # c
 -
 12
@@ -305,7 +350,12 @@ check( <<'EOF', 'a>5', '--eval', '{print a+b}', {language => 'AWK'} );
 21
 EOF
 
-check( <<'EOF', '$a>5', '--eval', 'my $v = $a + $b + 2; say $v', {language => 'perl'} );
+check( <<'EOF', 'a>5', '--eval', '{say a+b}', {language => 'perl'} );
+16
+21
+EOF
+
+check( <<'EOF', 'a>5', '--eval', 'my $v = a + b + 2; say $v', {language => 'perl'} );
 18
 23
 EOF
