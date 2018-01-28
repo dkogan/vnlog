@@ -225,13 +225,6 @@ check( <<'EOF', qw(--has b -p [ab]) );
 10 11
 EOF
 
-check( <<'EOF', qw(--has b -p diff([ab])) );
-# diff(a) diff(b)
-0 0
-6 7
-3 2
-EOF
-
 check( <<'EOF', ['--has', 'b', '-p', 'diff(a),diff(b)'], ['diff(b)>3'], {language => 'AWK'} );
 # diff(a) diff(b)
 6 7
@@ -283,6 +276,16 @@ check( <<'EOF', '$a>5', {language => 'perl'} );
 # a b c
 7 9 -
 10 11 12
+EOF
+
+check( <<'EOF', qw(a>5 -p c), {language => 'AWK'} );
+# c
+12
+EOF
+
+check( <<'EOF', qw($a>5 -p c), {language => 'perl'} );
+# c
+12
 EOF
 
 check( <<'EOF', qw(a>5 --no-skipempty -p c), {language => 'AWK'} );
