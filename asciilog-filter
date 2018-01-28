@@ -190,15 +190,19 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     push @colnames_output, @$exprs;
                 }
 
-                my ($output_fields, $colidx_needed_max_here) =
-                  map {expr_subst_col_names($options{perl} ?
-                                            'perl' : 'awk',
-                                            $_)} @$exprs;
-                push @langspecific_output_fields, $output_fields;
-                if( $colidx_needed_max_here > $colidx_needed_max )
+                my @output_fields;
+                for my $expr(@$exprs)
                 {
-                    $colidx_needed_max = $colidx_needed_max_here;
+                    my ($output_field, $colidx_needed_max_here) =
+                      expr_subst_col_names($options{perl} ? 'perl' : 'awk',
+                                           $expr);
+                    if ( $colidx_needed_max_here > $colidx_needed_max )
+                    {
+                        $colidx_needed_max = $colidx_needed_max_here;
+                    }
+                    push @output_fields, $output_field;
                 }
+                push @langspecific_output_fields, @output_fields;
             };
 
 
@@ -454,7 +458,7 @@ while(<STDIN>)
         # skip empty records if we must
         next if $options{skipempty} && all {!defined $_} @$fout;
 
-        say join('', map {$_ // '-'} @$fout);
+        say join(' ', map {$_ // '-'} @$fout);
         flush STDOUT if $options{unbuffered};
     }
 }
