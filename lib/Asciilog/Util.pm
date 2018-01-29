@@ -144,7 +144,7 @@ sub pull_key
         }
     }
 
-    return die "Reading '$filename': no legend found!";
+    die "Error reading '$filename': no legend found!";
 }
 sub parse_options
 {
