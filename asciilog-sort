@@ -135,63 +135,140 @@ sub substitute_field_keys
 
 __END__
 
-
-
-# finish docs
-# bsd sort?
-# comm, sort, join, paste, split
-
-
 =head1 NAME
 
 asciilog-sort - sorts a log file, preserving the legend
 
 =head1 SYNOPSIS
 
- $ asciilog-sort tst.asciilog
- # x y z
- 1 2 3
- ...
+ $ cat a.asciilog
+ # a b
+ AA 11
+ bb 12
+ CC 13
+ dd 14
+ dd 123
+
+ Sort by a:
+ $ <a.asciilog asciilog-sort -k a
+ # a b
+ AA 11
+ CC 13
+ bb 12
+ dd 123
+ dd 14
+
+ Sort by a, ignoring case:
+ $ <a.asciilog asciilog-sort -k a --ignore-case
+ # a b
+ AA 11
+ bb 12
+ CC 13
+ dd 123
+ dd 14
+
+ Sort by a, then b, sorted numerically:
+ $ <a.asciilog asciilog-sort -k a -k b.n
+ # a b
+ AA 11
+ CC 13
+ bb 12
+ dd 14
+ dd 123
+
+ Sort by a, then b, sorted numerically in reverse:
+ $ <a.asciilog asciilog-sort -k a -k b.nr
+ # a b
+ AA 11
+ CC 13
+ bb 12
+ dd 123
+ dd 14
+
+
+ Sort by month and then day:
+ $ cat dat.asciilog
+ # month day
+ March 5
+ Jan 2
+ Feb 1
+ March 30
+ Jan 21
+
+ $ <dat.asciilog asciilog-sort -k month.M -k day.n
+ # month day
+ Jan 2
+ Jan 21
+ Feb 1
+ March 5
+ March 30
+
 
 =head1 DESCRIPTION
 
-The basic usage is
+  Usage: asciilog-sort [options] logfile logfile logfile ... < logfile
 
- asciilog-sort [arguments passed to sort] logfile
+This tool sorts given asciilog files in various ways. C<asciilog-sort> is a
+wrapper around the GNU coreutils C<sort> tool. The differences from GNU
+coreutils C<sort> are
 
-The last argument is assumed to be the log file, and all the preceding arguments
-are passed to <sort> verbatim.
+=over
 
-A common asciilog use case is to run a data-generating process, C<tee> the
-output to a log file, while plotting some of the results:
+=item *
 
- $ run_widget | tee tst.asciilog | asciilog-filter quality | feedgnuplot --stream
+The input and output to this tool are asciilog files, complete with a legend
 
-As this runs, maybe we want to make a realtime plot of some other fields in teh
-log. We thus need to create a pipe that produces the data as it comes in.
-Generall the C<sort> tool can do this if invoked with the C<-f> option. But this
-would just print the trailing log lines as they come in, and it would I<not>
-print the legend, which is at the start of the file. This legend is needed to
-keep our column labels, so that we can process the log with other tools. To do
-that, we can use this tool instead of a plain C<sort -f>. This tool simply
-prints out the log until it sees a legend (inclusively), and then runs the
-C<sort -f> as usual. So we can do
+=item *
 
- $ asciilog-sort tst.asciilog | asciilog-filter x y z | feedgnuplot --stream --3d --lines
+The columns can be referenced by name, not index. So instead of saying
 
-This usage will start printing out all the data written to the log file as it
-comes in. Thus all data that is I<already> in the log is ignored. If this is
-undesireable, we can use the fact that this tool is a very thin wrapper around
-the C<sort> utility, and all aruments are passed to C<sort> verbatim. It is
-possible to ask C<sort> to print out all lines except the first (so that we
-don't print the legend twice, assuming the legend is on the first line) and
-I<then> to output new data:
+  sort -k1
 
- $ asciilog-sort -n+2 tst.asciilog | ....
+to sort by the first column, you say
 
-=head1 REQUIRED ARGUMENTS
+  sort -k time
 
-We need the log file as the only argument
+to sort by column "time".
+
+=item *
+
+The fancy C<KEYDEF> spec from C<sort> is only partially supported. I only allow
+us to sort by full I<fields>, so the start/stop positions don't make sense. I
+I<do> support the C<OPTS> to change the type of sorting in a given particular
+column. For instance, to sort by month and then by day, do this (see example
+above):
+
+  sort -k month.M -k day.n
+
+=item *
+
+C<--files0-from> is not supported due to lack of time. If somebody really needs
+it, talk to me.
+
+=item *
+
+C<--output> is not supported due to an uninteresting technical limitation. The
+output always goes to standard out.
+
+=item *
+
+C<--field-separator> is not supported because asciilog assumes
+whitespace-separated fields
+
+=item *
+
+C<--zero-terminated> is not supported because asciilog assumes
+newline-separated records
+
+=back
+
+Past that, everything C<sort> does is supported, so see that man page for
+detailed documentation. Note that all non-legend comments are stripped out,
+since it's not obvious where they should end up.
+
+=head1 SEE ALSO
+
+L<sort(1)>
 
 =head1 REPOSITORY
 
@@ -203,8 +280,7 @@ Dima Kogan C<< <dima@secretsauce.net> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016 California Institute of Technology.
-Copyright 2017 Dima Kogan
+Copyright 2018 Dima Kogan C<< <dima@secretsauce.net> >>
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
