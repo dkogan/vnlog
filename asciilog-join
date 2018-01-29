@@ -122,18 +122,9 @@ if( !defined $options->{o} )
 my $inputs = read_and_preparse_input($filenames);
 my $keys_output = substitute_field_keys($options, $inputs);
 
-# use Data::Dumper;
-# say Dumper $options;
-# exit;
-
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
 say '# ' . join(' ', @$keys_output);
-
-# use Data::Dumper;
-# say Dumper $ARGV_new;
-# exit;
-
 exec 'join', @$ARGV_new;
 
 
