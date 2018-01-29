@@ -239,56 +239,139 @@ sub substitute_field_keys
 
 
 
+__END__
+
 =head1 NAME
 
-asciilog-sort - sorts a log file, preserving the legend
+asciilog-join - joins two log files on a particular field
 
 =head1 SYNOPSIS
 
- $ asciilog-sort tst.asciilog
- # x y z
- 1 2 3
- ...
+
+ $ cat a.asciilog
+ # a b
+ AA 11
+ bb 12
+ CC 13
+ dd 14
+ dd 123
+
+ $ cat b.asciilog
+ # a c
+ aa 1
+ cc 3
+ bb 4
+ ee 5
+ - 23
+
+ Try to join unsorted data on field 'a':
+ $ asciilog-join -j a a.asciilog b.asciilog
+ # a b c
+ join: /dev/fd/5:3: is not sorted: CC 13
+ join: /dev/fd/6:3: is not sorted: bb 4
+
+ Sort the data, and join on 'a':
+ $ asciilog-join -j a <(asciilog-sort -ka a.asciilog) <(asciilog-sort -ka b.asciilog) | asciilog-align
+ # a b  c
+ bb  12 4
+
+ Sort the data, and join on 'a', ignoring case:
+ $ asciilog-join -i -j a <(asciilog-sort -f -ka a.asciilog) <(asciilog-sort -f -ka b.asciilog) | asciilog-align
+ # a b c
+ AA 11 1
+ bb 12 4
+ CC 13 3
+
+ Sort the data, and join on 'a'. Also print the unmatched lines from both files:
+ $ asciilog-join -ja -a1 -a2 <(asciilog-sort -ka a.asciilog) <(asciilog-sort -ka b.asciilog) | asciilog-align
+ # a b   c
+ -   -   23
+ AA   11 -
+ CC   13 -
+ aa  -    1
+ bb   12  4
+ cc  -    3
+ dd  123 -
+ dd   14 -
+ ee  -    5
+
+ Sort the data, and join on 'a'. Print the unmatched lines from both files, Output ONLY colum 'c' from the 2nd input:
+ $ asciilog-join -ja -a1 -a2 -o 2.c <(asciilog-sort -ka a.asciilog) <(asciilog-sort -ka b.asciilog) | asciilog-align
+ # c
+ 23
+ -
+ -
+  1
+  4
+  3
+ -
+ -
+  5
 
 =head1 DESCRIPTION
 
-The basic usage is
+  Usage: asciilog-join [options] logfile1 logfile2
 
- asciilog-sort [arguments passed to sort] logfile
+This tool joins two asciilog files on a given field. C<asciilog-join> is a
+wrapper around the GNU coreutils C<join> tool. The differences from GNU
+coreutils C<join> are
 
-The last argument is assumed to be the log file, and all the preceding arguments
-are passed to <sort> verbatim.
+=over
 
-A common asciilog use case is to run a data-generating process, C<tee> the
-output to a log file, while plotting some of the results:
+=item *
 
- $ run_widget | tee tst.asciilog | asciilog-filter quality | feedgnuplot --stream
+The input and output to this tool are asciilog files, complete with a legend
 
-As this runs, maybe we want to make a realtime plot of some other fields in teh
-log. We thus need to create a pipe that produces the data as it comes in.
-Generall the C<sort> tool can do this if invoked with the C<-f> option. But this
-would just print the trailing log lines as they come in, and it would I<not>
-print the legend, which is at the start of the file. This legend is needed to
-keep our column labels, so that we can process the log with other tools. To do
-that, we can use this tool instead of a plain C<sort -f>. This tool simply
-prints out the log until it sees a legend (inclusively), and then runs the
-C<sort -f> as usual. So we can do
+=item *
 
- $ asciilog-sort tst.asciilog | asciilog-filter x y z | feedgnuplot --stream --3d --lines
+The columns are referenced by name, not index. So instead of saying
 
-This usage will start printing out all the data written to the log file as it
-comes in. Thus all data that is I<already> in the log is ignored. If this is
-undesireable, we can use the fact that this tool is a very thin wrapper around
-the C<sort> utility, and all aruments are passed to C<sort> verbatim. It is
-possible to ask C<sort> to print out all lines except the first (so that we
-don't print the legend twice, assuming the legend is on the first line) and
-I<then> to output new data:
+  join -j1
 
- $ asciilog-sort -n+2 tst.asciilog | ....
+to join on the first column, you say
 
-=head1 REQUIRED ARGUMENTS
+  join -j time
 
-We need the log file as the only argument
+to join on column "time".
+
+=item *
+
+C<-1> and C<-2> are supported, but I<must> refer to the same field. Since
+asciilog knows the identify of each field, it makes no sense for C<-1> and C<-2>
+to be different. So pass C<-j> instead, it makes more sense in this context.
+
+=item *
+
+If no C<-o> is given, we pass C<-o auto> to make sure that missing data is shown
+as C<->.
+
+=item *
+
+C<-e> is not supported because asciilog uses C<-> to represent undefined fields.
+
+=item *
+
+C<--header> is not supported because asciilog assumes a specific header
+structure, and C<asciilog-sort> makes sure that this header is handled properly
+
+=item *
+
+C<-t> is not supported because asciilog assumes whitespace-separated fields
+
+=item *
+
+C<--zero-terminated> is not supported because asciilog assumes newline-separated
+records
+
+=back
+
+Past that, everything C<join> does is supported, so see that man page for
+detailed documentation. Note that all non-legend comments are stripped out,
+since it's not obvious where they should end up.
+
+=head1 SEE ALSO
+
+L<join(1)>
 
 =head1 REPOSITORY
 
@@ -300,8 +383,7 @@ Dima Kogan C<< <dima@secretsauce.net> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2016 California Institute of Technology.
-Copyright 2017 Dima Kogan
+Copyright 2018 Dima Kogan C<< <dima@secretsauce.net> >>
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
