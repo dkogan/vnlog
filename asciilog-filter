@@ -203,9 +203,6 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 my @output_fields;
                 for my $expr(@$exprs)
                 {
-                    $Nrel  = subst_rel (\$expr);
-                    $Ndiff = subst_diff(\$expr);
-
                     my ($output_field, $colidx_needed_max_here) =
                       expr_subst_col_names($options{perl} ? 'perl' : 'awk',
                                            $expr);
@@ -330,6 +327,33 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
+sub subst_rel
+{
+    my ($expr) = @_;
+
+    state $relidx = 0;
+
+    while( $$expr =~ /\brel\s*\(/ )
+    {
+        $$expr =~ s/\brel(\s*\()/rel$relidx$1/;
+        $relidx++;
+    }
+    return $relidx;
+}
+sub subst_diff
+{
+    my ($expr) = @_;
+
+    state $diffidx = 0;
+
+    while( $$expr =~ /\bdiff\s*\(/ )
+    {
+        $$expr =~ s/\bdiff(\s*\()/diff$diffidx$1/;
+        $diffidx++;
+    }
+    return $diffidx;
+}
+
 sub expr_subst_col_names
 {
     # I take in a string with awk/perl code, and replace field references to
@@ -368,34 +392,11 @@ sub expr_subst_col_names
             die "Unknown language '$language";
         }
     }
+
+    $Nrel  = subst_rel (\$out);
+    $Ndiff = subst_diff(\$out);
+
     return ($out, $colidx_needed_max_here);
-}
-
-sub subst_rel
-{
-    my ($expr) = @_;
-
-    state $relidx = 0;
-
-    while( $$expr =~ /\brel\s*\(/ )
-    {
-        $$expr =~ s/\brel(\s*\()/rel$relidx$1/;
-        $relidx++;
-    }
-    return $relidx;
-}
-sub subst_diff
-{
-    my ($expr) = @_;
-
-    state $diffidx = 0;
-
-    while( $$expr =~ /\bdiff\s*\(/ )
-    {
-        $$expr =~ s/\bdiff(\s*\()/diff$diffidx$1/;
-        $diffidx++;
-    }
-    return $diffidx;
 }
 
 
@@ -513,16 +514,6 @@ sub makeAwkProgram
     # while() loop above
     my $awkprogram = '';
 
-    for my $i (0..$Nrel-1)
-    {
-        $awkprogram .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
-    }
-    for my $i (0..$Ndiff-1)
-    {
-        $awkprogram .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
-    }
-
-
     # skip comments
     $awkprogram .=
       '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
@@ -579,7 +570,18 @@ sub makeAwkProgram
         }
     }
 
-    return $awkprogram;
+
+    my $reldiff = '';
+    for my $i (0..$Nrel-1)
+    {
+        $reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
+    }
+    for my $i (0..$Ndiff-1)
+    {
+        $reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+    }
+
+    return $reldiff . $awkprogram;
 }
 
 __END__
