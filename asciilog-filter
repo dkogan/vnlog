@@ -343,8 +343,7 @@ sub expr_subst_col_names
     {
         if( $language eq 'perl' )
         {
-            my $post = $key =~ /\w$/ ? '\b' : '';
-            my $re = qr/\Q$key\E$post/;
+            my $re = qr/\b$key\b/;
             my $found = $out =~ s/$re/\$f->[$colindices_input{$key}]/g;
 
             if($found && $colindices_input{$key} > $colidx_needed_max_here)
