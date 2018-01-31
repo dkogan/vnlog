@@ -9,7 +9,6 @@ BIN_SOURCES := test/test1.c
 TOOLS :=					\
   asciilog-filter				\
   asciilog-gen-header				\
-  asciilog-tailf				\
   asciilog-tail					\
   asciilog-make-matrix				\
   asciilog-align				\
