@@ -28,12 +28,13 @@ my $data_latlon = <<'EOF';
 37.0601797672 -76.1704662408 37.0607908914 -76.1706712460
 EOF
 
-my $data_t = <<'EOF';
-# t
-100e6
-101e6
-102e6
-103e6
+my $data_cubics = <<'EOF';
+# x
+1
+8
+27
+64
+125
 EOF
 
 
@@ -193,6 +194,11 @@ check( <<'EOF', qw(-p d=rel(a) -p b -p c --noskipempty));
 9 11 12
 EOF
 
+check( <<'EOF', qw(rel(a)>6 -p . -p d=rel(a)));
+# a b c d
+10 11 12 9
+EOF
+
 check( <<'EOF', qw(-p d=rel(a) -p b -p c));
 # d b c
 0 2 3
@@ -233,12 +239,13 @@ check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
 3
 EOF
 
-check( <<'EOF', qw(-p r=rel(t)), {data => $data_t});
-# r
-0
-1000000
-2000000
-3000000
+check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x))', {data => $data_cubics});
+# d1 d2
+0 0
+7 7
+19 12
+37 18
+61 24
 EOF
 
 check( <<'EOF', qw(--has b -p [ab]) );

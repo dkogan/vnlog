@@ -7,6 +7,7 @@ use List::MoreUtils qw(any all);
 use FindBin '$Bin';
 use lib "$Bin/lib";
 use Asciilog::Util 'get_unbuffered_line';
+use Text::Balanced 'extract_bracketed';
 
 use feature qw(say state);
 
@@ -134,6 +135,8 @@ my @langspecific_output_fields;
 # How many rel(),diff() calls we have. I generate code based on this
 my $Nrel  = 0;
 my $Ndiff = 0;
+my @rel_outer;
+my @diff_outer;
 
 
 # Loop searching for the legend.
@@ -327,31 +330,101 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
-sub subst_rel
+sub subst_reldiff
 {
-    my ($expr) = @_;
+    # This is somewhat convoluted. I want the meaning of rel() and diff() to be
+    # preserved regardless of any early-exit expressions. I.e. this code is
+    # broken:
+    #
+    # - if(!matches) { continue }
+    # - print rel() # update internal state
+    #
+    # because the internal state will not be updated if(!matches). I thus do
+    # this instead:
+    #
+    # - _rel = rel()
+    # - if(!matches) { continue }
+    # - print _rel
+    #
+    # This works. But to make it work, I need to pre-compute all the outermost
+    # rel() and diff() expressions. Outermost because rel(rel(x)) should still
+    # work properly. I thus do this:
+    #
+    # rel( rel(xxx) ) ------>
+    # function rel1() {} function rel2() {}
+    # __rel1 = rel1( rel2(xxx) ); ... __rel1
+    #
+    # I.e. each rel() gets a function defined with its own state. Only the
+    # outermost one is cached. This is done so that I evaluate all the rel()
+    # unconditionally, and then do conditional stuff (due to matches or
+    # skipempty)
 
-    state $relidx = 0;
+    my ($what, $expr, $isouter) = @_;
 
-    while( $$expr =~ /\brel\s*\(/ )
+    my $sigil = $options{perl} ? '$' : '';
+
+    my $N;
+    my $outer_list;
+    if( $what eq 'rel' )
     {
-        $$expr =~ s/\brel(\s*\()/rel$relidx$1/;
-        $relidx++;
+        $N          = \$Nrel;
+        $outer_list = \@rel_outer;
     }
-    return $relidx;
+    else
+    {
+        $N          = \$Ndiff;
+        $outer_list = \@diff_outer;
+    }
+
+    my $whatre = qr/\b$what\s*\(/;
+    while( $expr =~ /$whatre/p )
+    {
+        if( !$isouter )
+        {
+            # not an outer one. Simply replace the call with a specific,
+            # numbered one
+            $expr =~ s/$whatre/$what$$N(/;
+        }
+        else
+        {
+            # IS an outer one. Replace the call with a variable that gets
+            # precomputed. Save the string for precomputation
+            my $prematch = ${^PREMATCH};
+
+            my ($paren_expr, $rest) = extract_bracketed("(${^POSTMATCH}", '[({');
+            if (!defined $paren_expr)
+            {
+                die "Giving up: Couldn't parse '$expr'";
+            }
+
+            $expr = $prematch . $sigil . "__$what$$N" . $rest;
+            push @$outer_list, [$$N, $paren_expr];
+        }
+        $$N++;
+    }
+
+    return $expr;
 }
-sub subst_diff
+
+sub get_reldiff_outer_expr
 {
-    my ($expr) = @_;
-
-    state $diffidx = 0;
-
-    while( $$expr =~ /\bdiff\s*\(/ )
+    # should be called AFTER all the outer rel/diff expressions were
+    # encountered. I.e. after the last expr_subst_col_names()
+    my $sigil = $options{perl} ? '$' : '';
+    my $expr = '';
+    for my $e (@rel_outer)
     {
-        $$expr =~ s/\bdiff(\s*\()/diff$diffidx$1/;
-        $diffidx++;
+        my ($i, $paren_expr) = @$e;
+        $expr .= $sigil . "__rel$i = rel$i" . subst_reldiff('rel', $paren_expr, 0) . '; ';
+
     }
-    return $diffidx;
+    for my $e (@diff_outer)
+    {
+        my ($i, $paren_expr) = @$e;
+        $expr .= $sigil . "__diff$i = diff$i" . subst_reldiff('diff', $paren_expr, 0) . '; ';
+
+    }
+    return $expr;
 }
 
 sub expr_subst_col_names
@@ -393,8 +466,8 @@ sub expr_subst_col_names
         }
     }
 
-    $Nrel  = subst_rel (\$out);
-    $Ndiff = subst_diff(\$out);
+    $out = subst_reldiff ('rel',  $out, 1);
+    $out = subst_reldiff ('diff', $out, 1);
 
     return ($out, $colidx_needed_max_here);
 }
@@ -406,18 +479,40 @@ my $must_match_expr =
   @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
-my $evalstr = 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }';
+my $evalstr = 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }' . "\n";
 
 if ( $options{eval} )
 {
     my ($expr) = expr_subst_col_names( 'perl', $options{eval} );
-    $evalstr .= "\n" . 'sub evalexpr { my ($f) = @_; ' . $expr . ' ; }';
+    $evalstr .= 'sub evalexpr { my ($f) = @_; ' . $expr . ' ; }' . "\n";
 }
 
 $evalstr .=
-  "\n" . 'sub compute_output_fields { my ($f) = @_; return [' . join(',', @langspecific_output_fields) . ']; }';
+  'sub compute_output_fields { my ($f) = @_; return [' . join(',', @langspecific_output_fields) . ']; }' . "\n";
 
+$evalstr .=
+  'sub compute_reldiff { my ($f) = @_; ' . get_reldiff_outer_expr() . '}' . "\n";
 
+# I'm defining the rel()/diff() functions. These should be global, so if I do
+# this inside a for(){}, the functions end up local to that for(). I thus have
+# an ugly manual loop
+my $i = 0;
+EVAL_REL_FUNC:
+if( $i < $Nrel )
+{
+    $evalstr = "sub rel$i" . '{ my ($x) = @_; state $state=undef; if(!defined $state) { $state=$x; } return $x - $state; } ' . "\n" . $evalstr;
+    $i++;
+    goto EVAL_REL_FUNC;
+}
+
+$i = 0;
+EVAL_DIFF_FUNC:
+if( $i < $Ndiff )
+{
+    $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ' . $evalstr;
+    $i++;
+    goto EVAL_DIFF_FUNC;
+}
 
 
 
@@ -439,18 +534,6 @@ use strict;
 use warnings;
 
 
-# I'm defining the rel()/diff() functions. These should be global, so if I do
-# this inside a for(){}, the functions end up local to that for(). I thus have
-# an ugly manual loop
-my $i = 0;
-EVAL_REL_FUNC:
-eval "sub rel$i" . '{ my ($x) = @_; state $state=undef; if(!defined $state) { $state=$x; } return $x - $state; } ';
-if($i++ < $Nrel) { goto EVAL_REL_FUNC; }
-
-$i = 0;
-EVAL_DIFF_FUNC:
-eval "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ';
-if($i++ < $Ndiff) { goto EVAL_DIFF_FUNC; }
 
 
 RECORD:
@@ -479,6 +562,8 @@ while(<STDIN>)
 
     # skip records that have empty input columns that must be non-empty
     next if any {!defined $f[$_]} @must_have_col_indices_input;
+
+    compute_reldiff(\@f);
 
     # skip all records that don't match given expressions
     next unless matches(\@f);
@@ -512,34 +597,36 @@ sub makeAwkProgram
 {
     # The awk program I generate here is analogous to the logic in the data
     # while() loop above
-    my $awkprogram = '';
+    my $awkprogram_preamble = '';
 
     # skip comments
-    $awkprogram .=
+    $awkprogram_preamble .=
       '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
 
     # skip incomplete records. Can happen if a log line at the end of a file
     # was cut off in the middle
-    $awkprogram .= (1+$colidx_needed_max) . " > NF { next } ";
+    $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
 
     # skip records that have empty input columns that must be non-empty
     if (@must_have_col_indices_input)
     {
-        $awkprogram .=
+        $awkprogram_preamble .=
           join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
-        $awkprogram .= ' { next } ';
+        $awkprogram_preamble .= ' { next } ';
     }
 
+    my $awkprogram_matches = '';
     for my $expr( @{$options{matches}} )
     {
         ($expr) = expr_subst_col_names('awk', $expr);
-        $awkprogram .= ' !' . "($expr) { next } ";
+        $awkprogram_matches .= ' !' . "($expr) { next } ";
     }
 
+    my $awkprogram_print = '';
     if( $options{eval} )
     {
         my ($expr) = expr_subst_col_names('awk', $options{eval});
-        $awkprogram .= "$expr ";
+        $awkprogram_print .= "$expr ";
     }
     else
     {
@@ -548,13 +635,13 @@ sub makeAwkProgram
         if (!$options{skipempty})
         {
             # print selected fields
-            $awkprogram .=
+            $awkprogram_print .=
               '{ print ' . (join(',', @langspecific_output_fields)) . ' } ';
         }
         else
         {
             # I evaluate and cache all the fields
-            $awkprogram .=
+            $awkprogram_print .=
               '{ ' .
               join(' ',
                    map { "__f$_ = $langspecific_output_fields[$_]; " }
@@ -571,17 +658,25 @@ sub makeAwkProgram
     }
 
 
-    my $reldiff = '';
+    my $outer_expr = get_reldiff_outer_expr();
+
+    my $awkprogram_reldiff = '';
     for my $i (0..$Nrel-1)
     {
-        $reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
+        $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
     }
     for my $i (0..$Ndiff-1)
     {
-        $reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
     }
 
-    return $reldiff . $awkprogram;
+    my $awkprogram = $awkprogram_reldiff .$awkprogram_preamble;
+    if(length($outer_expr))
+    {
+        $awkprogram .= "{ $outer_expr } ";
+    }
+    $awkprogram .= $awkprogram_matches . $awkprogram_print;
+    return $awkprogram;
 }
 
 __END__
