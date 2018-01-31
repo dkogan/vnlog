@@ -6,7 +6,7 @@ TAIL_VERSION := 1.9
 LIB_SOURCES := *.c*
 BIN_SOURCES := test/test1.c
 
-TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-make-matrix asciilog-align
+TOOLS := asciilog-filter asciilog-gen-header asciilog-tailf asciilog-tail asciilog-make-matrix asciilog-align
 
 b64_cencode.o: CFLAGS += -Wno-implicit-fallthrough
 

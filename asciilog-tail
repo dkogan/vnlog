@@ -1,0 +1,138 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use feature 'say';
+use autodie;
+
+use FindBin '$Bin';
+use lib "$Bin/lib";
+
+use Asciilog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_inputs);
+
+
+
+# This comes from the struct option long_options in tail.c in GNU coreutils
+my @specs = ( # options with no args
+             "silent|quiet|q",
+             "zero-terminated|z",
+             "verbose|v",
+             "retry",
+             "F",
+
+             # options with args
+             "bytes|c=s",
+             "lines|n=s",
+             "sleep-interval|s=f",
+             "max-unchanged-stats=i",
+             "pid=i",
+
+             # special-case options. Kinda take args
+             "follow|f:s",
+
+             "help");
+
+
+
+
+my %options_unsupported = ( 'bytes' => <<'EOF',
+asciilog is line-oriented, so I refuse to split lines
+EOF
+                            'zero-terminated' => <<'EOF'
+asciilog is built on assuming a particular record separator
+EOF
+                          );
+
+my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+for my $key(keys %$options)
+{
+    if($options_unsupported{$key})
+    {
+        my $keyname = length($key) == 1 ? "-$key" : "--$key";
+        die("I don't support $keyname: $options_unsupported{$key}");
+    }
+}
+
+my $inputs = read_and_preparse_input($filenames, 1);
+ensure_all_legends_equivalent($inputs);
+say '# ' . join(' ', @{$inputs->[0]{keys}});
+
+# I exec with the original command. I.e. I do NOT substitute filenames. This
+# allows --follow=name to work. The only thing I do here is to make absolutely
+# sure the legend is reported correctly
+close_inputs($inputs);
+exec 'tail', @ARGV;
+
+
+__END__
+
+=head1 NAME
+
+asciilog-tail - tail a log file, preserving the legend
+
+=head1 SYNOPSIS
+
+ $ read_temperature | tee temp.asciilog
+ # temperature
+ 29.5
+ 30.4
+ 28.3
+ 22.1
+ ... continually produces data
+
+ ... at the same time, in another terminal
+ $ asciilog-tail -f temp.asciilog
+ # temperature
+ 28.3
+ 22.1
+ ... outputs data as it comes in
+
+=head1 DESCRIPTION
+
+  Usage: asciilog-tail [options] logfile logfile logfile ... < logfile
+
+This tool runs tail on given asciilog files in various ways. C<asciilog-tail> is
+a wrapper around the GNU coreutils C<tail> tool. The differences from GNU
+coreutils C<tail> are
+
+=over
+
+=item *
+
+The input and output to this tool are asciilog files, complete with a legend
+
+=item *
+
+C<-c> is not supported because asciilog really doesn't want to break up lines
+
+=item *
+
+C<--zero-terminated> is not supported because asciilog assumes
+newline-separated records
+
+=back
+
+Past that, everything C<tail> does is supported, so see that man page for
+detailed documentation.
+
+=head1 SEE ALSO
+
+L<tail(1)>
+
+=head1 REPOSITORY
+
+https://github.com/dkogan/asciilog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <dima@secretsauce.net> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2018 Dima Kogan C<< <dima@secretsauce.net> >>
+
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option) any
+later version.
+
+=cut
