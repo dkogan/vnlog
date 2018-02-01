@@ -101,7 +101,7 @@ asciilog-make-matrix - create a matrix from a one-point-per-record asciilog
 
 =head1 SYNOPSIS
 
- $ cat /tmp/dat
+ $ cat /tmp/dat.asciilog
  # i j x
  0 0 1
  0 1 2
@@ -116,7 +116,7 @@ asciilog-make-matrix - create a matrix from a one-point-per-record asciilog
  3 1 11
  3 2 12
 
- $ </tmp/dat asciilog-filter i x | asciilog-make-matrix --outdir /tmp --prefix test_
+ $ </tmp/dat.asciilog asciilog-filter i x | asciilog-make-matrix --outdir /tmp --prefix test_
  Writing to '/tmp/test_x.matrix'
 
  $ cat /tmp/test_x.matrix

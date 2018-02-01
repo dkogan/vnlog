@@ -690,35 +690,37 @@ asciilog-filter - filters asciilogs to select particular rows, fields
  $ cat run.asciilog
 
  # time x   y   z   temperature
- 1      1   2.3 4.8 30
- 2      1.1 2.2 4.7 31
- 3      1   2.0 4.0 35
- 4      1   1.6 3.1 42
+ 3      1   2.3 4.8 30
+ 4      1.1 2.2 4.7 31
+ 6      1   2.0 4.0 35
+ 7      1   1.6 3.1 42
 
 
  $ <run.asciilog asciilog-filter -p x,y,z | asciilog-align
 
- # x y   z
+ # x  y   z
  1   2.3 4.8
  1.1 2.2 4.7
  1   2.0 4.0
  1   1.6 3.1
 
 
- $ <run.asciilog asciilog-filter -p time,'dist=sqrt(x*x + y*y + z*z)' | asciilog-align
+ $ <run.asciilog asciilog-filter -p i=NR,time,'dist=sqrt(x*x + y*y + z*z)' | asciilog-align
 
- # time dist
- 1      5.41572
- 2      5.30471
- 3      4.58258
- 4      3.62905
+ # i time   dist
+ 1   1    5.41572
+ 2   2    5.30471
+ 3   3    4.58258
+ 4   4    3.62905
 
 
  $ <run.asciilog asciilog-filter 'temperature >= 35' | asciilog-align
 
- # time x y   z   temperature
- 3      1 2.0 4.0 35
- 4      1 1.6 3.1 42
+ # time x  y   z  temperature
+ 6      1 2.0 4.0 35
+ 7      1 1.6 3.1 42
+
+
 
  $ <run.asciilog asciilog-filter --eval '{s += temperature} END { print "mean temp: " s/NR}'
 
