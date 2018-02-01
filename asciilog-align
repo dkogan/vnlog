@@ -27,6 +27,7 @@ my $table = undef;
 my @chunks = ( [-1, ''] );
 my $Nlines_here = 0;
 
+my @legend;
 
 while(<>)
 {
@@ -34,7 +35,7 @@ while(<>)
     {
         if( !/^#[^#]/ )
         {
-            # don't have a legend yet, and this isn't it.
+            # don't have a legend yet, and this is a ## comment, not a legend
             $chunks[-1][1] .= $_;
         }
         else
@@ -44,12 +45,12 @@ while(<>)
             $Nlines_here = 1;
 
             chomp;
-            s/^# +//;
-            my @fields = split;
+            s/^# *//;
+            @legend = split;
 
-            $fields[0] = "# $fields[0]";
+            $legend[0] = "# $legend[0]";
 
-            $table = Text::Table->new(@fields);
+            $table = Text::Table->new(@legend);
         }
         next;
     }
@@ -87,6 +88,48 @@ for my $ichunk (0..$#chunks)
 
     if( $chunk->[0] >= 0)
     {
+        # This isn't a comment-only chunk. Those are the pre-legend ## lines
+        if($chunk->[0] == 0)
+        {
+            # Treat the legend specially: I want to center-justify the labels.
+            # Can't figure out how to use the library to do that, so I'm doing
+            # that manually
+            for my $icol(0..$#legend)
+            {
+                my $textwidth = length($legend[$icol]);
+                my ($fieldstart,$fieldwidth) = $table->colrange($icol);
+
+                # I want to center the thing. First column is different
+                if($icol == 0 )
+                {
+                    # line is '# xxx'
+                    my ($text) = $legend[$icol] =~ /^# (.*)/;
+                    $textwidth -= 2;
+                    # margin+textwidth+margin = fieldwidth
+                    my $margin0 = int(($fieldwidth - $textwidth) / 2); # rounds down
+                    my $margin1 = $fieldwidth - $textwidth - $margin0; # rounds up
+
+                    if($margin1 == 1)
+                    {
+                        $margin1++;
+                        $margin0--;
+                    }
+                    print( '#' . (' ' x ($margin1-1)) . $text . (' ' x $margin0));
+                }
+                else
+                {
+                    # margin+textwidth+margin = fieldwidth
+                    my $text = $legend[$icol];
+                    my $margin0 = int(($fieldwidth - $textwidth) / 2); # rounds down
+                    my $margin1 = $fieldwidth - $textwidth - $margin0; # rounds up
+                    print( (' ' x $margin1) . $text . (' ' x $margin0));
+                }
+                print( ($icol == $#legend) ? "\n" : ' ');
+            }
+
+            # done with the legend. Process this chunk from the next line
+            $chunk->[0]++;
+        }
         print $table->table($chunk->[0],
                             $ichunk != $#chunks ?
                             ($chunks[$ichunk+1][0] - $chunk->[0]) :
@@ -113,7 +156,7 @@ asciilog-align - aligns the columns for easy interpretation by humans
 
  $ asciilog-align tst.asciilog
 
- # w x  y    z
+ # w  x   y      z
  -10 40 asdf -
  -20 50 -    0.300000
  -30 10 whoa 0.500000
@@ -132,7 +175,7 @@ This is very similar to C<column -t>, but handles C<#> lines properly:
 1. The first C<#> line is the legend. For the purposes of alignment, the leading
    C<#> character and the first column label are treated as one column
 
-2. Any other C<#> lines are output verbatim.
+2. All other C<#> lines are output verbatim.
 
 =head1 REPOSITORY
 
@@ -145,6 +188,7 @@ Dima Kogan C<< <dima@secretsauce.net> >>
 =head1 LICENSE AND COPYRIGHT
 
 Copyright 2016 California Institute of Technology.
+Copyright 2018 Dima Kogan C<< <dima@secretsauce.net> >>
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
