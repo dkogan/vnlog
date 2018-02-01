@@ -6,7 +6,7 @@ use feature ':5.10';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_inputs);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -45,7 +45,7 @@ sub get_unbuffered_line
 
 sub open_file_as_pipe
 {
-    my ($filename) = @_;
+    my ($filename, $do_keep_comments) = @_;
 
     my $fh;
 
@@ -61,16 +61,16 @@ sub open_file_as_pipe
         }
     }
 
-    # This invocation of 'mawk' is important. I want to read the legend in this
-    # perl program from a FILE, and then exec the underlying application, with
-    # the inner application using the post-legend file-descriptor. Conceptually
-    # this works, BUT the inner application expects to get a filename that it
-    # calls open() on, NOT an already-open file-descriptor. I can get an
-    # open-able filename from /dev/fd/N, but on Linux this is a plain symlink to
-    # the actual file, so the file would be re-opened, and the legend visible
-    # again. By using a filtering process (grep here), /dev/fd/N is a pipe, not
-    # a file. And opening this pipe DOES start reading the file from the
-    # post-legend location
+    # This invocation of 'mawk' or cat below is important. I want to read the
+    # legend in this perl program from a FILE, and then exec the underlying
+    # application, with the inner application using the post-legend
+    # file-descriptor. Conceptually this works, BUT the inner application
+    # expects to get a filename that it calls open() on, NOT an already-open
+    # file-descriptor. I can get an open-able filename from /dev/fd/N, but on
+    # Linux this is a plain symlink to the actual file, so the file would be
+    # re-opened, and the legend visible again. By using a filtering process
+    # (grep here), /dev/fd/N is a pipe, not a file. And opening this pipe DOES
+    # start reading the file from the post-legend location
 
 
 
@@ -108,7 +108,8 @@ sub open_file_as_pipe
     }
 EOF
 
-    open $fh, '-|', "mawk '$mawk_strip_comments' '$filename'";
+    my $pipe_cmd = $do_keep_comments ? 'cat' : "mawk '$mawk_strip_comments'";
+    open $fh, '-|', "$pipe_cmd '$filename'";
 
     if ( !$fh )
     {
@@ -202,17 +203,27 @@ sub ensure_all_legends_equivalent
 }
 sub read_and_preparse_input
 {
-    my ($filenames) = @_;
+    my ($filenames, $do_keep_comments) = @_;
 
     my @inputs = map { {filename => $_} } @$filenames;
     for my $input (@inputs)
     {
-        $input->{fh}   = open_file_as_pipe($input->{filename});
+        $input->{fh}   = open_file_as_pipe($input->{filename}, $do_keep_comments);
         $input->{keys} = pull_key($input);
     }
 
     return \@inputs;
 }
+
+sub close_inputs
+{
+    my ($inputs) = @_;
+    for my $input (@$inputs)
+    {
+        close $input->{fh};
+    }
+}
+
 sub reconstruct_substituted_command
 {
     # reconstruct the command, invoking the internal GNU tool, but replacing the
