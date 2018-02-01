@@ -91,8 +91,9 @@ asciilog-tail - tail a log file, preserving the legend
   Usage: asciilog-tail [options] logfile logfile logfile ... < logfile
 
 This tool runs tail on given asciilog files in various ways. C<asciilog-tail> is
-a wrapper around the GNU coreutils C<tail> tool. The differences from GNU
-coreutils C<tail> are
+a wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
+commandline options and behaviors of the C<tail> tool are present. The
+differences from GNU coreutils C<tail> are
 
 =over
 
@@ -113,6 +114,13 @@ newline-separated records
 
 Past that, everything C<tail> does is supported, so see that man page for
 detailed documentation.
+
+=head1 BUGS
+
+This and the other C<asciilog-xxx> tools that wrap coreutils are written
+specifically to work with the Linux kernel and the GNU coreutils. None of these
+have been tested with BSD tools or with non-Linux kernels, and I'm sure things
+don't just work. If you want this support, please send me nice patches :)
 
 =head1 SEE ALSO
 

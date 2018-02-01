@@ -313,8 +313,9 @@ asciilog-join - joins two log files on a particular field
   Usage: asciilog-join [options] logfile1 logfile2
 
 This tool joins two asciilog files on a given field. C<asciilog-join> is a
-wrapper around the GNU coreutils C<join> tool. The differences from GNU
-coreutils C<join> are
+wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
+commandline options and behaviors of the C<join> tool are present. The
+differences from GNU coreutils C<join> are
 
 =over
 
@@ -368,6 +369,13 @@ records
 Past that, everything C<join> does is supported, so see that man page for
 detailed documentation. Note that all non-legend comments are stripped out,
 since it's not obvious where they should end up.
+
+=head1 BUGS
+
+This and the other C<asciilog-xxx> tools that wrap coreutils are written
+specifically to work with the Linux kernel and the GNU coreutils. None of these
+have been tested with BSD tools or with non-Linux kernels, and I'm sure things
+don't just work. If you want this support, please send me nice patches :)
 
 =head1 SEE ALSO
 

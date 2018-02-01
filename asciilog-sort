@@ -137,7 +137,7 @@ __END__
 
 =head1 NAME
 
-asciilog-sort - sorts a log file, preserving the legend
+asciilog-sort - sorts an asciilog file, preserving the legend
 
 =head1 SYNOPSIS
 
@@ -209,8 +209,9 @@ asciilog-sort - sorts a log file, preserving the legend
   Usage: asciilog-sort [options] logfile logfile logfile ... < logfile
 
 This tool sorts given asciilog files in various ways. C<asciilog-sort> is a
-wrapper around the GNU coreutils C<sort> tool. The differences from GNU
-coreutils C<sort> are
+wrapper around the GNU coreutils C<sort> tool. Since this is a wrapper, most
+commandline options and behaviors of the C<sort> tool are present. The
+differences from GNU coreutils C<sort> are
 
 =over
 
@@ -220,7 +221,7 @@ The input and output to this tool are asciilog files, complete with a legend
 
 =item *
 
-The columns can be referenced by name, not index. So instead of saying
+The columns are referenced by name, not index. So instead of saying
 
   sort -k1
 
@@ -265,6 +266,13 @@ newline-separated records
 Past that, everything C<sort> does is supported, so see that man page for
 detailed documentation. Note that all non-legend comments are stripped out,
 since it's not obvious where they should end up.
+
+=head1 BUGS
+
+This and the other C<asciilog-xxx> tools that wrap coreutils are written
+specifically to work with the Linux kernel and the GNU coreutils. None of these
+have been tested with BSD tools or with non-Linux kernels, and I'm sure things
+don't just work. If you want this support, please send me nice patches :)
 
 =head1 SEE ALSO
 
