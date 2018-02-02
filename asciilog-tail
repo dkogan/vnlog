@@ -92,8 +92,8 @@ asciilog-tail - tail a log file, preserving the legend
 
 This tool runs tail on given asciilog files in various ways. C<asciilog-tail> is
 a wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
-commandline options and behaviors of the C<tail> tool are present. The
-differences from GNU coreutils C<tail> are
+commandline options and behaviors of the C<tail> tool are present; consult the
+L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
 
 =over
 

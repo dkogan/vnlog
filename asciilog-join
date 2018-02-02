@@ -314,8 +314,8 @@ asciilog-join - joins two log files on a particular field
 
 This tool joins two asciilog files on a given field. C<asciilog-join> is a
 wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
-commandline options and behaviors of the C<join> tool are present. The
-differences from GNU coreutils C<join> are
+commandline options and behaviors of the C<join> tool are present; consult the
+L<join(1)> manpage for detail. The differences from GNU coreutils C<join> are
 
 =over
 

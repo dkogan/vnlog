@@ -149,7 +149,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 14
  dd 123
 
- Sort by a:
+ Sort lexically by a:
  $ <a.asciilog asciilog-sort -k a
  # a b
  AA 11
@@ -158,7 +158,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 123
  dd 14
 
- Sort by a, ignoring case:
+ Sort lexically by a, ignoring case:
  $ <a.asciilog asciilog-sort -k a --ignore-case
  # a b
  AA 11
@@ -167,7 +167,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 123
  dd 14
 
- Sort by a, then b, sorted numerically:
+ Sort lexically by a, then numerically by b:
  $ <a.asciilog asciilog-sort -k a -k b.n
  # a b
  AA 11
@@ -176,7 +176,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 14
  dd 123
 
- Sort by a, then b, sorted numerically in reverse:
+ Sort lexically by a, then numerically by b in reverse:
  $ <a.asciilog asciilog-sort -k a -k b.nr
  # a b
  AA 11
@@ -210,8 +210,8 @@ asciilog-sort - sorts an asciilog file, preserving the legend
 
 This tool sorts given asciilog files in various ways. C<asciilog-sort> is a
 wrapper around the GNU coreutils C<sort> tool. Since this is a wrapper, most
-commandline options and behaviors of the C<sort> tool are present. The
-differences from GNU coreutils C<sort> are
+commandline options and behaviors of the C<sort> tool are present; consult the
+L<sort(1)> manpage for detail. The differences from GNU coreutils C<sort> are
 
 =over
 
