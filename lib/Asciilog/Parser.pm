@@ -54,7 +54,7 @@ sub parse
 
         # got legend.
         # no data, no error
-        $this->{keys} = [ split(/ /, $1) ];
+        $this->{keys} = [ split(' ', $1) ];
         return 1;
     }
 
