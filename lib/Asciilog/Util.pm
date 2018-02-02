@@ -172,6 +172,20 @@ sub parse_options
         die "Error parsing options";
     }
 
+    if ($options{help})
+    {
+        my ($what) = $0 =~ /-(.+?)$/;
+
+        say <<EOF;
+asciilog-$what is a wrapper around the GNU Coreutils '$what' tool, so the usage
+and options are almost identical. Main difference is that fields are referenced
+by name instead of number. Please see the manpages for 'asciilog-$what' and
+'$what' for more detail
+EOF
+        exit 0;
+    }
+
+
     push @ARGV_copy, '-' unless @ARGV_copy;
     return (\@ARGV_copy, \%options);
 }
