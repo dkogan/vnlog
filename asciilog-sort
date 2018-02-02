@@ -239,7 +239,7 @@ I<do> support the C<OPTS> to change the type of sorting in a given particular
 column. For instance, to sort by month and then by day, do this (see example
 above):
 
-  sort -k month.M -k day.n
+  asciilog-sort -k month.M -k day.n
 
 =item *
 
