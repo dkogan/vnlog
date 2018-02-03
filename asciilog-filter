@@ -456,7 +456,7 @@ sub expr_subst_col_names
 
         if ( $language eq 'perl' )
         {
-            my $found = $out =~ s/$re/\$f->[$colindices_input{$key}]/g;
+            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}]/g;
 
             if($found && $colindices_input{$key} > $colidx_needed_max_here)
             {
@@ -497,19 +497,19 @@ my $must_match_expr =
   @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
-$evalstr .= 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }' . "\n";
+$evalstr .= "sub matches { return $must_match_expr }\n";
 
 if ( $options{eval} )
 {
     my ($expr) = expr_subst_col_names( 'perl', $options{eval} );
-    $evalstr .= 'sub evalexpr { my ($f) = @_; ' . $expr . ' ; }' . "\n";
+    $evalstr .= "sub evalexpr { $expr }\n";
 }
 
 $evalstr .=
-  'sub compute_output_fields { my ($f) = @_; return [' . join(',', @langspecific_output_fields) . ']; }' . "\n";
+  'sub compute_output_fields { return [' . join(',', @langspecific_output_fields) . ']; }' . "\n";
 
 $evalstr .=
-  'sub compute_reldiff { my ($f) = @_; ' . get_reldiff_outer_expr() . '}' . "\n";
+  'sub compute_reldiff { ' . get_reldiff_outer_expr() . '}' . "\n";
 
 # I'm defining the rel()/diff() functions. These should be global, so if I do
 # this inside a for(){}, the functions end up local to that for(). I thus have
@@ -540,6 +540,8 @@ if( $options{dumpexprs} )
     say "Expressions to evaluate:\n\n$evalstr";
     exit;
 }
+
+my @fields;
 
 no strict;
 no warnings;
@@ -572,27 +574,27 @@ while(<STDIN>)
     }
 
     chomp;
-    my @f = map {q{-} eq $_ ? undef : $_ } split;
+    @fields = map {q{-} eq $_ ? undef : $_ } split;
 
     # skip incomplete records. Can happen if a log line at the end of a file was
     # cut off in the middle
-    next unless $colidx_needed_max <= $#f;
+    next unless $colidx_needed_max <= $#fields;
 
     # skip records that have empty input columns that must be non-empty
-    next if any {!defined $f[$_]} @must_have_col_indices_input;
+    next if any {!defined $fields[$_]} @must_have_col_indices_input;
 
-    compute_reldiff(\@f);
+    compute_reldiff();
 
     # skip all records that don't match given expressions
-    next unless matches(\@f);
+    next unless matches();
 
     if( $options{eval} )
     {
-        evalexpr(\@f);
+        evalexpr();
     }
     else
     {
-        my $fout = compute_output_fields(\@f);
+        my $fout = compute_output_fields();
 
         # skip empty records if we must
         next if $options{skipempty} && all {!defined $_} @$fout;
