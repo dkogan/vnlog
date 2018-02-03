@@ -37,6 +37,14 @@ my $data_cubics = <<'EOF';
 125
 EOF
 
+my $data_specialchars = <<'EOF';
+# PID USER PR NI   VIRT   RES   SHR  S %CPU %MEM  TIME+     COMMAND
+25946 dima 20 0    82132 23828   644 S 5.9  1.2  0:01.42 mailalert.pl
+27036 dima 20 0  1099844 37772 13600 S 5.9  1.9  1:29.57 mpv
+28648 dima 20 0    45292  3464  2812 R 5.9  0.2  0:00.02 top
+    1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd
+EOF
+
 
 
 check( <<'EOF', qw(-p s=b) );
@@ -328,6 +336,21 @@ check( <<'EOF', 'a>5', '--eval', 'my $v = a + b + 2; say $v', {language => 'perl
 23
 EOF
 
+check(<<'EOF', qw(-p M), {data => $data_specialchars});
+# %MEM TIME+ COMMAND
+1.2 0:01.42 mailalert.pl
+1.9 1:29.57 mpv
+0.2 0:00.02 top
+0.2 1:04.41 systemd
+EOF
+
+check(<<'EOF', '-p', q{s=1 + %CPU,s2=%CPU + 2,s3=TIME+ + 1,s4=1 + TIME+}, {data => $data_specialchars});
+# s s2 s3 s4
+6.9 7.9 1 1
+6.9 7.9 2 2
+6.9 7.9 1 1
+1 2 2 2
+EOF
 
 # # awk and perl write out the data with different precisions, so I test them separately for now
 # check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );

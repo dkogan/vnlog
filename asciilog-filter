@@ -438,9 +438,22 @@ sub expr_subst_col_names
 
     for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_input)
     {
-        if( $language eq 'perl' )
+        # This looks odd. Mostly, $bound0 = $bound1 = '\b'. This would work to
+        # Find "normal" alphanumeric keys in the string. But my keys may have
+        # special characters in them. For instance, if I grab keys from the
+        # 'top' command, it'll produce a legend including keys '%CPU', 'TIME+',
+        # and the point before the '%' or after the '+' would not match \b. I
+        # thus expand the regex at the boundary. I match EITHER the normal \b
+        # meaning for a word-nonword transitoin OR a whitespace-nonword
+        # transition. This means that whitespace becomes important: '1+%CPU'
+        # will not be parsed as expected (but that's the RIGHT behavior here),
+        # but '1+ %CPU' will be parsed correctly
+        my $bound0 = qr/(?:(?<!\w)(?=\w)|(?:^|(?<=\s))(?!\w))/;
+        my $bound1 = qr/(?:(?<=\w)(?!\w)|(?<!\w)(?:(?=\s)|$))/;
+        my $re = qr/$bound0\Q$key\E$bound1/;
+
+        if ( $language eq 'perl' )
         {
-            my $re = qr/\b$key\b/;
             my $found = $out =~ s/$re/\$f->[$colindices_input{$key}]/g;
 
             if($found && $colindices_input{$key} > $colidx_needed_max_here)
@@ -452,7 +465,7 @@ sub expr_subst_col_names
         {
             # column index that awk knows about
             my $colidx = $colindices_input{$key} + 1;
-            my $re = qr/\b$key\b/;
+
             my $found = $out =~ s/$re/\$$colidx/g;
 
             if($found && $colindices_input{$key} > $colidx_needed_max_here)
