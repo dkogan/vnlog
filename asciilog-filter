@@ -16,6 +16,7 @@ my $usage =  <<EOF;
 $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [match_expr] [match_expr] ...
 
     Other available options:
+      --function 'f(x) { .... return ... }'
       --eval expr
       --noskipempty
       --skipcomments
@@ -58,6 +59,7 @@ GetOptions(\%options,
            "has=s@",
            "pick|print|p=s@",
            "eval=s",
+           "function|sub=s@",
            "skipempty!",
            "skipcomments!",
            "dumpexprs!",
@@ -486,13 +488,16 @@ sub expr_subst_col_names
 }
 
 
+
+my $evalstr = join('', map { my ($sub) = expr_subst_col_names('perl', $_); "sub $sub\n"} @{$options{function}});
+
 my $must_match_expr =
   join ' && ',
   map { my ($outexpr) = expr_subst_col_names( 'perl', $_); $outexpr; }
   @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
-my $evalstr = 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }' . "\n";
+$evalstr .= 'sub matches { my ($f) = @_; return ' . $must_match_expr . '; }' . "\n";
 
 if ( $options{eval} )
 {
@@ -610,6 +615,9 @@ sub makeAwkProgram
 {
     # The awk program I generate here is analogous to the logic in the data
     # while() loop above
+
+    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @{$options{function}});
+
     my $awkprogram_preamble = '';
 
     # skip comments
@@ -683,7 +691,7 @@ sub makeAwkProgram
         $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
     }
 
-    my $awkprogram = $awkprogram_reldiff .$awkprogram_preamble;
+    my $awkprogram = $functions . $awkprogram_reldiff .$awkprogram_preamble;
     if(length($outer_expr))
     {
         $awkprogram .= "{ $outer_expr } ";
