@@ -18,6 +18,7 @@ my @specs = ( # options with no args
              "verbose|v",
              "retry",
              "F",
+             "f",
 
              # options with args
              "bytes|c=s",
@@ -27,7 +28,7 @@ my @specs = ( # options with no args
              "pid=i",
 
              # special-case options. Kinda take args
-             "follow|f:s",
+             "follow:s",
 
              "help");
 
@@ -42,7 +43,46 @@ asciilog is built on assuming a particular record separator
 EOF
                           );
 
+# 'tail --follow' works somewhat non-standardly. It takes an optional argument,
+# but this argument MUST be given as '--follow=xxx', NOT '--follow xxx'. My
+# option parser erroneously accepts both, so I make sure that I don't accept
+# '--follow something' by putting --follow at the end of the argument list
+my @ifollow = grep { $ARGV[$_] =~ /^--follow/ } 0..$#ARGV;
+if( @ifollow )
+{
+    if( @ifollow > 1 )
+    {
+        die "--follow given more than once. I'm easily confused, so I give up.";
+    }
+
+    my $i = $ifollow[0];
+    if( $ARGV[$i] !~ /^--follow=/ )
+    {
+        # we have a --follow that's NOT a --follow=something. I put it at the
+        # end to make sure that I don't assign anything to it
+        my $last = $ARGV[$#ARGV];
+        $ARGV[$#ARGV] = $ARGV[$i];
+        $ARGV[$i] = $last;
+    }
+}
 my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+
+if( defined $options->{follow}         &&
+    length($options->{follow}) > 0     &&
+    $options->{follow} ne 'name'       &&
+    $options->{follow} ne 'descriptor' )
+{
+    if(grep /^--follow=/, @ARGV)
+    {
+        die "--follow can be given ONLY --follow=name or --follow=descriptor";
+    }
+
+    use Data::Dumper;
+    die "$0 got confused. Please report this to the maintainer: ARGV: " . Dumper \@ARGV;
+}
+
+
+
 for my $key(keys %$options)
 {
     if($options_unsupported{$key})
