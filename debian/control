@@ -24,7 +24,7 @@ Description: Tools to manipulate whitespace-separated ASCII logs
  library interfaces are provided to create new data in this format and
  manipulate existing data
 
-Package: libvnl-dev
+Package: libvanillog-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
