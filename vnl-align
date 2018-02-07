@@ -142,11 +142,11 @@ __END__
 
 =head1 NAME
 
-asciilog-align - aligns asciilog columns for easy interpretation by humans
+vnl-align - aligns vanillog columns for easy interpretation by humans
 
 =head1 SYNOPSIS
 
- $ cat tst.asciilog
+ $ cat tst.vnl
 
  # w x y z
  -10 40 asdf -
@@ -154,7 +154,7 @@ asciilog-align - aligns asciilog columns for easy interpretation by humans
  -30 10 whoa 0.500000
 
 
- $ asciilog-align tst.asciilog
+ $ vnl-align tst.vnl
 
  # w  x   y      z
  -10 40 asdf -
@@ -165,9 +165,9 @@ asciilog-align - aligns asciilog columns for easy interpretation by humans
 
 The basic usage is
 
- asciilog-align logfile
+ vnl-align logfile
 
-The arguments are assumed to be the asciilog files. If no arguments are given,
+The arguments are assumed to be the vanillog files. If no arguments are given,
 the input comes from STDIN.
 
 This is very similar to C<column -t>, but handles C<#> lines properly:
@@ -179,7 +179,7 @@ This is very similar to C<column -t>, but handles C<#> lines properly:
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/asciilog/
+https://github.com/dkogan/vanillog/
 
 =head1 AUTHOR
 

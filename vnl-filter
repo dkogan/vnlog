@@ -6,7 +6,7 @@ use List::Util 'max';
 use List::MoreUtils qw(any all);
 use FindBin '$Bin';
 use lib "$Bin/lib";
-use Asciilog::Util 'get_unbuffered_line';
+use Vanillog::Util 'get_unbuffered_line';
 use Text::Balanced 'extract_bracketed';
 
 use feature qw(say state);
@@ -24,19 +24,19 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --perl
       --unbuffered
 
-    This tool is a nicer 'awk' that reads and write asciilog. As a result, it
+    This tool is a nicer 'awk' that reads and write vanillog. As a result, it
     can refer to columns by name, not number, like awk does.
 
     Columns are selected with -p (we select all columns if omitted). We can
     rename columns with C<=>, and if we do that, we can output arbitrary
     expressions. For instance:
 
-      asciilog-filter -p 'a,b,sum=a+b'
+      vnl-filter -p 'a,b,sum=a+b'
 
     Rows are selected with match expressions given on the commandline. To select
     all rows after a certain time, and within a certain temperature range, do:
 
-      asciilog-filter 'time > 100' 'temp > 20 && temp < 30'
+      vnl-filter 'time > 100' 'temp > 20 && temp < 30'
 
     By default, this tool generates an awk script that's then interpreted by
     mawk. Although it is slower, perl can be used instead by passing --perl.
@@ -706,11 +706,11 @@ __END__
 
 =head1 NAME
 
-asciilog-filter - filters asciilogs to select particular rows, fields
+vnl-filter - filters vanillogs to select particular rows, fields
 
 =head1 SYNOPSIS
 
- $ cat run.asciilog
+ $ cat run.vnl
 
  # time x   y   z   temperature
  3      1   2.3 4.8 30
@@ -719,7 +719,7 @@ asciilog-filter - filters asciilogs to select particular rows, fields
  7      1   1.6 3.1 42
 
 
- $ <run.asciilog asciilog-filter -p x,y,z | asciilog-align
+ $ <run.vnl vnl-filter -p x,y,z | vnl-align
 
  # x  y   z
  1   2.3 4.8
@@ -728,7 +728,7 @@ asciilog-filter - filters asciilogs to select particular rows, fields
  1   1.6 3.1
 
 
- $ <run.asciilog asciilog-filter -p i=NR,time,'dist=sqrt(x*x + y*y + z*z)' | asciilog-align
+ $ <run.vnl vnl-filter -p i=NR,time,'dist=sqrt(x*x + y*y + z*z)' | vnl-align
 
  # i time   dist
  1   1    5.41572
@@ -737,7 +737,7 @@ asciilog-filter - filters asciilogs to select particular rows, fields
  4   4    3.62905
 
 
- $ <run.asciilog asciilog-filter 'temperature >= 35' | asciilog-align
+ $ <run.vnl vnl-filter 'temperature >= 35' | vnl-align
 
  # time x  y   z  temperature
  6      1 2.0 4.0 35
@@ -745,12 +745,12 @@ asciilog-filter - filters asciilogs to select particular rows, fields
 
 
 
- $ <run.asciilog asciilog-filter --eval '{s += temperature} END { print "mean temp: " s/NR}'
+ $ <run.vnl vnl-filter --eval '{s += temperature} END { print "mean temp: " s/NR}'
 
  mean temp: 34.5
 
 
- $ <run.asciilog asciilog-filter -p x,y | feedgnuplot --terminal 'dumb 80,30' --unset grid --domain --lines --exit
+ $ <run.vnl vnl-filter -p x,y | feedgnuplot --terminal 'dumb 80,30' --unset grid --domain --lines --exit
 
    2.3 +---------------------------------------------------------------------+
        |           +          +          ***************         +           |
@@ -785,7 +785,7 @@ asciilog-filter - filters asciilogs to select particular rows, fields
 
 =head1 DESCRIPTION
 
-This tool is largely a frontend for awk to operate on asciilog files. Asciilog
+This tool is largely a frontend for awk to operate on vanillog files. Vanillog
 is both an input and an output. This tool makes it very simple to select
 specific rows and columns for output and to manipulate the data in various ways.
 
@@ -805,12 +805,12 @@ to use perl as well, but this isn't as fast).
 
 =head2 Input/output data format
 
-The input/output data is asciilog: a plain-text table of values. Any lines
+The input/output data is vanillog: a plain-text table of values. Any lines
 beginning with C<#> are treated as comments, and are passed through. The first
 line that begins with C<#> but not C<##> is a I<legend> line. After the C<#>,
 follow whitespace-separated field names. Each subsequent line is
 whitespace-separated values matching this legend. For instance, this is a valid
-asciilog file:
+vanillog file:
 
  ## comment comment comment
  ## more comments
@@ -820,12 +820,12 @@ asciilog file:
  -0.018456 0.014093 0.006711
  -0.017449 0.018791 0.006376
 
-C<asciilog-filter> uses this format for both the input and the output. The
+C<vnl-filter> uses this format for both the input and the output. The
 comments are preserved, but the legend is updated to reflect the fields in the
 output file.
 
 A string C<-> is used to indicate an undefined value, so this is also a valid
-asciilog file:
+vanillog file:
 
  # x y z
  1 2 3
@@ -838,15 +838,15 @@ To select specific I<columns>, pass their names to the C<-p> option (short for
 C<--print> or C<--pick>, which are synonyms). In its simplest form, to grab only
 columns C<x> and C<y>, do
 
- asciilog-filter -p x,y
+ vnl-filter -p x,y
 
 See the detailed description of C<-p> below for more detail.
 
 To select specific I<rows>, we use I<matches> expressions. Anything on the
-C<asciilog-filter> commandline and not attached to any C<--xxx> option is such
+C<vnl-filter> commandline and not attached to any C<--xxx> option is such
 an expression. For instance
 
- asciilog-filter 'size > 10'
+ vnl-filter 'size > 10'
 
 would select only those rows whose C<size> column contains a value E<gt> 10. See
 the detailed description of matches expressions below for more detail.
@@ -874,7 +874,7 @@ C<rel(x)> returns value of C<x> relative to the first value of C<x>. For
 instance we might want to see the time or position relative to the start, not
 relative to some absolute beginning. Example:
 
- $ cat tst.asciilog
+ $ cat tst.vnl
 
  # time x
  100    200
@@ -882,7 +882,7 @@ relative to some absolute beginning. Example:
  102    209
 
 
- $ <tst.asciilog asciilog-filter -p 't=rel(time),x=rel(x)
+ $ <tst.vnl vnl-filter -p 't=rel(time),x=rel(x)
 
  # t x
  0 0
@@ -894,7 +894,7 @@ relative to some absolute beginning. Example:
 C<diff(x)> returns the difference between the current value of C<x> and the
 previous value of C<x>. Example:
 
- $ cat tst.asciilog
+ $ cat tst.vnl
 
  # x
  1
@@ -904,7 +904,7 @@ previous value of C<x>. Example:
  125
 
 
- $ <tst.asciilog asciilog-filter -p 'd1=diff(x),d2=diff(diff(x))'
+ $ <tst.vnl vnl-filter -p 'd1=diff(x),d2=diff(diff(x))'
 
  # d1 d2
  0 0
@@ -923,22 +923,22 @@ These option provide the mechanism to select specific columns for output. For
 instance to pull out columns called C<lat>, C<lon>, and any column whose name
 contains the string C<feature_>, do
 
- asciilog-filter -p lat,lon,'feature_.*'
+ vnl-filter -p lat,lon,'feature_.*'
 
 or, equivalently
 
- asciilog-filter --print lat --print lon --print 'feature_.*'
+ vnl-filter --print lat --print lon --print 'feature_.*'
 
 We look for exact column name matches first, and if none are found, we try a
 regex. If there was no column called exactly C<feature_>, then the above would
 be equivalent to
 
- asciilog-filter -p lat,lon,feature_
+ vnl-filter -p lat,lon,feature_
 
 This mechanism is much more powerful than just selecting columns. First off, we
 can rename chosen fields:
 
- asciilog-filter -p w=feature_width
+ vnl-filter -p w=feature_width
 
 would pick the C<feature_width> field, but the resulting column in the output
 would be named C<w>. When renaming a column in this way regexen are I<not>
@@ -947,7 +947,7 @@ the C<=> is passed on directly to awk (after replacing field names with column
 indices), so any awk expression can be used here. For instance to compute the
 length of a vector in separate columns C<x>, C<y>, and C<z> you can do:
 
- asciilog-filter -p 'l=sqrt(x*x + y*y + z*z)'
+ vnl-filter -p 'l=sqrt(x*x + y*y + z*z)'
 
 A single column called C<l> would be produced.
 
@@ -967,11 +967,11 @@ matches expression, as documented below.
 If we want to select a column I<and> pick only rows that have a value in this
 column, a shorthand syntax exists:
 
- asciilog-filter --has col -p col
+ vnl-filter --has col -p col
 
 is equivalent to
 
- asciilog-filter -p +col
+ vnl-filter -p +col
 
 =head2 Matches expressions
 
@@ -984,11 +984,11 @@ awk (or perl) backend.
 Example: to select all rows that have valid data in column C<a> I<or> column
 C<b> I<or> column C<c> you can
 
- asciilog-filter 'a != "-" || b != "-" || c != "-"'
+ vnl-filter 'a != "-" || b != "-" || c != "-"'
 
 or
 
- asciilog-filter --perl 'defined a || defined b || defined c'
+ vnl-filter --perl 'defined a || defined b || defined c'
 
 As with the named expressions given to C<-p> (described above), these are passed
 directly to awk, so anything that can be done with awk is supported here.
@@ -996,19 +996,19 @@ directly to awk, so anything that can be done with awk is supported here.
 =head2 --eval expr
 
 Instead of printing out all matching records and picked columns, just run the
-given chunk of awk (or perl). In this mode of operation, C<asciilog-filter> acts
+given chunk of awk (or perl). In this mode of operation, C<vnl-filter> acts
 just like a glorified awk, that allows fields to be accessed by name instead of
 by number, as it would be in raw awk.
 
 Since the expression may print I<anything> or nothing at all, the output in this
-mode is not necessarily itself a valid asciilog stream. And no column-selecting
+mode is not necessarily itself a valid vanillog stream. And no column-selecting
 arguments should be given, since they make no sense in this mode.
 
 In awk the expr is a full set of pattern/action statements. So to print the sum
 of columns C<a> and C<b> in each row, and at the end, print the sum of all
 values in the C<a> column
 
- asciilog-filter --eval '{print a+b; suma += a} END {print suma}'
+ vnl-filter --eval '{print a+b; suma += a} END {print suma}'
 
 In perl the arbitrary expression fits in like this:
 
@@ -1037,11 +1037,11 @@ underlying language (named expressions, matches expressions, C<--eval> strings).
 Note that while variables in perl use sigils, column references should I<not>
 use sigils. To print the sum of all values in column C<a> you'd do this in awk
 
- asciilog-filter --eval '{suma += a} END {print suma}'
+ vnl-filter --eval '{suma += a} END {print suma}'
 
 and this in perl
 
- asciilog-filter --perl --eval '{$suma += a} END {say $suma}'
+ vnl-filter --perl --eval '{$suma += a} END {say $suma}'
 
 The perl strings are evaluated without C<use strict> or C<use warnings> so I
 didn't have to declare C<$suma> in the example.
@@ -1058,7 +1058,7 @@ as it is available, which is crucial for realtime output and streaming plots.
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/asciilog/
+https://github.com/dkogan/vanillog/
 
 =head1 AUTHOR
 

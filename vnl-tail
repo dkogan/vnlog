@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Asciilog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_inputs);
+use Vanillog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_inputs);
 
 
 
@@ -36,10 +36,10 @@ my @specs = ( # options with no args
 
 
 my %options_unsupported = ( 'bytes' => <<'EOF',
-asciilog is line-oriented, so I refuse to split lines
+vanillog is line-oriented, so I refuse to split lines
 EOF
                             'zero-terminated' => <<'EOF'
-asciilog is built on assuming a particular record separator
+vanillog is built on assuming a particular record separator
 EOF
                           );
 
@@ -107,11 +107,11 @@ __END__
 
 =head1 NAME
 
-asciilog-tail - tail a log file, preserving the legend
+vnl-tail - tail a log file, preserving the legend
 
 =head1 SYNOPSIS
 
- $ read_temperature | tee temp.asciilog
+ $ read_temperature | tee temp.vnl
  # temperature
  29.5
  30.4
@@ -120,7 +120,7 @@ asciilog-tail - tail a log file, preserving the legend
  ... continually produces data
 
  ... at the same time, in another terminal
- $ asciilog-tail -f temp.asciilog
+ $ vnl-tail -f temp.vnl
  # temperature
  28.3
  22.1
@@ -128,9 +128,9 @@ asciilog-tail - tail a log file, preserving the legend
 
 =head1 DESCRIPTION
 
-  Usage: asciilog-tail [options] logfile logfile logfile ... < logfile
+  Usage: vnl-tail [options] logfile logfile logfile ... < logfile
 
-This tool runs tail on given asciilog files in various ways. C<asciilog-tail> is
+This tool runs tail on given vanillog files in various ways. C<vnl-tail> is
 a wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<tail> tool are present; consult the
 L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
@@ -139,15 +139,15 @@ L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
 
 =item *
 
-The input and output to this tool are asciilog files, complete with a legend
+The input and output to this tool are vanillog files, complete with a legend
 
 =item *
 
-C<-c> is not supported because asciilog really doesn't want to break up lines
+C<-c> is not supported because vanillog really doesn't want to break up lines
 
 =item *
 
-C<--zero-terminated> is not supported because asciilog assumes
+C<--zero-terminated> is not supported because vanillog assumes
 newline-separated records
 
 =back
@@ -157,7 +157,7 @@ detailed documentation.
 
 =head1 BUGS
 
-This and the other C<asciilog-xxx> tools that wrap coreutils are written
+This and the other C<vnl-xxx> tools that wrap coreutils are written
 specifically to work with the Linux kernel and the GNU coreutils. None of these
 have been tested with BSD tools or with non-Linux kernels, and I'm sure things
 don't just work. If you want this support, please send me nice patches :)
@@ -168,7 +168,7 @@ L<tail(1)>
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/asciilog/
+https://github.com/dkogan/vanillog/
 
 =head1 AUTHOR
 

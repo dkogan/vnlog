@@ -1,7 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Source: https://github.com/dkogan/asciilog/
+Source: https://github.com/dkogan/vanillog/
 Upstream-Contact: Dima Kogan <dima@secretsauce.net>
-Upstream-Name: asciilog
+Upstream-Name: vanillog
 
 Files: *
 Copyright: 2016-2017 California Institute of Technology

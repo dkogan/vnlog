@@ -5,8 +5,8 @@ Release:        1%{?dist}
 Summary:        Tools to manipulate whitespace-separated ASCII logs
 
 License:        LGPL-2.1+
-URL:            https://github.com/dkogan/asciilog/
-Source0:        https://github.com/dkogan/asciilog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
+URL:            https://github.com/dkogan/vanillog/
+Source0:        https://github.com/dkogan/vanillog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildRequires: /usr/bin/pod2man
 BuildRequires: mrbuild >= 0.43
@@ -28,23 +28,23 @@ existing data
 
 %package devel
 Requires:       %{name}%{_isa} = %{version}-%{release}
-Summary:        Development files for asciilog
+Summary:        Development files for vanillog
 
 Requires: perl-String-ShellQuote
 
 %description devel
-The library needed for the asciilog C interface and the asciilog-gen-header
+The library needed for the vanillog C interface and the vnl-gen-header
 tool needed to define the fields
 
 %package tools
 Requires:       %{name}%{_isa} = %{version}-%{release}
-Summary:        Tools for manipulating asciilogs
+Summary:        Tools for manipulating vanillogs
 Requires:       mawk
 Requires:       perl-Text-Table
 
 
 %description tools
-Various helper tools to make working with asciilogs easier
+Various helper tools to make working with vanillogs easier
 
 %prep
 %setup -q
@@ -70,15 +70,15 @@ make clean
 %files devel
 %{_libdir}/*.so
 %{_includedir}/*
-%{_bindir}/asciilog-gen-header
-%doc %{_mandir}/man1/asciilog-gen-header.1.gz
+%{_bindir}/vnl-gen-header
+%doc %{_mandir}/man1/vnl-gen-header.1.gz
 
 %files tools
-%{_bindir}/asciilog-filter
-%{_bindir}/asciilog-tailf
-%{_bindir}/asciilog-make-matrix
-%{_bindir}/asciilog-align
-%doc %{_mandir}/man1/asciilog-filter.1.gz
-%doc %{_mandir}/man1/asciilog-tailf.1.gz
-%doc %{_mandir}/man1/asciilog-make-matrix.1.gz
-%doc %{_mandir}/man1/asciilog-align.1.gz
+%{_bindir}/vnl-filter
+%{_bindir}/vnl-tailf
+%{_bindir}/vnl-make-matrix
+%{_bindir}/vnl-align
+%doc %{_mandir}/man1/vnl-filter.1.gz
+%doc %{_mandir}/man1/vnl-tailf.1.gz
+%doc %{_mandir}/man1/vnl-make-matrix.1.gz
+%doc %{_mandir}/man1/vnl-align.1.gz

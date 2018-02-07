@@ -1,4 +1,4 @@
-package Asciilog::Util;
+package Vanillog::Util;
 
 use strict;
 use warnings;
@@ -15,7 +15,7 @@ our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input en
 
 use FindBin '$Bin';
 use lib "$Bin/lib";
-use Asciilog::Parser;
+use Vanillog::Parser;
 use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 use Getopt::Long 'GetOptionsFromArray';
 Getopt::Long::Configure('gnu_getopt');
@@ -130,12 +130,12 @@ sub pull_key
 
     my $keys;
 
-    my $parser = Asciilog::Parser->new();
+    my $parser = Vanillog::Parser->new();
     while (defined ($_ = get_unbuffered_line($fh)))
     {
         if ( !$parser->parse($_) )
         {
-            die "Reading '$filename': Error parsing asciilog line '$_': " . $parser->error();
+            die "Reading '$filename': Error parsing vanillog line '$_': " . $parser->error();
         }
 
         $keys = $parser->getKeys();
@@ -177,9 +177,9 @@ sub parse_options
         my ($what) = $0 =~ /-(.+?)$/;
 
         say <<EOF;
-asciilog-$what is a wrapper around the GNU Coreutils '$what' tool, so the usage
+vnl-$what is a wrapper around the GNU Coreutils '$what' tool, so the usage
 and options are almost identical. Main difference is that fields are referenced
-by name instead of number. Please see the manpages for 'asciilog-$what' and
+by name instead of number. Please see the manpages for 'vnl-$what' and
 '$what' for more detail
 EOF
         exit 0;
@@ -305,11 +305,11 @@ sub reconstruct_substituted_command
 
 =head1 NAME
 
-Asciilog::Util - Various utility functions useful in asciilog parsing
+Vanillog::Util - Various utility functions useful in vanillog parsing
 
 =head1 SYNOPSIS
 
- use Asciilog::Util 'get_unbuffered_line';
+ use Vanillog::Util 'get_unbuffered_line';
 
  while(defined ($_ = get_unbuffered_line(*STDIN)))
  {
@@ -337,14 +337,14 @@ which is identical to the basic form
 
 except C<get_unbuffered_line> reads I<only> the bytes in the line from the OS.
 The rest is guaranteed to be available for future reading. This is useful for
-tools that bootstrap asciilog processing by reading up-to the legend, and then
+tools that bootstrap vanillog processing by reading up-to the legend, and then
 C<exec> some other tool to process the rest.
 
 =back
 
 =head1 REPOSITORY
 
-L<https://github.com/dkogan/asciilog>
+L<https://github.com/dkogan/vanillog>
 
 =head1 AUTHOR
 

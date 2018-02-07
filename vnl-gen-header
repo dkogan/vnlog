@@ -49,19 +49,19 @@ say <<EOF;
 
 #include <inttypes.h>
 
-#define ASCIILOG_N_FIELDS         $Nfields
-#include <asciilog/asciilog.h>
+#define VANILLOG_N_FIELDS         $Nfields
+#include <vanillog/vanillog.h>
 
 EOF
 
 print $set_field_value_defs;
 
 say <<EOF;
-#define asciilog_emit_legend_ctx(ctx)  _asciilog_emit_legend(ctx,  \"$legend\\n\", ASCIILOG_N_FIELDS)
-#define asciilog_emit_legend()         _asciilog_emit_legend(NULL, \"$legend\\n\", ASCIILOG_N_FIELDS)
-#define asciilog_free_ctx(ctx)         _asciilog_free_ctx(ctx, ASCIILOG_N_FIELDS)
+#define vanillog_emit_legend_ctx(ctx)  _vanillog_emit_legend(ctx,  \"$legend\\n\", VANILLOG_N_FIELDS)
+#define vanillog_emit_legend()         _vanillog_emit_legend(NULL, \"$legend\\n\", VANILLOG_N_FIELDS)
+#define vanillog_free_ctx(ctx)         _vanillog_free_ctx(ctx, VANILLOG_N_FIELDS)
 
-#define asciilog_clear_fields_ctx(ctx, do_free_binary)  _asciilog_clear_fields_ctx(ctx, ASCIILOG_N_FIELDS, do_free_binary)
+#define vanillog_clear_fields_ctx(ctx, do_free_binary)  _vanillog_clear_fields_ctx(ctx, VANILLOG_N_FIELDS, do_free_binary)
 EOF
 
 
@@ -86,7 +86,7 @@ sub gen_field
        'uint32_t'     => '"%" PRIu32',
        'uint64_t'     => '"%" PRIu64',
        'char'         => '"%c"',
-       'float'        => '"%.20g"', # should fit into a ASCIILOG_MAX_FIELD_LEN
+       'float'        => '"%.20g"', # should fit into a VANILLOG_MAX_FIELD_LEN
        'double'       => '"%.20g"',
        'const char*'  => '"%s"',
        'char*'        => '"%s"'
@@ -123,8 +123,8 @@ sub gen_field
     {
         # binary type
         my $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, ptr, len) _asciilog_set_field_value_binary(ctx,  "$name", $idx, ptr, len)
-#define asciilog_set_field_value__$name(ptr, len)          _asciilog_set_field_value_binary(NULL, "$name", $idx, ptr, len)
+#define vanillog_set_field_value_ctx__$name(ctx, ptr, len) _vanillog_set_field_value_binary(ctx,  "$name", $idx, ptr, len)
+#define vanillog_set_field_value__$name(ptr, len)          _vanillog_set_field_value_binary(NULL, "$name", $idx, ptr, len)
 EOF
 
         @ret = ($set_field_value, $name);
@@ -144,12 +144,12 @@ EOF
         {
             my $otype = '__' . ($type =~ s/ /_/gr =~ s/char\*/str/gr);
             $type_footer = "int";
-            $type_arg    = "(union asciilog_field_types_t){.$otype = (x)}";
+            $type_arg    = "(union vanillog_field_types_t){.$otype = (x)}";
         }
 
         $set_field_value = <<EOF;
-#define asciilog_set_field_value_ctx__$name(ctx, x) _asciilog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg)
-#define asciilog_set_field_value__$name(x)          _asciilog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg)
+#define vanillog_set_field_value_ctx__$name(ctx, x) _vanillog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg)
+#define vanillog_set_field_value__$name(x)          _vanillog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg)
 EOF
 
         @ret = ($set_field_value, $name);
@@ -163,17 +163,17 @@ __END__
 
 =head1 NAME
 
-asciilog-gen-header - create definition for asciilog output from C
+vnl-gen-header - create definition for vanillog output from C
 
 =head1 SYNOPSIS
 
- $ asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
+ $ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > vanillog_fields_generated.h
 
 =head1 DESCRIPTION
 
-We provide a simple C library to produce asciilog output. The fields this
+We provide a simple C library to produce vanillog output. The fields this
 library outputs must be known at compile time, and are specified in a header
-created by this tool. Please see the asciilog documentation for instructions on
+created by this tool. Please see the vanillog documentation for instructions on
 how to use the library
 
 =head1 ARGUMENTS
@@ -197,7 +197,7 @@ C.
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/asciilog/
+https://github.com/dkogan/vanillog/
 
 =head1 AUTHOR
 

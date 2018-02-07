@@ -56,7 +56,7 @@ EOF
 
 
 
-test_init('asciilog-sort', \$Nfailed,
+test_init('vnl-sort', \$Nfailed,
           '$data1'       => $data1,
           '$data2'       => $data2,
           '$data3'       => $data3,

@@ -8,7 +8,7 @@ We have a log file: whitespace-separated ascii text, comments start with #,
 first comment is field labels.
 
 #+BEGIN_EXAMPLE
-$ cat tst.asciilog
+$ cat tst.vnl
 
 # w x y z
 -10 40 asdf -
@@ -19,7 +19,7 @@ $ cat tst.asciilog
 Let's look only at the =w= and =x= columns
 
 #+BEGIN_EXAMPLE
-$ < tst.asciilog asciilog-filter w x
+$ < tst.vnl vnl-filter w x
 
 # w x
 -10 40
@@ -30,7 +30,7 @@ $ < tst.asciilog asciilog-filter w x
 We can trivially make plots:
 
 #+BEGIN_EXAMPLE
-$ < tst.asciilog asciilog-filter w x | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
+$ < tst.vnl vnl-filter w x | feedgnuplot --domain --terminal 'dumb 80,20' --unset grid --lines --exit
                                                                                 
   50 +-+---------------+--------------********------------+---------------+-+   
      +                 +            **   +    *********   +                 +   
@@ -55,7 +55,7 @@ The field selectors fall back to regexes, and simple processing is available.
 For instance, =w= relative to the first record:
 
 #+BEGIN_EXAMPLE
-$ < tst.asciilog asciilog-filter 'rel(w)' '[xy]'
+$ < tst.vnl vnl-filter 'rel(w)' '[xy]'
 
 # rel(w) x y
 0 40 asdf
@@ -66,7 +66,7 @@ $ < tst.asciilog asciilog-filter 'rel(w)' '[xy]'
 That's hard to read. Let's align the columns:
 
 #+BEGIN_EXAMPLE
-$ < tst.asciilog asciilog-filter 'rel(w)' '[xy]' | asciilog-align
+$ < tst.vnl vnl-filter 'rel(w)' '[xy]' | vnl-align
 
 # rel(w) x  y   
   0      40 asdf
@@ -77,7 +77,7 @@ $ < tst.asciilog asciilog-filter 'rel(w)' '[xy]' | asciilog-align
 And we can ask for specific rows. Only those that have a valid record for =y=:
 
 #+BEGIN_EXAMPLE
-$ < tst.asciilog asciilog-filter --has y
+$ < tst.vnl vnl-filter --has y
 
 # w x y z
 -10 40 asdf -
@@ -87,7 +87,7 @@ $ < tst.asciilog asciilog-filter --has y
 Or those that match some arbitrary expression:
 
 #+BEGIN_EXAMPLE
-$ < tst.asciilog asciilog-filter --matches 'x > 20'
+$ < tst.vnl vnl-filter --matches 'x > 20'
 
 # w x y z
 -10 40 asdf -
@@ -111,17 +111,17 @@ things are possible and easy.
 This all can be trivially generated with printf and processed with awk, but we
 provide a few tools for convenience:
 
-- =asciilog-filter=
+- =vnl-filter=
 selects specific rows, fields possibly with some very simple postprocessing
 
-- =asciilog-tailf=
+- =vnl-tailf=
 Works like =tail -f=, but makes sure to output the legend
 
-- =asciilog-align=
+- =vnl-align=
 Works like =column -t= to print out aligned columns of text, but makes sure to
 treat the legend and comments correctly
 
-- =asciilog-make-matrix=
+- =vnl-make-matrix=
 Converts a one-point-per-line asciilog to a matrix of data. I.e.
 
 #+BEGIN_EXAMPLE
@@ -140,7 +140,7 @@ $ cat /tmp/dat
 3 1 11
 3 2 12
 
-$ </tmp/dat asciilog-filter i x | asciilog-make-matrix --outdir /tmp
+$ </tmp/dat vnl-filter i x | vnl-make-matrix --outdir /tmp
 Writing to '/tmp/x.matrix'
 
 $ cat /tmp/x.matrix
@@ -150,7 +150,7 @@ $ cat /tmp/x.matrix
 10 11 12
 #+END_EXAMPLE
 
-- =asciilog.c=, =asciilog-gen-header=
+- =asciilog.c=, =vnl-gen-header=
 a C interface to produce asciilog output. Allows the fields to be populated by
 name, one at a time without the user needing to think about their column index
 
@@ -167,7 +167,7 @@ files. This is available, and simple-enough to be demonstrated with an example:
 In a shell:
 
 #+BEGIN_EXAMPLE
-$ asciilog-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
+$ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > asciilog_fields_generated.h
 #+END_EXAMPLE
 
 In a C program test.c:

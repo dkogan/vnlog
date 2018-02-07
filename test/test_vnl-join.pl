@@ -38,7 +38,7 @@ my $data2 = <<'EOF';
 EOF
 
 
-test_init('asciilog-join', \$Nfailed,
+test_init('vnl-join', \$Nfailed,
           '$data1'       => $data1,
           '$data2'       => $data2);
 

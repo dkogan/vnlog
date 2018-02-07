@@ -1,4 +1,4 @@
-package Asciilog::Parser;
+package Vanillog::Parser;
 
 use strict;
 use warnings;
@@ -131,18 +131,18 @@ sub pairs
 
 =head1 NAME
 
-Asciilog::Parser - Simple library to parse asciilog data
+Vanillog::Parser - Simple library to parse vanillog data
 
 =head1 SYNOPSIS
 
- use Asciilog::Parser;
+ use Vanillog::Parser;
 
- my $parser = Asciilog::Parser->new();
+ my $parser = Vanillog::Parser->new();
  while (<>)
  {
      if( !$parser->parse($_) )
      {
-         die "Error parsing asciilog line '$_': " . $parser->error();
+         die "Error parsing vanillog line '$_': " . $parser->error();
      }
 
      next unless $parser->getValues();
@@ -157,7 +157,7 @@ Asciilog::Parser - Simple library to parse asciilog data
 
 =head1 DESCRIPTION
 
-This is a simple perl script to parse asciilog input and make the incoming
+This is a simple perl script to parse vanillog input and make the incoming
 key/values available. The example above is representative of normal use. API
 functions are
 
@@ -165,7 +165,7 @@ functions are
 
 =item new
 
-Creates new Asciilog::Parser object. Takes no arguments.
+Creates new Vanillog::Parser object. Takes no arguments.
 
 =item parse
 
@@ -199,7 +199,7 @@ Returns a list of [$key,$value] tuples.
 
 =head1 REPOSITORY
 
-L<https://github.com/dkogan/asciilog>
+L<https://github.com/dkogan/vanillog>
 
 =head1 AUTHOR
 

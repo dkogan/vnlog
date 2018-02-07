@@ -1,14 +1,14 @@
-asciilog (1.50) unstable; urgency=medium
+vanillog (1.50) unstable; urgency=medium
 
   * First release as free software
   * Upstream updates:
 
-    - Breaking change: asciilog-filter selects ROWS, not columns by
+    - Breaking change: vnl-filter selects ROWS, not columns by
       default. I.e. '--matches' -> '' and '' -> '-p'
 
-    - Breaking change: asciilog-filter in awk mode: --eval takes full
-      pattern/action statements. Thus previously-functional asciilog-filter
-      --eval ... -> asciilog-filter --eval '{...}'
+    - Breaking change: vnl-filter in awk mode: --eval takes full
+      pattern/action statements. Thus previously-functional vnl-filter
+      --eval ... -> vnl-filter --eval '{...}'
 
     - Clarified what happens to processing results of transformed
       expressions
@@ -18,19 +18,19 @@ asciilog (1.50) unstable; urgency=medium
 
  -- Dima Kogan <dima@secretsauce.net>  Wed, 27 Dec 2017 16:52:17 -0800
 
-asciilog (1.19) unstable; urgency=medium
+vanillog (1.19) unstable; urgency=medium
 
-  * I ship asciilog-align in the 'asciilog' package
+  * I ship vnl-align in the 'vanillog' package
 
  -- Dima Kogan <dima@secretsauce.net>  Sat, 02 Dec 2017 23:21:59 -0800
 
-asciilog (1.18) unstable; urgency=medium
+vanillog (1.18) unstable; urgency=medium
 
   * Updates
 
  -- Dima Kogan <dima@secretsauce.net>  Tue, 28 Nov 2017 17:58:19 -0800
 
-asciilog (1.14) stretch; urgency=medium
+vanillog (1.14) stretch; urgency=medium
 
   * first Debian package build
 

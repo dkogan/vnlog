@@ -438,7 +438,7 @@ sub check
 
             $out = '';
             run( ["perl",
-                  "$Bin/../asciilog-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
+                  "$Bin/../vnl-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
             $in = $out;
         }
 

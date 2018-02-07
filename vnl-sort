@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Asciilog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
+use Vanillog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
 
 
 
@@ -60,10 +60,10 @@ before calling sort, this is clobbered. Or if I use a pipe, the ftruncate() will
 fail and sort barfs
 EOF
                             'field-separator' => <<'EOF',
-asciilog is built on assuming a particular field separator
+vanillog is built on assuming a particular field separator
 EOF
                             'zero-terminated' => <<'EOF'
-asciilog is built on assuming a particular record separator
+vanillog is built on assuming a particular record separator
 EOF
                           );
 
@@ -109,9 +109,9 @@ sub substitute_field_keys
     # alone, but off the whole line, starting at that field, which is crazy. To
     # do the sane thing of just looking at the field you can do the after-,
     # field spec. I.e. to sort JUST on field 2 you'd say 'sort -k 2,2'. That's
-    # weird, and asciilog-sort always passes this syntax, and thus asciilog-sort
-    # doesn't support the , in -k .... asciilog-sort also doesn't support the C.
-    # I DO want to support OPTS, so the asciilog-sort syntax is 'asciilog-sort
+    # weird, and vnl-sort always passes this syntax, and thus vnl-sort
+    # doesn't support the , in -k .... vnl-sort also doesn't support the C.
+    # I DO want to support OPTS, so the vnl-sort syntax is 'vnl-sort
     # -k field[.OPTS] where OPTS are just like in sort: one or more of
     # [bdfgiMhnRrV]
 
@@ -123,7 +123,7 @@ sub substitute_field_keys
 
         if (!exists $key_indices{$1})
         {
-            die "Requested key '$1' not found in the input asciilogs. Have known keys '@$keys'";
+            die "Requested key '$1' not found in the input vanillogs. Have known keys '@$keys'";
         }
 
         my $key  = $key_indices{$1};
@@ -137,11 +137,11 @@ __END__
 
 =head1 NAME
 
-asciilog-sort - sorts an asciilog file, preserving the legend
+vnl-sort - sorts an vanillog file, preserving the legend
 
 =head1 SYNOPSIS
 
- $ cat a.asciilog
+ $ cat a.vnl
  # a b
  AA 11
  bb 12
@@ -150,7 +150,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 123
 
  Sort lexically by a:
- $ <a.asciilog asciilog-sort -k a
+ $ <a.vnl vnl-sort -k a
  # a b
  AA 11
  CC 13
@@ -159,7 +159,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 14
 
  Sort lexically by a, ignoring case:
- $ <a.asciilog asciilog-sort -k a --ignore-case
+ $ <a.vnl vnl-sort -k a --ignore-case
  # a b
  AA 11
  bb 12
@@ -168,7 +168,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 14
 
  Sort lexically by a, then numerically by b:
- $ <a.asciilog asciilog-sort -k a -k b.n
+ $ <a.vnl vnl-sort -k a -k b.n
  # a b
  AA 11
  CC 13
@@ -177,7 +177,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  dd 123
 
  Sort lexically by a, then numerically by b in reverse:
- $ <a.asciilog asciilog-sort -k a -k b.nr
+ $ <a.vnl vnl-sort -k a -k b.nr
  # a b
  AA 11
  CC 13
@@ -187,7 +187,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
 
 
  Sort by month and then day:
- $ cat dat.asciilog
+ $ cat dat.vnl
  # month day
  March 5
  Jan 2
@@ -195,7 +195,7 @@ asciilog-sort - sorts an asciilog file, preserving the legend
  March 30
  Jan 21
 
- $ <dat.asciilog asciilog-sort -k month.M -k day.n
+ $ <dat.vnl vnl-sort -k month.M -k day.n
  # month day
  Jan 2
  Jan 21
@@ -206,9 +206,9 @@ asciilog-sort - sorts an asciilog file, preserving the legend
 
 =head1 DESCRIPTION
 
-  Usage: asciilog-sort [options] logfile logfile logfile ... < logfile
+  Usage: vnl-sort [options] logfile logfile logfile ... < logfile
 
-This tool sorts given asciilog files in various ways. C<asciilog-sort> is a
+This tool sorts given vanillog files in various ways. C<vnl-sort> is a
 wrapper around the GNU coreutils C<sort> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<sort> tool are present; consult the
 L<sort(1)> manpage for detail. The differences from GNU coreutils C<sort> are
@@ -217,7 +217,7 @@ L<sort(1)> manpage for detail. The differences from GNU coreutils C<sort> are
 
 =item *
 
-The input and output to this tool are asciilog files, complete with a legend
+The input and output to this tool are vanillog files, complete with a legend
 
 =item *
 
@@ -239,7 +239,7 @@ I<do> support the C<OPTS> to change the type of sorting in a given particular
 column. For instance, to sort by month and then by day, do this (see example
 above):
 
-  asciilog-sort -k month.M -k day.n
+  vnl-sort -k month.M -k day.n
 
 =item *
 
@@ -253,12 +253,12 @@ output always goes to standard out.
 
 =item *
 
-C<--field-separator> is not supported because asciilog assumes
+C<--field-separator> is not supported because vanillog assumes
 whitespace-separated fields
 
 =item *
 
-C<--zero-terminated> is not supported because asciilog assumes
+C<--zero-terminated> is not supported because vanillog assumes
 newline-separated records
 
 =back
@@ -269,7 +269,7 @@ since it's not obvious where they should end up.
 
 =head1 BUGS
 
-This and the other C<asciilog-xxx> tools that wrap coreutils are written
+This and the other C<vnl-xxx> tools that wrap coreutils are written
 specifically to work with the Linux kernel and the GNU coreutils. None of these
 have been tested with BSD tools or with non-Linux kernels, and I'm sure things
 don't just work. If you want this support, please send me nice patches :)
@@ -280,7 +280,7 @@ L<sort(1)>
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/asciilog/
+https://github.com/dkogan/vanillog/
 
 =head1 AUTHOR
 

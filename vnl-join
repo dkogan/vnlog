@@ -8,7 +8,7 @@ use FindBin '$Bin';
 use lib "$Bin/lib";
 
 use List::Util 'all';
-use Asciilog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command);
+use Vanillog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command);
 
 
 
@@ -27,17 +27,17 @@ my @specs = ( # options with no args
              "help");
 
 my %options_unsupported = ( 't' => <<'EOF',
-asciilog is built on assuming a particular field separator
+vanillog is built on assuming a particular field separator
 EOF
                             'e' => <<'EOF',
-asciilog assumes - as an "undefined" field value. -e thus not allowed
+vanillog assumes - as an "undefined" field value. -e thus not allowed
 EOF
                             'header' => <<'EOF',
-asciilog already handles field headers; this is pointless
+vanillog already handles field headers; this is pointless
 EOF
 
                             'zero-terminated' => <<'EOF'
-asciilog is built on assuming a particular record separator
+vanillog is built on assuming a particular record separator
 EOF
                           );
 
@@ -110,7 +110,7 @@ if( defined $options->{v} )
 }
 
 
-# asciilog uses - to represent empty fields
+# vanillog uses - to represent empty fields
 $options->{e} = '-';
 
 if( !defined $options->{o} )
@@ -175,11 +175,11 @@ sub substitute_field_keys
     my $join_field_name = $options->{j};
     if(! exists $key_indices[0]{$join_field_name})
     {
-        die "Requested key '$join_field_name' not found in the input asciilog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
+        die "Requested key '$join_field_name' not found in the input vanillog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
     }
     if(! exists $key_indices[1]{$join_field_name})
     {
-        die "Requested key '$join_field_name' not found in the input asciilog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
+        die "Requested key '$join_field_name' not found in the input vanillog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
     }
 
     delete $options->{j};
@@ -243,12 +243,12 @@ __END__
 
 =head1 NAME
 
-asciilog-join - joins two log files on a particular field
+vnl-join - joins two log files on a particular field
 
 =head1 SYNOPSIS
 
 
- $ cat a.asciilog
+ $ cat a.vnl
  # a b
  AA 11
  bb 12
@@ -256,7 +256,7 @@ asciilog-join - joins two log files on a particular field
  dd 14
  dd 123
 
- $ cat b.asciilog
+ $ cat b.vnl
  # a c
  aa 1
  cc 3
@@ -265,25 +265,25 @@ asciilog-join - joins two log files on a particular field
  - 23
 
  Try to join unsorted data on field 'a':
- $ asciilog-join -j a a.asciilog b.asciilog
+ $ vnl-join -j a a.vnl b.vnl
  # a b c
  join: /dev/fd/5:3: is not sorted: CC 13
  join: /dev/fd/6:3: is not sorted: bb 4
 
  Sort the data, and join on 'a':
- $ asciilog-join -j a <(asciilog-sort -ka a.asciilog) <(asciilog-sort -ka b.asciilog) | asciilog-align
+ $ vnl-join -j a <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
  # a b  c
  bb  12 4
 
  Sort the data, and join on 'a', ignoring case:
- $ asciilog-join -i -j a <(asciilog-sort -f -ka a.asciilog) <(asciilog-sort -f -ka b.asciilog) | asciilog-align
+ $ vnl-join -i -j a <(vnl-sort -f -ka a.vnl) <(vnl-sort -f -ka b.vnl) | vnl-align
  # a b c
  AA 11 1
  bb 12 4
  CC 13 3
 
  Sort the data, and join on 'a'. Also print the unmatched lines from both files:
- $ asciilog-join -ja -a1 -a2 <(asciilog-sort -ka a.asciilog) <(asciilog-sort -ka b.asciilog) | asciilog-align
+ $ vnl-join -ja -a1 -a2 <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
  # a b   c
  -   -   23
  AA   11 -
@@ -296,7 +296,7 @@ asciilog-join - joins two log files on a particular field
  ee  -    5
 
  Sort the data, and join on 'a'. Print the unmatched lines from both files, Output ONLY colum 'c' from the 2nd input:
- $ asciilog-join -ja -a1 -a2 -o 2.c <(asciilog-sort -ka a.asciilog) <(asciilog-sort -ka b.asciilog) | asciilog-align
+ $ vnl-join -ja -a1 -a2 -o 2.c <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
  # c
  23
  -
@@ -310,9 +310,9 @@ asciilog-join - joins two log files on a particular field
 
 =head1 DESCRIPTION
 
-  Usage: asciilog-join [options] logfile1 logfile2
+  Usage: vnl-join [options] logfile1 logfile2
 
-This tool joins two asciilog files on a given field. C<asciilog-join> is a
+This tool joins two vanillog files on a given field. C<vnl-join> is a
 wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<join> tool are present; consult the
 L<join(1)> manpage for detail. The differences from GNU coreutils C<join> are
@@ -321,7 +321,7 @@ L<join(1)> manpage for detail. The differences from GNU coreutils C<join> are
 
 =item *
 
-The input and output to this tool are asciilog files, complete with a legend
+The input and output to this tool are vanillog files, complete with a legend
 
 =item *
 
@@ -338,7 +338,7 @@ to join on column "time".
 =item *
 
 C<-1> and C<-2> are supported, but I<must> refer to the same field. Since
-asciilog knows the identify of each field, it makes no sense for C<-1> and C<-2>
+vanillog knows the identify of each field, it makes no sense for C<-1> and C<-2>
 to be different. So pass C<-j> instead, it makes more sense in this context.
 
 =item *
@@ -348,20 +348,20 @@ as C<->.
 
 =item *
 
-C<-e> is not supported because asciilog uses C<-> to represent undefined fields.
+C<-e> is not supported because vanillog uses C<-> to represent undefined fields.
 
 =item *
 
-C<--header> is not supported because asciilog assumes a specific header
-structure, and C<asciilog-sort> makes sure that this header is handled properly
+C<--header> is not supported because vanillog assumes a specific header
+structure, and C<vnl-sort> makes sure that this header is handled properly
 
 =item *
 
-C<-t> is not supported because asciilog assumes whitespace-separated fields
+C<-t> is not supported because vanillog assumes whitespace-separated fields
 
 =item *
 
-C<--zero-terminated> is not supported because asciilog assumes newline-separated
+C<--zero-terminated> is not supported because vanillog assumes newline-separated
 records
 
 =back
@@ -372,7 +372,7 @@ since it's not obvious where they should end up.
 
 =head1 BUGS
 
-This and the other C<asciilog-xxx> tools that wrap coreutils are written
+This and the other C<vnl-xxx> tools that wrap coreutils are written
 specifically to work with the Linux kernel and the GNU coreutils. None of these
 have been tested with BSD tools or with non-Linux kernels, and I'm sure things
 don't just work. If you want this support, please send me nice patches :)
@@ -383,7 +383,7 @@ L<join(1)>
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/asciilog/
+https://github.com/dkogan/vanillog/
 
 =head1 AUTHOR
 
