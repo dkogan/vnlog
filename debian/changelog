@@ -1,37 +1,5 @@
-vanillog (1.50) unstable; urgency=medium
+vanillog (1.0) unstable; urgency=medium
 
-  * First release as free software
-  * Upstream updates:
-
-    - Breaking change: vnl-filter selects ROWS, not columns by
-      default. I.e. '--matches' -> '' and '' -> '-p'
-
-    - Breaking change: vnl-filter in awk mode: --eval takes full
-      pattern/action statements. Thus previously-functional vnl-filter
-      --eval ... -> vnl-filter --eval '{...}'
-
-    - Clarified what happens to processing results of transformed
-      expressions
-
-  * This is a testing release. Some things aren't yet finalized, and the
-    documentation is currently misleading
+  * First public release!
 
  -- Dima Kogan <dima@secretsauce.net>  Wed, 27 Dec 2017 16:52:17 -0800
-
-vanillog (1.19) unstable; urgency=medium
-
-  * I ship vnl-align in the 'vanillog' package
-
- -- Dima Kogan <dima@secretsauce.net>  Sat, 02 Dec 2017 23:21:59 -0800
-
-vanillog (1.18) unstable; urgency=medium
-
-  * Updates
-
- -- Dima Kogan <dima@secretsauce.net>  Tue, 28 Nov 2017 17:58:19 -0800
-
-vanillog (1.14) stretch; urgency=medium
-
-  * first Debian package build
-
- -- Dima Kogan <dima@secretsauce.net>  Sat, 04 Mar 2017 00:01:32 -0800
