@@ -1,7 +1,7 @@
 PROJECT_NAME := vnlog
 
-ABI_VERSION  := 4
-TAIL_VERSION := 1.9
+ABI_VERSION  := 0
+TAIL_VERSION := 1
 
 LIB_SOURCES := *.c*
 BIN_SOURCES := test/test1.c
