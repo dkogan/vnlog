@@ -355,3 +355,7 @@ later version.
 Copyright 2016-2017 California Institute of Technology
 
 Copyright 2017-2018 Dima Kogan =dima@secretsauce.net=
+
+=b64_cencode.c= comes from =cencode.c= in the =libb64= project. It is written by
+Chris Venter =<chris.venter@gmail.com>= who placed it in the public domain. The
+full text of the license is in that file.
