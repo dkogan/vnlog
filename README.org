@@ -282,7 +282,7 @@ populating, which becomes effortful with many columns. In my usage it's common
 to have a large parallelized C program that's writing logs with hundreds of
 columns where any one record would contain only a subset of the columns. In such
 a case, it's helpful to have a library that can output the log files. This is
-available, and simple-enough to be demonstrated with an example:
+available. Basic usage looks like this:
 
 In a shell:
 
@@ -336,6 +336,127 @@ $ ./test
 The binary field in base64-encoded. This is a rarely-used feature, but sometimes
 you really need to log binary data for later processing, and this makes it
 possible.
+
+So you
+
+1. Generate the header to define your columns
+
+2. Call =vnlog_emit_legend()=
+
+3. Call =vnlog_set_field_value__...()= for each field you want to set in that
+   row.
+
+4. Call =vnlog_emit_record()= to write the row and to reset all fields for the
+   next row. Any fields unset with a =vnlog_set_field_value__...()= call are
+   written as null: =-=
+
+This is enough for 99% of the use cases. Things get a bit more complex if we
+have have threading or if we have multiple vnlog ouput streams in the same
+program. For both of these we use vnlog /contexts/.
+
+To support reentrant writing into the same vnlog by multiple threads, each
+log-writer should create a context, and use it when talking to vnlog. The
+context functions will make sure that the fields in each context are independent
+and that the output records won't clobber each other:
+
+#+BEGIN_SRC C
+void child_writer( // the parent context also writes to this vnlog. Pass NULL to
+                   // use the global one
+                   struct vnlog_context_t* ctx_parent )
+{
+    struct vnlog_context_t ctx;
+    vnlog_init_child_ctx(&ctx, ctx_parent);
+
+    while(records)
+    {
+        vnlog_set_field_value_ctx__xxx(&ctx, ...);
+        vnlog_set_field_value_ctx__yyy(&ctx, ...);
+        vnlog_set_field_value_ctx__zzz(&ctx, ...);
+        vnlog_emit_record_ctx(&ctx);
+    }
+}
+#+END_SRC
+
+If we want to have multiple independent vnlog writers to /different/ streams
+(with different columns andlegends), we do this instead:
+
+=file1.c=:
+#+BEGIN_SRC C
+#include "vnlog_fields_generated1.h"
+
+void f(void)
+{
+    // Write some data out to the default context and default output (STDOUT)
+    vnlog_emit_legend();
+    ...
+    vnlog_set_field_value__xxx(...);
+    vnlog_set_field_value__yyy(...);
+    ...
+    vnlog_emit_record();
+}
+#+END_SRC
+
+=file2.c=:
+#+BEGIN_SRC C
+#include "vnlog_fields_generated2.h"
+
+void g(void)
+{
+    // Make a new session context, send output to a different file, write
+    // out legend, and send out the data
+    struct vnlog_context_t ctx;
+    vnlog_init_session_ctx(&ctx);
+    FILE* fp = fopen(...);
+    vnlog_set_output_FILE(&ctx, fp);
+    vnlog_emit_legend_ctx(&ctx);
+    ...
+    vnlog_set_field_value__a(...);
+    vnlog_set_field_value__b(...);
+    ...
+    vnlog_emit_record();
+}
+#+END_SRC
+
+Note that it's the user's responsibility to make sure the new sessions go to a
+different =FILE= by invoking =vnlog_set_output_FILE()=. Furthermore, note that
+the included =vnlog_fields_....h= file defines the fields we're writing to; and
+if we have multiple different vnlog field definitions in the same program (as in
+this example), then the different writers /must/ live in different source files.
+The compiler will barf if you try to =#include= two different
+=vnlog_fields_....h= files in the same source.
+
+More APIs are
+
+
+=vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
+=printf()= does. This exists for commments.
+
+=vnlog_clear_fields_ctx(ctx, do_free_binary)=:
+Clears out the data in a context and makes it ready to be used for the next
+record. It is rare for the user to have to call this manually. The most common
+case is handled automatically (clearing out a context after emitting a record).
+One area where this is useful is when making a copy of a context:
+
+#+BEGIN_SRC C
+struct vnlog_context_t ctx1;
+// .... do stuff with ctx1 ... add data to it ...
+
+struct vnlog_context_t ctx2 = ctx1;
+// ctx1 and ctx2 now both have the same data, and the same pointers to
+// binary data. I need to get rid of the pointer references in ctx1
+
+vnlog_clear_fields_ctx(&ctx1, false);
+#+END_SRC
+
+=vnlog_free_ctx(ctx)=:
+
+Frees memory for an vnlog context. Do this before throwing the context away.
+Currently this is only needed for context that have binary fields, but this
+should be called in for all contexts, just in case
+
+#+BEGIN_SRC C
+void _vnlog_free_ctx( struct vnlog_context_t* ctx, int Nfields );
+#+END_SRC
 
 * Repository
 
