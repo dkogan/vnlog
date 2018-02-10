@@ -189,8 +189,8 @@ variable declaration with a type followed by a name. Note that these field specs
 contain whitespace, so each one must be quoted before being passed to the shell.
 
 The types can be basic scalars, possibly with set widths (C<char>, C<double>,
-C<int>, C<uint32_t>, C<unsigned int>, ...), or a NULL-terminated string
-(C<char*>).
+C<int>, C<uint32_t>, C<unsigned int>, ...), a NULL-terminated string (C<char*>)
+or a generic chunk of binary data (C<void*>).
 
 The names must consist entirely of letters, numbers or C<_>, like variables in
 C.
