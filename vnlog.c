@@ -10,12 +10,12 @@
 #include "vnlog.h"
 
 #define ERR(fmt, ...) do {                                              \
-  fprintf(stderr, "FATAL ERROR! %s: %s(): " fmt "\n", __FILE__, __func__, ## __VA_ARGS__); \
-  exit(1);                                                              \
-} while(0)
+        fprintf(stderr, "FATAL ERROR! %s: %s(): " fmt "\n", __FILE__, __func__, ## __VA_ARGS__); \
+        exit(1);                                                        \
+    } while(0)
 
 void _vnlog_init_session_ctx( struct vnlog_context_t* ctx,
-                                 int Nfields);
+                              int Nfields);
 
 // VNLOG_N_FIELDS is unknown here so the vnlog_context_t structure has 0
 // elements. I dynamically allocate it later with the proper size
@@ -134,8 +134,8 @@ void _vnlog_init_session_ctx( struct vnlog_context_t* ctx, int Nfields)
 }
 
 void _vnlog_init_child_ctx(      struct vnlog_context_t* ctx,
-                              const struct vnlog_context_t* ctx_src,
-                              int Nfields)
+                                 const struct vnlog_context_t* ctx_src,
+                                 int Nfields)
 {
     if( ctx     == NULL ) ERR("Can't init a NULL context");
     if( ctx_src == NULL ) ctx_src = get_global_context(Nfields);
@@ -203,8 +203,8 @@ set_field_prelude(struct vnlog_context_t* ctx,
 // ABI, so I do handle those specially
 void
 _vnlog_set_field_value_int(struct vnlog_context_t* ctx,
-                              const char* fieldname, int idx,
-                              const char* fmt, union vnlog_field_types_t arg)
+                           const char* fieldname, int idx,
+                           const char* fmt, union vnlog_field_types_t arg)
 {
     ctx = set_field_prelude(ctx, fieldname, idx);
     if( (int)sizeof(ctx->fields[0].c) <=
@@ -215,8 +215,8 @@ _vnlog_set_field_value_int(struct vnlog_context_t* ctx,
 }
 void
 _vnlog_set_field_value_double(struct vnlog_context_t* ctx,
-                                 const char* fieldname, int idx,
-                                 const char* fmt, double arg)
+                              const char* fieldname, int idx,
+                              const char* fmt, double arg)
 {
     ctx = set_field_prelude(ctx, fieldname, idx);
     if( (int)sizeof(ctx->fields[0].c) <=
@@ -228,8 +228,8 @@ _vnlog_set_field_value_double(struct vnlog_context_t* ctx,
 
 void
 _vnlog_set_field_value_binary(struct vnlog_context_t* ctx,
-                                 const char* fieldname __attribute__((unused)), int idx,
-                                 const void* data, int len)
+                              const char* fieldname __attribute__((unused)), int idx,
+                              const void* data, int len)
 {
     ctx = set_field_prelude(ctx, fieldname, idx);
 

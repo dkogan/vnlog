@@ -141,7 +141,7 @@ extern "C" {
 // Directs the output to a given buffer. If this function is never called, the
 // output goes to STDOUT. If it IS called, that must happen before anything else
 void vnlog_set_output_FILE(struct vnlog_context_t* ctx,
-                              FILE* _fp);
+                           FILE* _fp);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. The user should call
 //
@@ -151,7 +151,7 @@ void vnlog_set_output_FILE(struct vnlog_context_t* ctx,
 // This is called once to write out the legend. Must be called before any data
 // can be written
 void _vnlog_emit_legend(struct vnlog_context_t* ctx,
-                           const char* legend, int Nfields);
+                        const char* legend, int Nfields);
 
 // THESE FUNCTIONS ARE NOT A PART OF THE PUBLIC API. Instead the user should call
 // either of
@@ -170,16 +170,16 @@ void _vnlog_emit_legend(struct vnlog_context_t* ctx,
 //
 void
 _vnlog_set_field_value_int(struct vnlog_context_t* ctx,
-                              const char* fieldname, int idx,
-                              const char* fmt, union vnlog_field_types_t arg);
+                           const char* fieldname, int idx,
+                           const char* fmt, union vnlog_field_types_t arg);
 void
 _vnlog_set_field_value_double(struct vnlog_context_t* ctx,
-                                 const char* fieldname, int idx,
-                                 const char* fmt, double arg);
+                              const char* fieldname, int idx,
+                              const char* fmt, double arg);
 void
 _vnlog_set_field_value_binary(struct vnlog_context_t* ctx,
-                                 const char* fieldname, int idx,
-                                 const void* data, int len);
+                              const char* fieldname, int idx,
+                              const void* data, int len);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 // either of
@@ -195,7 +195,7 @@ _vnlog_set_field_value_binary(struct vnlog_context_t* ctx,
 // This function is thread-safe, and multiple context can be safely written out
 // from multiple threads
 void _vnlog_emit_record(struct vnlog_context_t* ctx,
-                           int Nfields);
+                        int Nfields);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 // either of
@@ -208,7 +208,7 @@ void _vnlog_emit_record(struct vnlog_context_t* ctx,
 // string, so it should start with a '#' and end in a '\n', but I do not check
 // or enforce this.
 void _vnlog_printf(struct vnlog_context_t* ctx, int Nfields,
-                      const char* fmt, ...);
+                   const char* fmt, ...);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 // either of
@@ -258,8 +258,8 @@ void _vnlog_flush(struct vnlog_context_t* ctx, int Nfields);
 // vnlog session. This is things like the FILE we're writing data to. If
 // NULL, we use the global context.
 void _vnlog_init_child_ctx( struct vnlog_context_t* ctx,
-                               const struct vnlog_context_t* ctx_src,
-                               int Nfields);
+                            const struct vnlog_context_t* ctx_src,
+                            int Nfields);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 //
@@ -309,7 +309,7 @@ void _vnlog_init_child_ctx( struct vnlog_context_t* ctx,
 //         vnlog_emit_record();
 //     }
 void _vnlog_init_session_ctx( struct vnlog_context_t* ctx,
-                                 int Nfields);
+                              int Nfields);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. Instead, the user should call
 //
