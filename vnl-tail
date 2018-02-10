@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Vanillog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_inputs);
+use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_inputs);
 
 
 
@@ -36,10 +36,10 @@ my @specs = ( # options with no args
 
 
 my %options_unsupported = ( 'bytes' => <<'EOF',
-vanillog is line-oriented, so I refuse to split lines
+vnlog is line-oriented, so I refuse to split lines
 EOF
                             'zero-terminated' => <<'EOF'
-vanillog is built on assuming a particular record separator
+vnlog is built on assuming a particular record separator
 EOF
                           );
 
@@ -130,7 +130,7 @@ vnl-tail - tail a log file, preserving the legend
 
   Usage: vnl-tail [options] logfile logfile logfile ... < logfile
 
-This tool runs tail on given vanillog files in various ways. C<vnl-tail> is
+This tool runs tail on given vnlog files in various ways. C<vnl-tail> is
 a wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<tail> tool are present; consult the
 L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
@@ -139,15 +139,15 @@ L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
 
 =item *
 
-The input and output to this tool are vanillog files, complete with a legend
+The input and output to this tool are vnlog files, complete with a legend
 
 =item *
 
-C<-c> is not supported because vanillog really doesn't want to break up lines
+C<-c> is not supported because vnlog really doesn't want to break up lines
 
 =item *
 
-C<--zero-terminated> is not supported because vanillog assumes
+C<--zero-terminated> is not supported because vnlog assumes
 newline-separated records
 
 =back
@@ -168,7 +168,7 @@ L<tail(1)>
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/vanillog/
+https://github.com/dkogan/vnlog/
 
 =head1 AUTHOR
 

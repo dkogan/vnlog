@@ -6,7 +6,7 @@ use List::Util 'max';
 use List::MoreUtils qw(any all);
 use FindBin '$Bin';
 use lib "$Bin/lib";
-use Vanillog::Util 'get_unbuffered_line';
+use Vnlog::Util 'get_unbuffered_line';
 use Text::Balanced 'extract_bracketed';
 
 use feature qw(say state);
@@ -24,7 +24,7 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --perl
       --unbuffered
 
-    This tool is a nicer 'awk' that reads and write vanillog. As a result, it
+    This tool is a nicer 'awk' that reads and write vnlog. As a result, it
     can refer to columns by name, not number, like awk does.
 
     Columns are selected with -p (we select all columns if omitted). We can
@@ -706,7 +706,7 @@ __END__
 
 =head1 NAME
 
-vnl-filter - filters vanillogs to select particular rows, fields
+vnl-filter - filters vnlogs to select particular rows, fields
 
 =head1 SYNOPSIS
 
@@ -785,7 +785,7 @@ vnl-filter - filters vanillogs to select particular rows, fields
 
 =head1 DESCRIPTION
 
-This tool is largely a frontend for awk to operate on vanillog files. Vanillog
+This tool is largely a frontend for awk to operate on vnlog files. Vnlog
 is both an input and an output. This tool makes it very simple to select
 specific rows and columns for output and to manipulate the data in various ways.
 
@@ -805,12 +805,12 @@ to use perl as well, but this isn't as fast).
 
 =head2 Input/output data format
 
-The input/output data is vanillog: a plain-text table of values. Any lines
+The input/output data is vnlog: a plain-text table of values. Any lines
 beginning with C<#> are treated as comments, and are passed through. The first
 line that begins with C<#> but not C<##> is a I<legend> line. After the C<#>,
 follow whitespace-separated field names. Each subsequent line is
 whitespace-separated values matching this legend. For instance, this is a valid
-vanillog file:
+vnlog file:
 
  ## comment comment comment
  ## more comments
@@ -825,7 +825,7 @@ comments are preserved, but the legend is updated to reflect the fields in the
 output file.
 
 A string C<-> is used to indicate an undefined value, so this is also a valid
-vanillog file:
+vnlog file:
 
  # x y z
  1 2 3
@@ -1001,7 +1001,7 @@ just like a glorified awk, that allows fields to be accessed by name instead of
 by number, as it would be in raw awk.
 
 Since the expression may print I<anything> or nothing at all, the output in this
-mode is not necessarily itself a valid vanillog stream. And no column-selecting
+mode is not necessarily itself a valid vnlog stream. And no column-selecting
 arguments should be given, since they make no sense in this mode.
 
 In awk the expr is a full set of pattern/action statements. So to print the sum
@@ -1058,7 +1058,7 @@ as it is available, which is crucial for realtime output and streaming plots.
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/vanillog/
+https://github.com/dkogan/vnlog/
 
 =head1 AUTHOR
 

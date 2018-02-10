@@ -6,50 +6,50 @@
 
 #include "b64_cencode.h"
 
-#define VANILLOG_C
-#include "vanillog.h"
+#define VNLOG_C
+#include "vnlog.h"
 
 #define ERR(fmt, ...) do {                                              \
   fprintf(stderr, "FATAL ERROR! %s: %s(): " fmt "\n", __FILE__, __func__, ## __VA_ARGS__); \
   exit(1);                                                              \
 } while(0)
 
-void _vanillog_init_session_ctx( struct vanillog_context_t* ctx,
+void _vnlog_init_session_ctx( struct vnlog_context_t* ctx,
                                  int Nfields);
 
-// VANILLOG_N_FIELDS is unknown here so the vanillog_context_t structure has 0
+// VNLOG_N_FIELDS is unknown here so the vnlog_context_t structure has 0
 // elements. I dynamically allocate it later with the proper size
-static struct vanillog_context_t* get_global_context(int Nfields)
+static struct vnlog_context_t* get_global_context(int Nfields)
 {
-    static struct vanillog_context_t* ctx;
+    static struct vnlog_context_t* ctx;
 
     if(!ctx)
     {
         if(Nfields < 0)
             ERR("Creating a global context not at the start");
-        ctx = malloc(sizeof(struct vanillog_context_t) +
+        ctx = malloc(sizeof(struct vnlog_context_t) +
                      Nfields * sizeof(ctx->fields[0]));
         if(!ctx) ERR("Couldn't allocate context with %d fields", Nfields);
 
-        _vanillog_init_session_ctx(ctx, Nfields);
+        _vnlog_init_session_ctx(ctx, Nfields);
     }
     return ctx;
 }
 
 
 
-static void check_fp(struct vanillog_context_t* ctx)
+static void check_fp(struct vnlog_context_t* ctx)
 {
     if(!ctx->root->_fp)
-        vanillog_set_output_FILE(ctx, stdout);
+        vnlog_set_output_FILE(ctx, stdout);
 }
-static void _emit(struct vanillog_context_t* ctx, const char* string)
+static void _emit(struct vnlog_context_t* ctx, const char* string)
 {
     fprintf(ctx->root->_fp, "%s", string);
     ctx->root->_emitted_something = true;
 }
 
-static void _emit_field(struct vanillog_context_t* ctx, int i)
+static void _emit_field(struct vnlog_context_t* ctx, int i)
 {
     if( ctx->fields[i].binptr == NULL )
         // plain ascii field
@@ -64,13 +64,13 @@ static void _emit_field(struct vanillog_context_t* ctx, int i)
     }
 }
 
-static void emit(struct vanillog_context_t* ctx, const char* string)
+static void emit(struct vnlog_context_t* ctx, const char* string)
 {
     check_fp(ctx);
     _emit(ctx, string);
 }
 
-void _vanillog_printf(struct vanillog_context_t* ctx, int Nfields, const char* fmt, ...)
+void _vnlog_printf(struct vnlog_context_t* ctx, int Nfields, const char* fmt, ...)
 {
     if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
@@ -82,14 +82,14 @@ void _vanillog_printf(struct vanillog_context_t* ctx, int Nfields, const char* f
     ctx->root->_emitted_something = true;
 }
 
-void _vanillog_flush(struct vanillog_context_t* ctx, int Nfields)
+void _vnlog_flush(struct vnlog_context_t* ctx, int Nfields)
 {
     if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
     fflush(ctx->root->_fp);
 }
 
-void vanillog_set_output_FILE(struct vanillog_context_t* ctx, FILE* fp)
+void vnlog_set_output_FILE(struct vnlog_context_t* ctx, FILE* fp)
 {
     if(ctx->root->_fp)
         ERR("fp is already set");
@@ -99,12 +99,12 @@ void vanillog_set_output_FILE(struct vanillog_context_t* ctx, FILE* fp)
     ctx->root->_fp = fp;
 }
 
-static void flush(struct vanillog_context_t* ctx)
+static void flush(struct vnlog_context_t* ctx)
 {
     fflush(ctx->root->_fp);
 }
 
-void _vanillog_clear_fields_ctx(struct vanillog_context_t* ctx, int Nfields, bool do_free_binary)
+void _vnlog_clear_fields_ctx(struct vnlog_context_t* ctx, int Nfields, bool do_free_binary)
 {
     ctx->line_has_any_values = false;
     for(int i=0; i<Nfields; i++)
@@ -122,19 +122,19 @@ void _vanillog_clear_fields_ctx(struct vanillog_context_t* ctx, int Nfields, boo
     }
 }
 
-void _vanillog_init_session_ctx( struct vanillog_context_t* ctx, int Nfields)
+void _vnlog_init_session_ctx( struct vnlog_context_t* ctx, int Nfields)
 {
     if( ctx == NULL )
         ERR("Can't init a NULL context");
 
     // zero out the context, and set its root to point to itself
-    *ctx = (struct vanillog_context_t){ .root = ctx };
+    *ctx = (struct vnlog_context_t){ .root = ctx };
 
-    _vanillog_clear_fields_ctx( ctx, Nfields, false );
+    _vnlog_clear_fields_ctx( ctx, Nfields, false );
 }
 
-void _vanillog_init_child_ctx(      struct vanillog_context_t* ctx,
-                              const struct vanillog_context_t* ctx_src,
+void _vnlog_init_child_ctx(      struct vnlog_context_t* ctx,
+                              const struct vnlog_context_t* ctx_src,
                               int Nfields)
 {
     if( ctx     == NULL ) ERR("Can't init a NULL context");
@@ -150,10 +150,10 @@ void _vanillog_init_child_ctx(      struct vanillog_context_t* ctx,
     *ctx = *ctx_src;
 
     // reset the flexible array
-    _vanillog_clear_fields_ctx( ctx, Nfields, false );
+    _vnlog_clear_fields_ctx( ctx, Nfields, false );
 }
 
-void _vanillog_free_ctx( struct vanillog_context_t* ctx, int Nfields )
+void _vnlog_free_ctx( struct vnlog_context_t* ctx, int Nfields )
 {
     for(int i=0; i<Nfields; i++)
     {
@@ -162,7 +162,7 @@ void _vanillog_free_ctx( struct vanillog_context_t* ctx, int Nfields )
     }
 }
 
-void _vanillog_emit_legend(struct vanillog_context_t* ctx, const char* legend, int Nfields)
+void _vnlog_emit_legend(struct vnlog_context_t* ctx, const char* legend, int Nfields)
 {
     if( ctx == NULL ) ctx = get_global_context(Nfields);
 
@@ -174,13 +174,13 @@ void _vanillog_emit_legend(struct vanillog_context_t* ctx, const char* legend, i
     flush(ctx);
 }
 
-static bool is_field_null(const vanillog_field_t* field)
+static bool is_field_null(const vnlog_field_t* field)
 {
     return field->binptr == NULL && field->c[0] == '-' && field->c[1] == '\0';
 }
 
-static struct vanillog_context_t*
-set_field_prelude(struct vanillog_context_t* ctx,
+static struct vnlog_context_t*
+set_field_prelude(struct vnlog_context_t* ctx,
                   const char* fieldname, int idx)
 {
     if( ctx == NULL ) ctx = get_global_context(-1);
@@ -197,14 +197,14 @@ set_field_prelude(struct vanillog_context_t* ctx,
 
 // printf() is type agnostic as far as the ABI is concerned, so I pass it the
 // correct raw bits without letting C know of the details: all possible integer
-// types are passed in via union vanillog_context_t. Past that the code path is
+// types are passed in via union vnlog_context_t. Past that the code path is
 // the same regardless of type. The guts of printf() reinterprets the bits based
 // on the format string. Floating-point types are handled differently by the
 // ABI, so I do handle those specially
 void
-_vanillog_set_field_value_int(struct vanillog_context_t* ctx,
+_vnlog_set_field_value_int(struct vnlog_context_t* ctx,
                               const char* fieldname, int idx,
-                              const char* fmt, union vanillog_field_types_t arg)
+                              const char* fmt, union vnlog_field_types_t arg)
 {
     ctx = set_field_prelude(ctx, fieldname, idx);
     if( (int)sizeof(ctx->fields[0].c) <=
@@ -214,7 +214,7 @@ _vanillog_set_field_value_int(struct vanillog_context_t* ctx,
     }
 }
 void
-_vanillog_set_field_value_double(struct vanillog_context_t* ctx,
+_vnlog_set_field_value_double(struct vnlog_context_t* ctx,
                                  const char* fieldname, int idx,
                                  const char* fmt, double arg)
 {
@@ -227,7 +227,7 @@ _vanillog_set_field_value_double(struct vanillog_context_t* ctx,
 }
 
 void
-_vanillog_set_field_value_binary(struct vanillog_context_t* ctx,
+_vnlog_set_field_value_binary(struct vnlog_context_t* ctx,
                                  const char* fieldname __attribute__((unused)), int idx,
                                  const void* data, int len)
 {
@@ -243,7 +243,7 @@ _vanillog_set_field_value_binary(struct vanillog_context_t* ctx,
     memcpy(ctx->fields[idx].binptr, data, len);
 }
 
-void _vanillog_emit_record(struct vanillog_context_t* ctx, int Nfields)
+void _vnlog_emit_record(struct vnlog_context_t* ctx, int Nfields)
 {
     if( ctx == NULL ) ctx = get_global_context(-1);
 
@@ -270,5 +270,5 @@ void _vanillog_emit_record(struct vanillog_context_t* ctx, int Nfields)
     // I want to be able to process streaming data, so I flush the buffer now
     flush(ctx);
 
-    _vanillog_clear_fields_ctx(ctx, Nfields, true);
+    _vnlog_clear_fields_ctx(ctx, Nfields, true);
 }

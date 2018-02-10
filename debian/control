@@ -1,4 +1,4 @@
-Source: vanillog
+Source: vnlog
 Priority: optional
 Section: devel
 Build-Depends: debhelper (>= 9), mrbuild (>= 0.56),
@@ -8,11 +8,11 @@ Build-Depends: debhelper (>= 9), mrbuild (>= 0.56),
  liblist-moreutils-perl
 Maintainer: Dima Kogan <dima@secretsauce.net>
 Standards-Version: 3.9.8
-Homepage: https://github.com/dkogan/vanillog/
-Vcs-Git: git@github.com:dkogan/vanillog.git
-Vcs-Browser: https://github.com/dkogan/vanillog/
+Homepage: https://github.com/dkogan/vnlog/
+Vcs-Git: git@github.com:dkogan/vnlog.git
+Vcs-Browser: https://github.com/dkogan/vnlog/
 
-Package: libvanillog0
+Package: libvnlog0
 Section: libs
 Architecture: any
 Multi-Arch: same
@@ -24,21 +24,21 @@ Description: Tools to manipulate whitespace-separated ASCII logs
  library interfaces are provided to create new data in this format and
  manipulate existing data
 
-Package: libvanillog-dev
+Package: libvnlog-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: ${misc:Depends}, libvanillog0 (= ${binary:Version}),
+Depends: ${misc:Depends}, libvnlog0 (= ${binary:Version}),
  libstring-shellquote-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
- The library needed for the vanillog C interface and the vnl-gen-header
+ The library needed for the vnlog C interface and the vnl-gen-header
  tool needed to define the fields
 
-Package: vanillog
+Package: vnlog
 Section: libdevel
 Architecture: all
 Depends: ${misc:Depends},
- libvanillog0 (= ${binary:Version}),
+ libvnlog0 (= ${binary:Version}),
  mawk, libtext-table-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
- Various helper tools to make working with vanillogs easier
+ Various helper tools to make working with vnlogs easier

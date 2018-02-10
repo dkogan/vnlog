@@ -5,8 +5,8 @@ Release:        1%{?dist}
 Summary:        Tools to manipulate whitespace-separated ASCII logs
 
 License:        LGPL-2.1+
-URL:            https://github.com/dkogan/vanillog/
-Source0:        https://github.com/dkogan/vanillog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
+URL:            https://github.com/dkogan/vnlog/
+Source0:        https://github.com/dkogan/vnlog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildRequires: /usr/bin/pod2man
 BuildRequires: mrbuild >= 0.43
@@ -28,23 +28,23 @@ existing data
 
 %package devel
 Requires:       %{name}%{_isa} = %{version}-%{release}
-Summary:        Development files for vanillog
+Summary:        Development files for vnlog
 
 Requires: perl-String-ShellQuote
 
 %description devel
-The library needed for the vanillog C interface and the vnl-gen-header
+The library needed for the vnlog C interface and the vnl-gen-header
 tool needed to define the fields
 
 %package tools
 Requires:       %{name}%{_isa} = %{version}-%{release}
-Summary:        Tools for manipulating vanillogs
+Summary:        Tools for manipulating vnlogs
 Requires:       mawk
 Requires:       perl-Text-Table
 
 
 %description tools
-Various helper tools to make working with vanillogs easier
+Various helper tools to make working with vnlogs easier
 
 %prep
 %setup -q

@@ -1,4 +1,4 @@
-PROJECT_NAME := vanillog
+PROJECT_NAME := vnlog
 
 ABI_VERSION  := 4
 TAIL_VERSION := 1.9
@@ -21,26 +21,26 @@ b64_cencode.o: CFLAGS += -Wno-implicit-fallthrough
 
 # Make can't deal with ':' in filenames, so I hack it
 coloncolon := __colon____colon__
-doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))  $(patsubst lib/Vanillog/%.pm,man3/Vanillog$(coloncolon)%.3pm,$(wildcard lib/Vanillog/*.pm))
+doc: $(addprefix man1/,$(addsuffix .1,$(TOOLS)))  $(patsubst lib/Vnlog/%.pm,man3/Vnlog$(coloncolon)%.3pm,$(wildcard lib/Vnlog/*.pm))
 .PHONY: doc
 
 %/:
 	mkdir -p $@
 
 man1/%.1: % | man1/
-	pod2man -r '' --section 1 --center "vanillog" $< $@
-man3/Vanillog$(coloncolon)%.3pm: lib/Vanillog/%.pm | man3/
-	pod2man -r '' --section 3pm --center "vanillog" $< $@
+	pod2man -r '' --section 1 --center "vnlog" $< $@
+man3/Vnlog$(coloncolon)%.3pm: lib/Vnlog/%.pm | man3/
+	pod2man -r '' --section 3pm --center "vnlog" $< $@
 EXTRA_CLEAN += man1 man3
 
 CCXXFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
 test/test1: test/test2.o
-test/test1.o: test/vanillog_fields_generated1.h
-test/test2.o: test/vanillog_fields_generated2.h
-test/vanillog_fields_generated%.h: test/vanillog%.defs vnl-gen-header
-	./vnl-gen-header < $< | perl -pe 's{vanillog/vanillog.h}{vanillog.h}' > $@
-EXTRA_CLEAN += test/vanillog_fields_generated*.h test/*.got
+test/test1.o: test/vnlog_fields_generated1.h
+test/test2.o: test/vnlog_fields_generated2.h
+test/vnlog_fields_generated%.h: test/vnlog%.defs vnl-gen-header
+	./vnl-gen-header < $< | perl -pe 's{vnlog/vnlog.h}{vnlog.h}' > $@
+EXTRA_CLEAN += test/vnlog_fields_generated*.h test/*.got
 
 test check: all
 	test/test_vnl-filter.pl
@@ -52,7 +52,7 @@ test check: all
 
 DIST_INCLUDE      := *.h
 DIST_BIN          := $(TOOLS)
-DIST_PERL_MODULES := lib/Vanillog
+DIST_PERL_MODULES := lib/Vnlog
 
 install: doc
 DIST_MAN     := man1/ man3/

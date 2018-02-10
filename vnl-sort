@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Vanillog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
+use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
 
 
 
@@ -60,10 +60,10 @@ before calling sort, this is clobbered. Or if I use a pipe, the ftruncate() will
 fail and sort barfs
 EOF
                             'field-separator' => <<'EOF',
-vanillog is built on assuming a particular field separator
+vnlog is built on assuming a particular field separator
 EOF
                             'zero-terminated' => <<'EOF'
-vanillog is built on assuming a particular record separator
+vnlog is built on assuming a particular record separator
 EOF
                           );
 
@@ -123,7 +123,7 @@ sub substitute_field_keys
 
         if (!exists $key_indices{$1})
         {
-            die "Requested key '$1' not found in the input vanillogs. Have known keys '@$keys'";
+            die "Requested key '$1' not found in the input vnlogs. Have known keys '@$keys'";
         }
 
         my $key  = $key_indices{$1};
@@ -137,7 +137,7 @@ __END__
 
 =head1 NAME
 
-vnl-sort - sorts an vanillog file, preserving the legend
+vnl-sort - sorts an vnlog file, preserving the legend
 
 =head1 SYNOPSIS
 
@@ -208,7 +208,7 @@ vnl-sort - sorts an vanillog file, preserving the legend
 
   Usage: vnl-sort [options] logfile logfile logfile ... < logfile
 
-This tool sorts given vanillog files in various ways. C<vnl-sort> is a
+This tool sorts given vnlog files in various ways. C<vnl-sort> is a
 wrapper around the GNU coreutils C<sort> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<sort> tool are present; consult the
 L<sort(1)> manpage for detail. The differences from GNU coreutils C<sort> are
@@ -217,7 +217,7 @@ L<sort(1)> manpage for detail. The differences from GNU coreutils C<sort> are
 
 =item *
 
-The input and output to this tool are vanillog files, complete with a legend
+The input and output to this tool are vnlog files, complete with a legend
 
 =item *
 
@@ -253,12 +253,12 @@ output always goes to standard out.
 
 =item *
 
-C<--field-separator> is not supported because vanillog assumes
+C<--field-separator> is not supported because vnlog assumes
 whitespace-separated fields
 
 =item *
 
-C<--zero-terminated> is not supported because vanillog assumes
+C<--zero-terminated> is not supported because vnlog assumes
 newline-separated records
 
 =back
@@ -280,7 +280,7 @@ L<sort(1)>
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/vanillog/
+https://github.com/dkogan/vnlog/
 
 =head1 AUTHOR
 

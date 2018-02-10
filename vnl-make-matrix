@@ -97,7 +97,7 @@ __END__
 
 =head1 NAME
 
-vnl-make-matrix - create a matrix from a one-point-per-record vanillog
+vnl-make-matrix - create a matrix from a one-point-per-record vnlog
 
 =head1 SYNOPSIS
 
@@ -127,17 +127,17 @@ vnl-make-matrix - create a matrix from a one-point-per-record vanillog
 
 =head1 DESCRIPTION
 
-Vanillog represents each "data item" as a line of text. This is very often what
+Vnlog represents each "data item" as a line of text. This is very often what
 one wants, but at times it isn't. One example of this is matrix data: we want
 each line to contain a whole row of a matrix. This script exists for
 convenience, to bridge this gap.
 
-The input is an vanillog, coming in on STDIN and/or in files given on the
-commandline. This vanillog must have at least two fields: the least-significant
+The input is an vnlog, coming in on STDIN and/or in files given on the
+commandline. This vnlog must have at least two fields: the least-significant
 (slowest-changing) index of each point (must be the I<first> field), and as many
 value fields as desired. These points must be written out in order, and it is
 assumed that all entries in the matrix are specified. The output is a set of
-(non-vanillog) matrix files in the directory given in the C<--outdir> argument.
+(non-vnlog) matrix files in the directory given in the C<--outdir> argument.
 These files are named C<PREFIX_XXX.matrix> where C<PREFIX> comes from --prefix
 (or empty) and C<XXX> is the field name. These matrices can be loaded into any
 analysis tool (numpy for instance), or plotted directly with gnuplot:
@@ -148,7 +148,7 @@ analysis tool (numpy for instance), or plotted directly with gnuplot:
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/vanillog/
+https://github.com/dkogan/vnlog/
 
 =head1 AUTHOR
 

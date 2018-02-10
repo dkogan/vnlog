@@ -9,4 +9,4 @@ cscope*
 *_generated.h
 test/test1
 test/*.got
-test/vanillog_fields_generated*.h
+test/vnlog_fields_generated*.h

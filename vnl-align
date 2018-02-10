@@ -142,7 +142,7 @@ __END__
 
 =head1 NAME
 
-vnl-align - aligns vanillog columns for easy interpretation by humans
+vnl-align - aligns vnlog columns for easy interpretation by humans
 
 =head1 SYNOPSIS
 
@@ -167,7 +167,7 @@ The basic usage is
 
  vnl-align logfile
 
-The arguments are assumed to be the vanillog files. If no arguments are given,
+The arguments are assumed to be the vnlog files. If no arguments are given,
 the input comes from STDIN.
 
 This is very similar to C<column -t>, but handles C<#> lines properly:
@@ -179,7 +179,7 @@ This is very similar to C<column -t>, but handles C<#> lines properly:
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/vanillog/
+https://github.com/dkogan/vnlog/
 
 =head1 AUTHOR
 

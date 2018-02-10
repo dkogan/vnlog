@@ -1,4 +1,4 @@
-package Vanillog::Parser;
+package Vnlog::Parser;
 
 use strict;
 use warnings;
@@ -131,18 +131,18 @@ sub pairs
 
 =head1 NAME
 
-Vanillog::Parser - Simple library to parse vanillog data
+Vnlog::Parser - Simple library to parse vnlog data
 
 =head1 SYNOPSIS
 
- use Vanillog::Parser;
+ use Vnlog::Parser;
 
- my $parser = Vanillog::Parser->new();
+ my $parser = Vnlog::Parser->new();
  while (<>)
  {
      if( !$parser->parse($_) )
      {
-         die "Error parsing vanillog line '$_': " . $parser->error();
+         die "Error parsing vnlog line '$_': " . $parser->error();
      }
 
      next unless $parser->getValues();
@@ -157,7 +157,7 @@ Vanillog::Parser - Simple library to parse vanillog data
 
 =head1 DESCRIPTION
 
-This is a simple perl script to parse vanillog input and make the incoming
+This is a simple perl script to parse vnlog input and make the incoming
 key/values available. The example above is representative of normal use. API
 functions are
 
@@ -165,7 +165,7 @@ functions are
 
 =item new
 
-Creates new Vanillog::Parser object. Takes no arguments.
+Creates new Vnlog::Parser object. Takes no arguments.
 
 =item parse
 
@@ -199,7 +199,7 @@ Returns a list of [$key,$value] tuples.
 
 =head1 REPOSITORY
 
-L<https://github.com/dkogan/vanillog>
+L<https://github.com/dkogan/vnlog>
 
 =head1 AUTHOR
 

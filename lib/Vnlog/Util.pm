@@ -1,4 +1,4 @@
-package Vanillog::Util;
+package Vnlog::Util;
 
 use strict;
 use warnings;
@@ -15,7 +15,7 @@ our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input en
 
 use FindBin '$Bin';
 use lib "$Bin/lib";
-use Vanillog::Parser;
+use Vnlog::Parser;
 use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 use Getopt::Long 'GetOptionsFromArray';
 Getopt::Long::Configure('gnu_getopt');
@@ -130,12 +130,12 @@ sub pull_key
 
     my $keys;
 
-    my $parser = Vanillog::Parser->new();
+    my $parser = Vnlog::Parser->new();
     while (defined ($_ = get_unbuffered_line($fh)))
     {
         if ( !$parser->parse($_) )
         {
-            die "Reading '$filename': Error parsing vanillog line '$_': " . $parser->error();
+            die "Reading '$filename': Error parsing vnlog line '$_': " . $parser->error();
         }
 
         $keys = $parser->getKeys();
@@ -305,11 +305,11 @@ sub reconstruct_substituted_command
 
 =head1 NAME
 
-Vanillog::Util - Various utility functions useful in vanillog parsing
+Vnlog::Util - Various utility functions useful in vnlog parsing
 
 =head1 SYNOPSIS
 
- use Vanillog::Util 'get_unbuffered_line';
+ use Vnlog::Util 'get_unbuffered_line';
 
  while(defined ($_ = get_unbuffered_line(*STDIN)))
  {
@@ -337,14 +337,14 @@ which is identical to the basic form
 
 except C<get_unbuffered_line> reads I<only> the bytes in the line from the OS.
 The rest is guaranteed to be available for future reading. This is useful for
-tools that bootstrap vanillog processing by reading up-to the legend, and then
+tools that bootstrap vnlog processing by reading up-to the legend, and then
 C<exec> some other tool to process the rest.
 
 =back
 
 =head1 REPOSITORY
 
-L<https://github.com/dkogan/vanillog>
+L<https://github.com/dkogan/vnlog>
 
 =head1 AUTHOR
 

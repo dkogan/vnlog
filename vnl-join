@@ -8,7 +8,7 @@ use FindBin '$Bin';
 use lib "$Bin/lib";
 
 use List::Util 'all';
-use Vanillog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command);
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command);
 
 
 
@@ -27,17 +27,17 @@ my @specs = ( # options with no args
              "help");
 
 my %options_unsupported = ( 't' => <<'EOF',
-vanillog is built on assuming a particular field separator
+vnlog is built on assuming a particular field separator
 EOF
                             'e' => <<'EOF',
-vanillog assumes - as an "undefined" field value. -e thus not allowed
+vnlog assumes - as an "undefined" field value. -e thus not allowed
 EOF
                             'header' => <<'EOF',
-vanillog already handles field headers; this is pointless
+vnlog already handles field headers; this is pointless
 EOF
 
                             'zero-terminated' => <<'EOF'
-vanillog is built on assuming a particular record separator
+vnlog is built on assuming a particular record separator
 EOF
                           );
 
@@ -110,7 +110,7 @@ if( defined $options->{v} )
 }
 
 
-# vanillog uses - to represent empty fields
+# vnlog uses - to represent empty fields
 $options->{e} = '-';
 
 if( !defined $options->{o} )
@@ -175,11 +175,11 @@ sub substitute_field_keys
     my $join_field_name = $options->{j};
     if(! exists $key_indices[0]{$join_field_name})
     {
-        die "Requested key '$join_field_name' not found in the input vanillog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
+        die "Requested key '$join_field_name' not found in the input vnlog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
     }
     if(! exists $key_indices[1]{$join_field_name})
     {
-        die "Requested key '$join_field_name' not found in the input vanillog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
+        die "Requested key '$join_field_name' not found in the input vnlog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
     }
 
     delete $options->{j};
@@ -312,7 +312,7 @@ vnl-join - joins two log files on a particular field
 
   Usage: vnl-join [options] logfile1 logfile2
 
-This tool joins two vanillog files on a given field. C<vnl-join> is a
+This tool joins two vnlog files on a given field. C<vnl-join> is a
 wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<join> tool are present; consult the
 L<join(1)> manpage for detail. The differences from GNU coreutils C<join> are
@@ -321,7 +321,7 @@ L<join(1)> manpage for detail. The differences from GNU coreutils C<join> are
 
 =item *
 
-The input and output to this tool are vanillog files, complete with a legend
+The input and output to this tool are vnlog files, complete with a legend
 
 =item *
 
@@ -338,7 +338,7 @@ to join on column "time".
 =item *
 
 C<-1> and C<-2> are supported, but I<must> refer to the same field. Since
-vanillog knows the identify of each field, it makes no sense for C<-1> and C<-2>
+vnlog knows the identify of each field, it makes no sense for C<-1> and C<-2>
 to be different. So pass C<-j> instead, it makes more sense in this context.
 
 =item *
@@ -348,20 +348,20 @@ as C<->.
 
 =item *
 
-C<-e> is not supported because vanillog uses C<-> to represent undefined fields.
+C<-e> is not supported because vnlog uses C<-> to represent undefined fields.
 
 =item *
 
-C<--header> is not supported because vanillog assumes a specific header
+C<--header> is not supported because vnlog assumes a specific header
 structure, and C<vnl-sort> makes sure that this header is handled properly
 
 =item *
 
-C<-t> is not supported because vanillog assumes whitespace-separated fields
+C<-t> is not supported because vnlog assumes whitespace-separated fields
 
 =item *
 
-C<--zero-terminated> is not supported because vanillog assumes newline-separated
+C<--zero-terminated> is not supported because vnlog assumes newline-separated
 records
 
 =back
@@ -383,7 +383,7 @@ L<join(1)>
 
 =head1 REPOSITORY
 
-https://github.com/dkogan/vanillog/
+https://github.com/dkogan/vnlog/
 
 =head1 AUTHOR
 
