@@ -1,4 +1,6 @@
 /usr/bin/vnl-filter
-/usr/bin/vnl-tailf
+/usr/bin/vnl-tail
+/usr/bin/vnl-sort
+/usr/bin/vnl-join
 /usr/bin/vnl-make-matrix
 /usr/bin/vnl-align
