@@ -197,6 +197,8 @@ These all provide facilities to run various analyses, and are neither simple nor
 light. Vnlog by contrast doesn't analyze anything, but makes it easy to write
 simple bits of awk or perl to process stuff to your heart's content. The main
 envisioned use case is one-liners, and the tools are geared for that purpose.
+The above mentioned tools are much more powerful than vnlog, so they could be a
+better fit for some use cases.
 
 In the spirit of doing as little as possible, the provided tools are wrappers
 around tools you already have and are familiar with. The provided tools are:
@@ -272,7 +274,6 @@ $ cat /tmp/x.matrix
 All the tools have manpages that contain more detail. And tools will probably be
 added with time.
 
-
 * C interface
 
 For most uses, these logfiles are simple enough to be generated with plain
@@ -286,7 +287,7 @@ available, and simple-enough to be demonstrated with an example:
 In a shell:
 
 #+BEGIN_EXAMPLE
-$ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > vnlog_fields_generated.h
+$ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' 'void* binary' > vnlog_fields_generated.h
 #+END_EXAMPLE
 
 In a C program test.c:
@@ -306,6 +307,7 @@ int main()
     vnlog_set_field_value__z(0.3);
     vnlog_set_field_value__x(50);
     vnlog_set_field_value__w(-20);
+    vnlog_set_field_value__binary("\x01\x02\x03", 3);
     vnlog_emit_record();
 
     vnlog_set_field_value__w(-30);
@@ -325,11 +327,15 @@ $ cc -o test test.c -lvnlog
 
 $ ./test
 
-# w x y z
--10 40 asdf -
--20 50 - 0.300000
--30 10 whoa 0.500000
+# w x y z binary
+-10 40 asdf - -
+-20 50 - 0.2999999999999999889 AQID
+-30 10 whoa 0.5 -
 #+END_EXAMPLE
+
+The binary field in base64-encoded. This is a rarely-used feature, but sometimes
+you really need to log binary data for later processing, and this makes it
+possible.
 
 * Repository
 
