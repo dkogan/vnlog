@@ -1,7 +1,7 @@
 Source: vnlog
 Priority: optional
 Section: devel
-Build-Depends: debhelper (>= 9), mrbuild (>= 0.56),
+Build-Depends: debhelper (>= 9),
  libipc-run-perl,
  libtext-diff-perl,
  libstring-shellquote-perl,

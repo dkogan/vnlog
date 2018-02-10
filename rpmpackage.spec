@@ -9,7 +9,6 @@ URL:            https://github.com/dkogan/vnlog/
 Source0:        https://github.com/dkogan/vnlog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildRequires: /usr/bin/pod2man
-BuildRequires: mrbuild >= 0.43
 BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
