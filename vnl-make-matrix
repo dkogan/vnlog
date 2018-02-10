@@ -42,7 +42,7 @@ while(<>)
             @fields = split(/ /, $1);
             if( @fields < 2 )
             {
-                die "Each line must have at least two fields: the lest-significant index, and at least one field of values";
+                die "Each line must have at least two fields: the least-significant index, and at least one field of values";
             }
             shift @fields;
 
