@@ -18,7 +18,7 @@ Example:
 #+END_EXAMPLE
 
 Such data works very nicely with normal UNIX tools (=awk=, =sort=, =join=), can
-be easily read by fancier tools (=numpy=, =matlab= (yuck), =excel= (YUCK), etc),
+be easily read by fancier tools (=numpy=, =matlab= (yuck), =excel= (/yuck/), etc),
 and can be plotted with =feedgnuplot=. This tookit provides some tools to
 manipulate =vnlog= data and a few libraries to read/write it. The core
 philosophy is to keep everything as simple and light as possible, and to provide
@@ -189,9 +189,9 @@ $ vnl-join -j time /tmp/temperature.vnl /tmp/cpu.vnl |
 As stated before, vnlog tools are designed to be very simple and light. There
 exist other tools that are similar. For instance:
 
-    https://csvkit.readthedocs.io/
-    https://github.com/johnkerl/miller
-    https://github.com/eBay/tsv-utils-dlang
+- https://csvkit.readthedocs.io/
+- https://github.com/johnkerl/miller
+- https://github.com/eBay/tsv-utils-dlang
 
 These all provide facilities to run various analyses, and are neither simple nor
 light. Vnlog by contrast doesn't analyze anything, but makes it easy to write
@@ -218,8 +218,8 @@ vnl-filter -p col1,col2,colx=col3+col4 'col5 > 10' --has col6
 vnl-filter --eval '{s += x} END {print s}'
 #+END_EXAMPLE
   will evaluate the given awk program on the input, but the column names work as
-  you would hope. I.e. if the input has a column named =x=, this would produce
-  the sum of all values in this column.
+  you would hope they do: if the input has a column named =x=, this would
+  produce the sum of all values in this column.
 
 - =vnl-sort=, =vnl-join=, =vnl-tail= are wrappers around the corresponding GNU
   Coreutils tools. These work exactly as you would expect also: the columns can
@@ -227,18 +227,18 @@ vnl-filter --eval '{s += x} END {print s}'
   wrappers, so all the commandline options those tools have "just work" (except
   options that don't make sense in the context of vnlog). As an example,
   =vnl-tail -f= will follow a log: data will be read by =vnl-tail= as it is
-  written into the log. And you already know how to use these tools without even
-  reading the manpages!
+  written into the log (just like =tail -f=, but handling the legend properly).
+  And you already know how to use these tools without even reading the manpages!
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
 
 - =Vnlog::Parser= is a simple perl library to read a vnlog
 
-- =libvnlog= is a C library to simplify writing a vnlog. Clearly all you really
-  need is =printf()=, but this is useful if we have lots of columns, many
-  containing null values in any given row, and/or if we have parallel threads
-  writing to a log
+- =libvnlog= is a C library to simplify writing a vnlog. Clearly all you
+  /really/ need is =printf()=, but this is useful if we have lots of columns,
+  many containing null values in any given row, and/or if we have parallel
+  threads writing to a log
 
 - =vnl-make-matrix= converts a one-point-per-line vnlog to a matrix of data.
   I.e.
@@ -347,4 +347,5 @@ Software Foundation; either version 2.1 of the License, or (at your option) any
 later version.
 
 Copyright 2016-2017 California Institute of Technology
+
 Copyright 2017-2018 Dima Kogan =dima@secretsauce.net=
