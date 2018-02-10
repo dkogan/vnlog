@@ -5,7 +5,8 @@ Build-Depends: debhelper (>= 9),
  libipc-run-perl,
  libtext-diff-perl,
  libstring-shellquote-perl,
- liblist-moreutils-perl
+ liblist-moreutils-perl,
+ mawk
 Maintainer: Dima Kogan <dima@secretsauce.net>
 Standards-Version: 3.9.8
 Homepage: https://github.com/dkogan/vnlog/
