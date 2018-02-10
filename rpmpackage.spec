@@ -13,6 +13,8 @@ BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
+BuildRequires: make
+BuildRequires: chrpath
 
 
 # for tests
