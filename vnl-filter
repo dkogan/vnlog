@@ -731,10 +731,10 @@ vnl-filter - filters vnlogs to select particular rows, fields
  $ <run.vnl vnl-filter -p i=NR,time,'dist=sqrt(x*x + y*y + z*z)' | vnl-align
 
  # i time   dist
- 1   1    5.41572
- 2   2    5.30471
- 3   3    4.58258
- 4   4    3.62905
+ 1   3    5.41572
+ 2   4    5.30471
+ 3   6    4.58258
+ 4   7    3.62905
 
 
  $ <run.vnl vnl-filter 'temperature >= 35' | vnl-align
