@@ -326,6 +326,18 @@ check( <<'EOF', 'a>5', '--eval', '{print a+b}', {language => 'AWK'} );
 21
 EOF
 
+check( <<'EOF', 'a>5', '--function', 'func() { return a + b }', '-p', 'sum=func()', {language => 'AWK'} );
+# sum
+16
+21
+EOF
+
+check( <<'EOF', 'a>5', '--function', 'func { return a + b }', '-p', 'sum=func()', {language => 'perl'} );
+# sum
+16
+21
+EOF
+
 check( <<'EOF', 'a>5', '--eval', '{say a+b}', {language => 'perl'} );
 16
 21

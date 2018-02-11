@@ -1018,6 +1018,30 @@ In perl the arbitrary expression fits in like this:
    eval expression;     # evaluate the arbitrary expression
  }
 
+=head2 --function|--sub
+
+Evaluates the given expression as a function that can be used in other
+expressions. This is most useful when you want to print something that can't
+trivially be written as a simple expression. For instance:
+
+ $ cat tst.vnl
+ # s
+ 1-2
+ 3-4
+ 5-6
+
+ $ < tst.vnl
+   vnl-filter --function 'before(x) { sub("-.*","",x); return x }' \
+              --function 'after(x)  { sub(".*-","",x); return x }' \
+              -p 'b=before(s),a=after(s)'
+ # b a
+ 1 2
+ 3 4
+ 5 6
+
+See the L<CAVEATS> section below if you're doing something
+sufficiently-complicated where you need this.
+
 =head2 --[no]skipempty
 
 Do [not] skip records where all fields are blank. By default we I<do> skip all
