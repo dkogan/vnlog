@@ -231,6 +231,9 @@ vnl-filter --eval '{s += x} END {print s}'
   =vnl-tail -f= will follow a log: data will be read by =vnl-tail= as it is
   written into the log (just like =tail -f=, but handling the legend properly).
   And you already know how to use these tools without even reading the manpages!
+  Note: these were written for and have been tested with the Linux kernel and
+  GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools probably
+  don't (yet) work. Send me patches.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
