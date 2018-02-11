@@ -693,7 +693,7 @@ sub makeAwkProgram
         $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
     }
 
-    my $awkprogram = $functions . $awkprogram_reldiff .$awkprogram_preamble;
+    my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
     if(length($outer_expr))
     {
         $awkprogram .= "{ $outer_expr } ";
