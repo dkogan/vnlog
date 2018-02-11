@@ -51,18 +51,27 @@ This is an interface to produce vnlog output from C programs. Common usage:
         vnlog_set_field_value__z(0.3);
         vnlog_set_field_value__x(50);
         vnlog_set_field_value__w(-20);
+        vnlog_set_field_value__binary("\x01\x02\x03", 3);
+        vnlog_emit_record();
+
+        vnlog_set_field_value__w(-30);
+        vnlog_set_field_value__x(10);
+        vnlog_set_field_value__y("whoa");
+        vnlog_set_field_value__z(0.5);
         vnlog_emit_record();
 
         return 0;
     }
 
+
   $ cc -o test test.c -lvnlog
 
   $ ./test
 
-  # w x y z
-  -10 40 asdf -
-  -20 50 - 0.300000
+  # w x y z binary
+  -10 40 asdf - -
+  -20 50 - 0.2999999999999999889 AQID
+  -30 10 whoa 0.5 -
 
 
 Note that THIS FILE IS NOT MEANT TO BE #include-ed BY THE USER. IT SHOULD BE

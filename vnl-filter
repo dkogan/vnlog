@@ -1072,13 +1072,53 @@ didn't have to declare C<$suma> in the example.
 
 =head2 --dumpexprs
 
-Used for debugging. This spits out all the expressions parsed from the
-commandline.
+Used for debugging. This spits out all the final awk (or perl) program we run
+for the given commandline options and given input. This is the final program,
+with the column references resolved to numeric indices, so one can figure out
+what went wrong.
 
 =head2 --unbuffered
 
 Flushes each line after each print. This makes sure each line is output as soon
 as it is available, which is crucial for realtime output and streaming plots.
+
+=head1 CAVEATS
+
+This tool is very lax in its input validation (on purpose). As a result, columns
+with names like C<%CPU> and C<TIME+> work (i.e. you can more or less feed in
+output from C<top -b>). The downside is that shooting yourself in the foot is
+possible. This tradeoff is currently set to work well for my use cases, but I'd
+be interested in hearing other people's experiences. Potential pitfalls:
+
+=over
+
+=item *
+
+Strings passed to C<-p> are split on C<,> unconditionally. This makes it
+impossible to support columns with C<,> (which is fine), but is tripped up on
+something like this: C<vnl-filter --function 'f(a,b) { ... }' -p 'c=f(a,b)'> I
+can look for balanced parens, and I<not> split on C<,> inside those. I've been
+hesitant to do that, but probably will implement this in the near future. Strong
+opinions either way welcome.
+
+=item *
+
+All column names are replaced in all eval strings without regard to context. The
+earlier example that reports the sum of values in a column: C<vnl-filter --eval
+'{suma += a} END {print suma}'> will work fine if we I<do> have a column named
+C<a> and do <not> have a column named C<suma>. But will not do the right thing
+if any of those are violated. I don't see any way to resolve this without
+seriously impacting the scope of the tool, so I'm leaving this alone. Comments
+welcome.
+
+=item *
+
+Currently there're two modes: a pick/print mode and an C<--eval> mode. Then
+there's also C<--function>, which adds bits of C<--eval> to the pick/print mode,
+but it feels maybe insufficient. I don't yet have strong feelings about what
+this should become. Comments welcome
+
+=back
 
 =head1 REPOSITORY
 
