@@ -42,7 +42,9 @@ Section: libdevel
 Architecture: all
 Depends: ${misc:Depends},
  libvnlog0 (= ${binary:Version}),
- mawk, libtext-table-perl
+ mawk,
+ libtext-table-perl,
+ liblist-moreutils-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
  Vnlog (pronounced "vanillog") is a trivially-simple log format consisting of an
  ASCII table with comments and labelled fields. This package provides tools to

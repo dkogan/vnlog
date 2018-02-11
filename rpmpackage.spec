@@ -42,7 +42,7 @@ Requires:       %{name}%{_isa} = %{version}-%{release}
 Summary:        Tools for manipulating vnlogs
 Requires:       mawk
 Requires:       perl-Text-Table
-
+Requires:       perl-List-MoreUtils
 
 %description tools
 Various helper tools to make working with vnlogs easier
