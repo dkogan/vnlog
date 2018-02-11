@@ -1,0 +1,14 @@
+libvnlog.so.0 libvnlog0 #MINVER#
+ _vnlog_clear_fields_ctx@libvnlog.so.0 1.0
+ _vnlog_emit_legend@libvnlog.so.0 1.0
+ _vnlog_emit_record@libvnlog.so.0 1.0
+ _vnlog_flush@libvnlog.so.0 1.0
+ _vnlog_free_ctx@libvnlog.so.0 1.0
+ _vnlog_init_child_ctx@libvnlog.so.0 1.0
+ _vnlog_init_session_ctx@libvnlog.so.0 1.0
+ _vnlog_printf@libvnlog.so.0 1.0
+ _vnlog_set_field_value_binary@libvnlog.so.0 1.0
+ _vnlog_set_field_value_double@libvnlog.so.0 1.0
+ _vnlog_set_field_value_int@libvnlog.so.0 1.0
+ libvnlog.so.0@libvnlog.so.0 1.0
+ vnlog_set_output_FILE@libvnlog.so.0 1.0
