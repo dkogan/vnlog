@@ -161,6 +161,7 @@ static int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 	return codechar - code_out;
 }
 
+__attribute__((visibility("hidden")))
 int base64_encode(       char* dst, int dstlen,
                    const char* src, int srclen )
 {
