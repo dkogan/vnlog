@@ -15,6 +15,7 @@ BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
 BuildRequires: make
 BuildRequires: chrpath
+BuildRequires: perl-autodie
 
 
 # for tests
@@ -43,6 +44,7 @@ Summary:        Tools for manipulating vnlogs
 Requires:       mawk
 Requires:       perl-Text-Table
 Requires:       perl-List-MoreUtils
+Requires:       perl-autodie
 
 %description tools
 Various helper tools to make working with vnlogs easier
