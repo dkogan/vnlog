@@ -19,13 +19,12 @@ Package: libvnlog0
 Section: libs
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${perl:Depends}, ${misc:Depends}
 Description: Tools to manipulate whitespace-separated ASCII logs
- We want to manipulate data logged in a very simple whitespace-separated ASCII
- format. The format in compatible with the usual UNIX tools, and thus can be
- processed with a multitude of existing methods. Some convenience tools and
- library interfaces are provided to create new data in this format and
- manipulate existing data
+ Vnlog (pronounced "vanillog") is a trivially-simple log format consisting of an
+ ASCII table with comments and labelled fields. This package provides a C
+ library that simplifies generating such logs and a simple perl library to parse
+ such logs.
 
 Package: libvnlog-dev
 Section: libdevel
@@ -34,8 +33,9 @@ Multi-Arch: same
 Depends: ${misc:Depends}, libvnlog0 (= ${binary:Version}),
  libstring-shellquote-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
- The library needed for the vnlog C interface and the vnl-gen-header
- tool needed to define the fields
+ Vnlog (pronounced "vanillog") is a trivially-simple log format consisting of an
+ ASCII table with comments and labelled fields. This package provides a C
+ library that simplifies generating such logs. Dev files.
 
 Package: vnlog
 Section: libdevel
@@ -44,4 +44,16 @@ Depends: ${misc:Depends},
  libvnlog0 (= ${binary:Version}),
  mawk, libtext-table-perl
 Description: Tools to manipulate whitespace-separated ASCII logs
- Various helper tools to make working with vnlogs easier
+ Vnlog (pronounced "vanillog") is a trivially-simple log format consisting of an
+ ASCII table with comments and labelled fields. This package provides tools to
+ process and manipulate such logs. The tools are:
+ .
+ vnl-filter selects a subset of the rows/columns in a vnlog and/or to
+ manipulates the contents. This is effectively an awk wrapper.
+ .
+ vnl-sort, vnl-join and vnl-tail are wrappers around the corresponding GNU
+ Coreutils tools
+ .
+ vnl-align aligns vnlog columns for easy interpretation by humans
+ .
+ vnl-make-matrix converts a one-point-per-line vnlog to a matrix of data
