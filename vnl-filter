@@ -1159,7 +1159,7 @@ behaviors:
 =item *
 
 When substituting column names I match I<either> a word-nonword transition
-(C<\b>) /or/ a whitespace-nonword transition. The word boundaries is what is
+(C<\b>) I<or> a whitespace-nonword transition. The word boundaries is what is
 used most of the time. But the keys may have special characters in them, which
 don't work with C<\b>. This means that whitespace becomes important: C<1+%CPU>
 will not be parsed as expected, which is correct since C<+%CPU> is also a valid
