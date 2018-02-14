@@ -432,7 +432,7 @@ More APIs are
 
 
 =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
-=printf()= does. This exists for commments.
+=printf()= does. This exists for comments.
 
 =vnlog_clear_fields_ctx(ctx, do_free_binary)=:
 Clears out the data in a context and makes it ready to be used for the next
@@ -456,10 +456,6 @@ vnlog_clear_fields_ctx(&ctx1, false);
 Frees memory for an vnlog context. Do this before throwing the context away.
 Currently this is only needed for context that have binary fields, but this
 should be called in for all contexts, just in case
-
-#+BEGIN_SRC C
-void _vnlog_free_ctx( struct vnlog_context_t* ctx, int Nfields );
-#+END_SRC
 
 * Repository
 
