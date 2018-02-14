@@ -332,7 +332,19 @@ check( <<'EOF', 'a>5', '--function', 'func() { return a + b }', '-p', 'sum=func(
 21
 EOF
 
+check( <<'EOF', 'a>5', '--function', 'func(x,y) { return x + y }', '-p', 'sum=func(a,b)', {language => 'AWK'} );
+# sum
+16
+21
+EOF
+
 check( <<'EOF', 'a>5', '--function', 'func { return a + b }', '-p', 'sum=func()', {language => 'perl'} );
+# sum
+16
+21
+EOF
+
+check( <<'EOF', 'a>5', '--function', 'func { my ($x,$y) = @_; return $x + $y }', '-p', 'sum=func(a,b)', {language => 'perl'} );
 # sum
 16
 21

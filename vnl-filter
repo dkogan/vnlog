@@ -89,11 +89,10 @@ if( defined $options{eval} && @{$options{pick}} )
     die $usage;
 }
 
-# parse the , in $options{has} and $options{pick}
-for my $listkey (qw(has pick))
-{
-    @{$options{$listkey}} = map split(/,/, $_), @{$options{$listkey}};
-}
+# parse the , in $options{has} and $options{pick}. In --pick use the fancy
+# ()-respecting version of split
+@{$options{has}} = map split(/,/, $_), @{$options{has}};
+@{$options{pick}} = map split_on_comma_respect_parens($_), @{$options{pick}};
 
 # any requested columns preceded with '+' go into --has. And I strip out the '+'
 for my $ipick(0..$#{$options{pick}})
@@ -335,7 +334,7 @@ if( !$options{perl} )
 sub subst_reldiff
 {
     # This is somewhat convoluted. I want the meaning of rel() and diff() to be
-    # preserved regardless of any early-exit expressions. I.e. this code is
+    # preserved regardless of any early-exit expressions. I.e. this sequence is
     # broken:
     #
     # - if(!matches) { continue }
@@ -446,7 +445,7 @@ sub expr_subst_col_names
         # 'top' command, it'll produce a legend including keys '%CPU', 'TIME+',
         # and the point before the '%' or after the '+' would not match \b. I
         # thus expand the regex at the boundary. I match EITHER the normal \b
-        # meaning for a word-nonword transitoin OR a whitespace-nonword
+        # meaning for a word-nonword transition OR a whitespace-nonword
         # transition. This means that whitespace becomes important: '1+%CPU'
         # will not be parsed as expected (but that's the RIGHT behavior here),
         # but '1+ %CPU' will be parsed correctly
@@ -701,6 +700,70 @@ sub makeAwkProgram
     $awkprogram .= $awkprogram_matches . $awkprogram_print;
     return $awkprogram;
 }
+
+# line split(',', $s), but respects (). I.e. splitting "a,b,f(c,d)" produces 3
+# tokens, not 4
+sub split_on_comma_respect_parens
+{
+    my ($s) = @_;
+
+    my @f;
+
+  FIELDS: # loop accumulating fields
+    while (1)
+    {
+        my $field_accum = '';
+
+      FIELD_ACCUM: # accumulate THIS field. Keep grabbing tokens until I see an
+                   # , or the end
+        while(1)
+        {
+            if (length($s) == 0)
+            {
+                if (length($field_accum))
+                {
+                    push @f, $field_accum;
+                }
+                last FIELDS;
+            }
+
+            if ($s !~ /^         # start of string
+                       ([^(,]*?) # some minimal number of non-comma, non-paren
+                       ([(,])    # comma or paren
+                      /px) {
+                # didn't match. The whole thing is the last field
+                push @f, $field_accum . $s;
+                last FIELDS;
+            }
+
+            my ($pre,$sep) = ($1,$2);
+            if ($sep eq ',')
+            {
+                # we have a field
+                push @f, $field_accum . $pre;
+                $field_accum = '';
+                $s = ${^POSTMATCH};
+                next FIELD_ACCUM;
+            }
+
+            # we have a paren. accumulate
+            my ($paren_expr, $rest) = extract_bracketed($sep . ${^POSTMATCH}, '(');
+            if ( !defined $paren_expr )
+            {
+                # non-matched paren. Accum normally
+                $rest =~ /^\((.*)$/ or die "Weird... '$rest' should have started with a '('. Giving up";
+                $field_accum .= '(';
+                $s = $1;
+                next FIELD_ACCUM;
+            }
+            $field_accum .= $pre . $paren_expr;
+            $s = $rest;
+        }
+    }
+
+    return @f;
+}
+
 
 __END__
 
@@ -1088,18 +1151,29 @@ This tool is very lax in its input validation (on purpose). As a result, columns
 with names like C<%CPU> and C<TIME+> work (i.e. you can more or less feed in
 output from C<top -b>). The downside is that shooting yourself in the foot is
 possible. This tradeoff is currently set to work well for my use cases, but I'd
-be interested in hearing other people's experiences. Potential pitfalls:
+be interested in hearing other people's experiences. Potential pitfalls/strange
+behaviors:
 
 =over
 
 =item *
 
-Strings passed to C<-p> are split on C<,> unconditionally. This makes it
-impossible to support columns with C<,> (which is fine), but is tripped up on
-something like this: C<vnl-filter --function 'f(a,b) { ... }' -p 'c=f(a,b)'> I
-can look for balanced parens, and I<not> split on C<,> inside those. I've been
-hesitant to do that, but probably will implement this in the near future. Strong
-opinions either way welcome.
+When substituting column names I match I<either> a word-nonword transition
+(C<\b>) /or/ a whitespace-nonword transition. The word boundaries is what is
+used most of the time. But the keys may have special characters in them, which
+don't work with C<\b>. This means that whitespace becomes important: C<1+%CPU>
+will not be parsed as expected, which is correct since C<+%CPU> is also a valid
+field name. But C<1+ %CPU> will be parsed correctly, so if you have weird field
+names, put the whitespace in to your expressions. It'll make them more readable
+anyway.
+
+=item *
+
+Strings passed to C<-p> are split on C<,> /except/ if the C<,> is inside
+balanced <()>. This makes it possible to say things like C<vnl-filter --function
+'f(a,b) { ... }' -p 'c=f(a,b)'>. This is probably the right behavior, although
+some questionable looking field names become potentially impossible: C<f(a> and
+C<b)> /could/ otherwise be legal field names.
 
 =item *
 
