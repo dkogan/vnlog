@@ -380,6 +380,40 @@ tested with BSD tools or with non-Linux kernels, and I'm sure things don't just
 work. It's probably not too effortful to get that running, but somebody needs to
 at least bug me for that. Or better yet, send me nice patches :)
 
+The GNU coreutils C<join> tool expects sorted columns. This sort order is
+I<assumed> to be lexicographical, without any way to change this. For C<sort>,
+this is the default sort order, but C<sort> has many options to change the sort
+order; these are options that are sorely missing from C<join>. The real-world
+use case that is affected by this is the joining of numerical data. If you have
+C<a.vnl>:
+
+ # time a
+ 9  w
+ 10 x
+
+and C<b.vnl>:
+
+ # time b
+ 9  y
+ 10 z
+
+Then you cannot use C<vnl-join> directly:
+
+ $ vnl-join -j time a.vnl b.vnl
+ # time a b
+ join: /dev/fd/5:2: is not sorted: 10 x
+
+Instead you must re-sort both files lexicographically, and then (because you
+probably want to) sort it back into numerical order:
+
+ $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) | vnl-sort -n -k time
+ # time a b
+ 9 w y
+ 10 x z
+
+Yuck. I have some ideas about fixing this somewhat, but in the meantime the
+above is the only workaround.
+
 =head1 SEE ALSO
 
 L<join(1)>
