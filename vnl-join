@@ -374,10 +374,11 @@ since it's not obvious where they should end up.
 
 =head1 BUGS
 
-This and the other C<vnl-xxx> tools that wrap coreutils are written
-specifically to work with the Linux kernel and the GNU coreutils. None of these
-have been tested with BSD tools or with non-Linux kernels, and I'm sure things
-don't just work. If you want this support, please send me nice patches :)
+This and the other C<vnl-xxx> tools that wrap coreutils are written specifically
+to work with the Linux kernel and the GNU coreutils. None of these have been
+tested with BSD tools or with non-Linux kernels, and I'm sure things don't just
+work. It's probably not too effortful to get that running, but somebody needs to
+at least bug me for that. Or better yet, send me nice patches :)
 
 =head1 SEE ALSO
 

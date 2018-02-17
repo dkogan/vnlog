@@ -1148,32 +1148,33 @@ as it is available, which is crucial for realtime output and streaming plots.
 =head1 CAVEATS
 
 This tool is very lax in its input validation (on purpose). As a result, columns
-with names like C<%CPU> and C<TIME+> work (i.e. you can more or less feed in
+with names like C<%CPU> and C<TIME+> do work (i.e. you can more or less feed in
 output from C<top -b>). The downside is that shooting yourself in the foot is
 possible. This tradeoff is currently set to work well for my use cases, but I'd
-be interested in hearing other people's experiences. Potential pitfalls/strange
-behaviors:
+be interested in hearing other people's experiences. Potential
+pitfalls/unexpected behaviors:
 
 =over
 
 =item *
 
 When substituting column names I match I<either> a word-nonword transition
-(C<\b>) I<or> a whitespace-nonword transition. The word boundaries is what is
-used most of the time. But the keys may have special characters in them, which
+(C<\b>) I<or> a whitespace-nonword transition. The word boundaries is what would
+be used 99% of the time. But the keys may have special characters in them, which
 don't work with C<\b>. This means that whitespace becomes important: C<1+%CPU>
 will not be parsed as expected, which is correct since C<+%CPU> is also a valid
 field name. But C<1+ %CPU> will be parsed correctly, so if you have weird field
-names, put the whitespace in to your expressions. It'll make them more readable
+names, put the whitespace into your expressions. It'll make them more readable
 anyway.
 
 =item *
 
-Strings passed to C<-p> are split on C<,> /except/ if the C<,> is inside
+Strings passed to C<-p> are split on C<,> I<except> if the C<,> is inside
 balanced <()>. This makes it possible to say things like C<vnl-filter --function
 'f(a,b) { ... }' -p 'c=f(a,b)'>. This is probably the right behavior, although
 some questionable looking field names become potentially impossible: C<f(a> and
-C<b)> /could/ otherwise be legal field names.
+C<b)> I<could> otherwise be legal field names, but you're probably asking for
+trouble if you do that.
 
 =item *
 
@@ -1181,9 +1182,11 @@ All column names are replaced in all eval strings without regard to context. The
 earlier example that reports the sum of values in a column: C<vnl-filter --eval
 '{suma += a} END {print suma}'> will work fine if we I<do> have a column named
 C<a> and do <not> have a column named C<suma>. But will not do the right thing
-if any of those are violated. I don't see any way to resolve this without
-seriously impacting the scope of the tool, so I'm leaving this alone. Comments
-welcome.
+if any of those are violated. It's the user's responsibility to make sure we're
+talking about the right columns. The focus here was one-liners so hopefully
+nobody has so many columns, they can't keep track of all of them in their head.
+I don't see any way to resolve this without seriously impacting the scope of the
+tool, so I'm leaving this alone. Comments welcome.
 
 =item *
 

@@ -457,6 +457,37 @@ Frees memory for an vnlog context. Do this before throwing the context away.
 Currently this is only needed for context that have binary fields, but this
 should be called in for all contexts, just in case
 
+* numpy interface
+
+The built-in =numpy.loadtxt= =numpy.savetxt= functions work well to read and
+write these files. For example to write to standard output a vnlog with fields
+=a=, =b= and =c=:
+
+#+BEGIN_SRC python
+numpy.savetxt(sys.stdout, array, fmt="%g", header="a b c")
+#+END_SRC
+
+Note that numpy automatically adds the =#= to the header. To read a vnlog from a
+file on disk, do something like
+
+#+BEGIN_SRC python
+array = numpy.loadtxt('data.vnl')
+#+END_SRC
+
+These functions know that =#= lines are comments, but don't interpret anything
+as field headers. That's easy to do, so I'm not providing any helper libraries.
+I might do that at some point, but in the meantime, patches are welcome.
+
+* Caveats and bugs
+
+The tools that wrap GNU coreutils (=vnl-sort=, =vnl-join=, =vnl-tail=) are
+written specifically to work with the Linux kernel and the GNU coreutils. None
+of these have been tested with BSD tools or with non-Linux kernels, and I'm sure
+things don't just work. It's probably not too effortful to get that running, but
+somebody needs to at least bug me for that. Or better yet, send me nice
+patches :)
+
+
 * Repository
 
 https://github.com/dkogan/vnlog/
