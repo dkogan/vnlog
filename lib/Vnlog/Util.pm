@@ -89,7 +89,7 @@ sub open_file_as_pipe
         }
         else
         {
-            sub("[\t ]*##.*","");    # strip all ## comments
+            sub("[\t ]*#[!#].*",""); # strip all ##/#! comments
             if (!match($0,"[^\t ]")) # skip if only whitespace remains
             {
                 next

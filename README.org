@@ -4,13 +4,13 @@ Vnlog (pronounced "vanillog") is a trivially-simple log format:
 
 - A whitespace-separated table of ASCII human-readable text
 - Lines beginning with =#= are comments
-- The first line that begins with a single =#= (not =##=) is a /legend/, naming
-  each column
+- The first line that begins with a single =#= (not =##= or =#!=) is a /legend/,
+  naming each column
 
 Example:
 
 #+BEGIN_EXAMPLE
-## comment
+#!/usr/bin/whatever
 # a b c
 1 2 3
 ## another comment

@@ -870,12 +870,12 @@ to use perl as well, but this isn't as fast).
 
 The input/output data is vnlog: a plain-text table of values. Any lines
 beginning with C<#> are treated as comments, and are passed through. The first
-line that begins with C<#> but not C<##> is a I<legend> line. After the C<#>,
-follow whitespace-separated field names. Each subsequent line is
+line that begins with C<#> but not C<##> or C<#!> is a I<legend> line. After the
+C<#>, follow whitespace-separated field names. Each subsequent line is
 whitespace-separated values matching this legend. For instance, this is a valid
 vnlog file:
 
- ## comment comment comment
+ #!/usr/bin/something
  ## more comments
  # x y z
  -0.016107 0.004362 0.005369

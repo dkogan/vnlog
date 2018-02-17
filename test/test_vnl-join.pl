@@ -16,6 +16,7 @@ my $Nfailed = 0;
 
 
 my $data1 = <<'EOF';
+#!/bin/xxx
 ## asdf
 # a b e
 ## asdf
@@ -27,6 +28,7 @@ my $data1 = <<'EOF';
 EOF
 
 my $data2 = <<'EOF';
+#!/bin/xxx
 ## zxcv
 # b c d e
 ## zxcv

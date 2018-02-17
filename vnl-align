@@ -33,9 +33,9 @@ while(<>)
 {
     if( !defined $table )
     {
-        if( !/^#[^#]/ )
+        if( !/^#[^#!]/ )
         {
-            # don't have a legend yet, and this is a ## comment, not a legend
+            # don't have a legend yet, and this is a ##/#! comment, not a legend
             $chunks[-1][1] .= $_;
         }
         else
@@ -88,7 +88,7 @@ for my $ichunk (0..$#chunks)
 
     if( $chunk->[0] >= 0)
     {
-        # This isn't a comment-only chunk. Those are the pre-legend ## lines
+        # This isn't a comment-only chunk. Those are the pre-legend ##/#! lines
         if($chunk->[0] == 0)
         {
             # Treat the legend specially: I want to center-justify the labels.

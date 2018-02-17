@@ -12,6 +12,7 @@ use Term::ANSIColor;
 my $Nfailed = 0;
 
 my $data_default = <<'EOF';
+#!/bin/xxx
 # a b c
 1 2 3
 4 - 6
@@ -20,6 +21,7 @@ my $data_default = <<'EOF';
 EOF
 
 my $data_latlon = <<'EOF';
+#!/bin/xxx
 # lat lon lat2 lon2
 37.0597792247 -76.1703387355 37.0602752259 -76.1705049567
 37.0598883299 -76.1703577868 37.0604772596 -76.1705748082
@@ -29,6 +31,7 @@ my $data_latlon = <<'EOF';
 EOF
 
 my $data_cubics = <<'EOF';
+#!/bin/xxx
 # x
 1
 8
@@ -38,6 +41,7 @@ my $data_cubics = <<'EOF';
 EOF
 
 my $data_specialchars = <<'EOF';
+#!/bin/xxx
 # PID USER PR NI   VIRT   RES   SHR  S %CPU %MEM  TIME+     COMMAND
 25946 dima 20 0    82132 23828   644 S 5.9  1.2  0:01.42 mailalert.pl
 27036 dima 20 0  1099844 37772 13600 S 5.9  1.9  1:29.57 mpv
@@ -48,6 +52,7 @@ EOF
 
 
 check( <<'EOF', qw(-p s=b) );
+#!/bin/xxx
 # s
 2
 9
@@ -55,6 +60,7 @@ check( <<'EOF', qw(-p s=b) );
 EOF
 
 check( <<'EOF', qw(-p s=b --noskipempty) );
+#!/bin/xxx
 # s
 2
 -
@@ -63,6 +69,7 @@ check( <<'EOF', qw(-p s=b --noskipempty) );
 EOF
 
 check( <<'EOF', '-p', 's=b,a' );
+#!/bin/xxx
 # s a
 2 1
 - 4
@@ -71,6 +78,7 @@ check( <<'EOF', '-p', 's=b,a' );
 EOF
 
 check( <<'EOF', '-p', 's=b,a', '--noskipempty');
+#!/bin/xxx
 # s a
 2 1
 - 4
@@ -79,6 +87,7 @@ check( <<'EOF', '-p', 's=b,a', '--noskipempty');
 EOF
 
 check( <<'EOF', qw(-p s=a) );
+#!/bin/xxx
 # s
 1
 4
@@ -87,6 +96,7 @@ check( <<'EOF', qw(-p s=a) );
 EOF
 
 check( <<'EOF', qw(-p s=a+1) );
+#!/bin/xxx
 # s
 2
 5
@@ -95,6 +105,7 @@ check( <<'EOF', qw(-p s=a+1) );
 EOF
 
 check( <<'EOF', qw(-p s=a+1) );
+#!/bin/xxx
 # s
 2
 5
@@ -103,6 +114,7 @@ check( <<'EOF', qw(-p s=a+1) );
 EOF
 
 check( <<'EOF', qw(-p .) );
+#!/bin/xxx
 # a b c
 1 2 3
 4 - 6
@@ -111,6 +123,7 @@ check( <<'EOF', qw(-p .) );
 EOF
 
 check( <<'EOF', '-p', 'a,b' );
+#!/bin/xxx
 # a b
 1 2
 4 -
@@ -119,6 +132,7 @@ check( <<'EOF', '-p', 'a,b' );
 EOF
 
 check( <<'EOF', qw(-p a -p b) );
+#!/bin/xxx
 # a b
 1 2
 4 -
@@ -127,6 +141,7 @@ check( <<'EOF', qw(-p a -p b) );
 EOF
 
 check( <<'EOF', qw(--print a --pick b) );
+#!/bin/xxx
 # a b
 1 2
 4 -
@@ -135,6 +150,7 @@ check( <<'EOF', qw(--print a --pick b) );
 EOF
 
 check( <<'EOF', qw( -p [ab]) );
+#!/bin/xxx
 # a b
 1 2
 4 -
@@ -143,6 +159,7 @@ check( <<'EOF', qw( -p [ab]) );
 EOF
 
 check( <<'EOF', qw(--has a -p .) );
+#!/bin/xxx
 # a b c
 1 2 3
 4 - 6
@@ -151,6 +168,7 @@ check( <<'EOF', qw(--has a -p .) );
 EOF
 
 check( <<'EOF', qw(--has b) );
+#!/bin/xxx
 # a b c
 1 2 3
 7 9 -
@@ -158,6 +176,7 @@ check( <<'EOF', qw(--has b) );
 EOF
 
 check( <<'EOF', qw(--has c -p .) );
+#!/bin/xxx
 # a b c
 1 2 3
 4 - 6
@@ -165,36 +184,42 @@ check( <<'EOF', qw(--has c -p .) );
 EOF
 
 check( <<'EOF', '--has', 'b,c');
+#!/bin/xxx
 # a b c
 1 2 3
 10 11 12
 EOF
 
 check( <<'EOF', '--has', 'b,c');
+#!/bin/xxx
 # a b c
 1 2 3
 10 11 12
 EOF
 
 check( <<'EOF', qw(--has b --has c -p .) );
+#!/bin/xxx
 # a b c
 1 2 3
 10 11 12
 EOF
 
 check( <<'EOF', qw(--has b --has c) );
+#!/bin/xxx
 # a b c
 1 2 3
 10 11 12
 EOF
 
 check( <<'EOF', qw(--has b --has c -p a) );
+#!/bin/xxx
 # a
 1
 10
 EOF
 
 check( <<'EOF', qw(-p d=rel(a) -p b -p c --noskipempty));
+#!/bin/xxx
 # d b c
 0 2 3
 3 - 6
@@ -203,11 +228,13 @@ check( <<'EOF', qw(-p d=rel(a) -p b -p c --noskipempty));
 EOF
 
 check( <<'EOF', qw(rel(a)>6 -p . -p d=rel(a)));
+#!/bin/xxx
 # a b c d
 10 11 12 9
 EOF
 
 check( <<'EOF', qw(-p d=rel(a) -p b -p c));
+#!/bin/xxx
 # d b c
 0 2 3
 3 - 6
@@ -216,6 +243,7 @@ check( <<'EOF', qw(-p d=rel(a) -p b -p c));
 EOF
 
 check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p c -p a));
+#!/bin/xxx
 # r b d c a
 0 2 0 3 1
 3 - 3 6 4
@@ -224,6 +252,7 @@ check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p c -p a));
 EOF
 
 check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r)]);
+#!/bin/xxx
 # r
 0
 3
@@ -232,6 +261,7 @@ check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r)]);
 EOF
 
 check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r=rel(r))]);
+#!/bin/xxx
 # r
 0
 3
@@ -240,6 +270,7 @@ check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r=rel(r))]);
 EOF
 
 check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
+#!/bin/xxx
 # d
 0
 3
@@ -248,6 +279,7 @@ check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
 EOF
 
 check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x))', {data => $data_cubics});
+#!/bin/xxx
 # d1 d2
 0 0
 7 7
@@ -257,6 +289,7 @@ check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x))', {data => $data_cubics});
 EOF
 
 check( <<'EOF', qw(--has b -p [ab]) );
+#!/bin/xxx
 # a b
 1 2
 7 9
@@ -264,27 +297,32 @@ check( <<'EOF', qw(--has b -p [ab]) );
 EOF
 
 check( <<'EOF', ['--has', 'b', '-p', 'da=diff(a),db=diff(b)'], ['db>3'], {language => 'AWK'} );
+#!/bin/xxx
 # da db
 6 7
 EOF
 
 check( <<'EOF', ['-p', 'a,r=rel(a)'], ['a<4'], {language => 'AWK'} );
+#!/bin/xxx
 # a r
 1 0
 EOF
 
 check( <<'EOF', ['-p', 'a,r=rel(a)'], ['r<4'], {language => 'AWK'} );
+#!/bin/xxx
 # a r
 1 0
 4 3
 EOF
 
 check( <<'EOF', ['-p', 'r=rel(a),a'], ['a<4'], {language => 'AWK'} );
+#!/bin/xxx
 # r a
 0 1
 EOF
 
 check( <<'EOF', ['-p', 'r=rel(a),a'], ['r<4'], {language => 'AWK'} );
+#!/bin/xxx
 # r a
 0 1
 3 4
@@ -305,17 +343,20 @@ check( <<'EOF', ['-p', 'r=rel(a),a'], ['--eval', 'say r'], {language => 'perl'} 
 EOF
 
 check( <<'EOF', 'a>5' );
+#!/bin/xxx
 # a b c
 7 9 -
 10 11 12
 EOF
 
 check( <<'EOF', qw(a>5 -p c) );
+#!/bin/xxx
 # c
 12
 EOF
 
 check( <<'EOF', qw(a>5 --no-skipempty -p c) );
+#!/bin/xxx
 # c
 -
 12
@@ -327,24 +368,28 @@ check( <<'EOF', 'a>5', '--eval', '{print a+b}', {language => 'AWK'} );
 EOF
 
 check( <<'EOF', 'a>5', '--function', 'func() { return a + b }', '-p', 'sum=func()', {language => 'AWK'} );
+#!/bin/xxx
 # sum
 16
 21
 EOF
 
 check( <<'EOF', 'a>5', '--function', 'func(x,y) { return x + y }', '-p', 'sum=func(a,b)', {language => 'AWK'} );
+#!/bin/xxx
 # sum
 16
 21
 EOF
 
 check( <<'EOF', 'a>5', '--function', 'func { return a + b }', '-p', 'sum=func()', {language => 'perl'} );
+#!/bin/xxx
 # sum
 16
 21
 EOF
 
 check( <<'EOF', 'a>5', '--function', 'func { my ($x,$y) = @_; return $x + $y }', '-p', 'sum=func(a,b)', {language => 'perl'} );
+#!/bin/xxx
 # sum
 16
 21
@@ -361,6 +406,7 @@ check( <<'EOF', 'a>5', '--eval', 'my $v = a + b + 2; say $v', {language => 'perl
 EOF
 
 check(<<'EOF', qw(-p M), {data => $data_specialchars});
+#!/bin/xxx
 # %MEM TIME+ COMMAND
 1.2 0:01.42 mailalert.pl
 1.9 1:29.57 mpv
@@ -369,6 +415,7 @@ check(<<'EOF', qw(-p M), {data => $data_specialchars});
 EOF
 
 check(<<'EOF', '-p', q{s=1 + %CPU,s2=%CPU + 2,s3=TIME+ + 1,s4=1 + TIME+}, {data => $data_specialchars});
+#!/bin/xxx
 # s s2 s3 s4
 6.9 7.9 1 1
 6.9 7.9 2 2

@@ -36,7 +36,7 @@ sub parse
         return 1;
     }
 
-    if( $line =~ /^##/ )
+    if( $line =~ /^#[!#]/ )
     {
         # comment
         # no data, no error

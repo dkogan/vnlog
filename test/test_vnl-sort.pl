@@ -15,6 +15,7 @@ my $Nfailed = 0;
 
 
 my $data1 = <<'EOF';
+#!/bin/xxx
 ## xxx
 # a b
 1 1.69
@@ -27,6 +28,7 @@ my $data1 = <<'EOF';
 EOF
 
 my $data2 = <<'EOF';
+#!/bin/xxx
 ## zzz
 # a b
 ## yyy
@@ -39,12 +41,14 @@ my $data2 = <<'EOF';
 EOF
 
 my $data_not_ab = <<'EOF';
+#!/bin/xxx
 # a b c
 1 2 3
 4 5 6
 EOF
 
 my $data3 = <<'EOF';
+#!/bin/xxx
 # a b c d
 4 150 156 3
 211 24 3 231
