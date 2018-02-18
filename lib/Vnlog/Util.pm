@@ -45,7 +45,7 @@ sub get_unbuffered_line
 
 sub open_file_as_pipe
 {
-    my ($filename, $do_keep_comments) = @_;
+    my ($filename, $input_filter) = @_;
 
     my $fh;
 
@@ -108,13 +108,16 @@ sub open_file_as_pipe
     }
 EOF
 
-    my $pipe_cmd = $do_keep_comments ? 'cat' : "mawk '$mawk_strip_comments'";
-    open $fh, '-|', "$pipe_cmd '$filename'";
+    my $pipe_cmd = $input_filter // ['mawk', $mawk_strip_comments];
+    my $pipe_pid = open($fh, "-|") // die "Can't fork: $!";
 
-    if ( !$fh )
+    if(!$pipe_pid)
     {
-        die "Couldn't open file '$filename'";
+        # child
+        exec @$pipe_cmd, $filename or die "can't exec program: $!";
     }
+
+    # parent
 
     # I'm explicitly passing these to an exec, so FD_CLOSEXEC must be off
     my $flags = fcntl $fh, F_GETFD, 0;
@@ -217,12 +220,12 @@ sub ensure_all_legends_equivalent
 }
 sub read_and_preparse_input
 {
-    my ($filenames, $do_keep_comments) = @_;
+    my ($filenames, $input_filter) = @_;
 
     my @inputs = map { {filename => $_} } @$filenames;
     for my $input (@inputs)
     {
-        $input->{fh}   = open_file_as_pipe($input->{filename}, $do_keep_comments);
+        $input->{fh}   = open_file_as_pipe($input->{filename}, $input_filter);
         $input->{keys} = pull_key($input);
     }
 

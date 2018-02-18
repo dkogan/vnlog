@@ -92,7 +92,9 @@ for my $key(keys %$options)
     }
 }
 
-my $inputs = read_and_preparse_input($filenames, 1);
+my $inputs = read_and_preparse_input($filenames,
+                                     # read all lines, including comments
+                                     ['cat']);
 ensure_all_legends_equivalent($inputs);
 say '# ' . join(' ', @{$inputs->[0]{keys}});
 
