@@ -158,6 +158,14 @@ check( 'ERROR', qw(-jb -o),  '1.ax,0,2.d,1.e,0,2.e', '$data1', '$data2' );
 check( 'ERROR', qw(-jb -o),  '1.a,9,2.d,1.e,0,2.e', '$data1', '$data2' );
 
 
+# these keys are sorted numerically, not lexicographically
+check( 'ERROR', qw(-j e), '$data1', '$data2' );
+check( <<'EOF', qw(-j e --vnl-sort n --vnl-suffix1 1), '$data1', '$data2' );
+# e a1 b1 b c d
+9 1a 22b 32b 5c 6d
+10 5a 32b 52b 6c 7d
+EOF
+
 
 
 

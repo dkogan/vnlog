@@ -32,7 +32,9 @@ my @specs = ( # options with no args
           "vnl-prefix1=s",
           "vnl-suffix1=s",
           "vnl-prefix2=s",
-          "vnl-suffix2=s");
+          "vnl-suffix2=s",
+
+          "vnl-sort=s");
 
 my %options_unsupported = ( 't' => <<'EOF',
 vnlog is built on assuming a particular field separator
@@ -132,14 +134,78 @@ $options->{'vnl-suffix1'} //= '';
 $options->{'vnl-prefix2'} //= '';
 $options->{'vnl-suffix2'} //= '';
 
+my $join_key = $options->{j};
 
-my $inputs = read_and_preparse_input($filenames);
+
+my $input_filter = undef;
+if(defined $options->{'vnl-sort'})
+{
+    if($options->{'vnl-sort'} !~ /^[dfgiMhnRrV]+$/)
+    {
+        die("--vnl-sort must be followed by one or more of the ordering options that 'sort' takes: dfgiMhnRrV");
+    }
+
+    # We sort with the default order (lexicographical) since that's what join
+    # wants. We'll re-sort the output by the desired order again
+    my $key = $options->{j};
+    $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
+}
+
+
+my $inputs = read_and_preparse_input($filenames, $input_filter);
 my $keys_output = substitute_field_keys($options, $inputs);
-
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
-say '# ' . join(' ', @$keys_output);
-exec 'join', @$ARGV_new;
+my $legend = '# ' . join(' ', @$keys_output) . "\n";
+
+# Simple case used 99% of the time: we're not pre-or post-filtering anything.
+# Just invoke the join, and we're done
+if(!defined $options->{'vnl-sort'})
+{
+    syswrite(*STDOUT, $legend);
+    exec 'join', @$ARGV_new;
+}
+
+
+# Complicated case. We're post-filtering our output. I set up the pipes, fork
+# and exec
+use POSIX;
+my ($fdread,$fdwrite) = POSIX::pipe();
+
+my $childpid_sort = fork();
+if ( $childpid_sort == 0 )
+{
+    # Child. This is the re-sorting end. In this side of the fork vnl-sort reads
+    # data from the join
+    POSIX::close($fdwrite);
+    POSIX::close(0);
+    POSIX::dup2($fdread, 0);
+
+    my $order = $options->{'vnl-sort'};
+    exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
+}
+
+my $childpid_join = fork();
+if ( $childpid_join == 0 )
+{
+    # Child. This is the 'join' end. join will write to the pipe, not to stdout.
+    POSIX::close($fdread);
+    POSIX::close(1);
+    POSIX::dup2($fdwrite, 1);
+
+    POSIX::write(1, $legend, length($legend));
+
+    exec 'join', @$ARGV_new;
+}
+
+POSIX::close($fdread);
+POSIX::close($fdwrite);
+
+# parent of both. All it does is wait for both to finish so that whoever called
+# vnl-join knows when the whole thing is done.
+waitpid $childpid_join, 0;
+waitpid $childpid_sort, 0;
+
 
 
 
@@ -324,7 +390,10 @@ vnl-join - joins two log files on a particular field
 
 =head1 DESCRIPTION
 
-  Usage: vnl-join [join options] [--vnl-[pre|suf]fix[1|2] xxx] logfile1 logfile2
+  Usage: vnl-join [join options]
+                  [--vnl-sort [dfgiMhnRrV]+]
+                  [--vnl-[pre|suf]fix[1|2] xxx]
+                  logfile1 logfile2
 
 This tool joins two vnlog files on a given field. C<vnl-join> is a
 wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
@@ -360,6 +429,11 @@ to be different. So pass C<-j> instead, it makes more sense in this context.
 C<vnl-join>-specific options are available to adjust the field-naming in the
 output: C<--vnl-prefix1>, C<--vnl-prefix2>, C<--vnl-suffix1>, C<--vnl-suffix2>.
 See below for details.
+
+=item *
+
+A C<vnl-join>-specific option C<--vnl-sort> is available to re-sort the input
+and output. See below for details.
 
 =item *
 
@@ -416,6 +490,52 @@ And in the output we get a legend
 
 Much better.
 
+=head2 Non-lexicographical sort order
+
+The GNU coreutils C<join> tool expects sorted columns. This sort order is
+I<assumed> to be lexicographical, without any way to change this. For C<sort>,
+this is the default sort order, but C<sort> has many options to change the sort
+order; these options are sorely missing from C<join>. One real-world use case
+that is affected by this is the joining of numerical data. If you have C<a.vnl>:
+
+ # time a
+ 8 a
+ 9 b
+ 10 c
+
+and C<b.vnl>:
+
+ # time b
+ 9  d
+ 10 e
+
+Then you cannot use C<vnl-join> directly to join the data on time:
+
+ $ vnl-join -j time a.vnl b.vnl
+ # time a b
+ join: /dev/fd/4:3: is not sorted: 10 c
+ join: /dev/fd/5:2: is not sorted: 10 e
+ 9 b d
+ 10 c e
+
+Instead you must re-sort both files lexicographically, and then (because you
+probably want to) sort it back into numerical order:
+
+ $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) |
+   vnl-sort -n -k time
+ # time a b
+ 9 b d
+ 10 c e
+
+Yuck. The above pre- and post-sorting is clearly an ugly workaround, but it's
+useful. So to save the user typing, this uglyness can be expressed more
+concisely like this:
+
+ $ vnl-join -j time --vnl-sort n a.vnl b.vnl
+ # time a b
+ 9 b d
+ 10 c e
+
 =head1 BUGS
 
 This and the other C<vnl-xxx> tools that wrap coreutils are written specifically
@@ -423,40 +543,6 @@ to work with the Linux kernel and the GNU coreutils. None of these have been
 tested with BSD tools or with non-Linux kernels, and I'm sure things don't just
 work. It's probably not too effortful to get that running, but somebody needs to
 at least bug me for that. Or better yet, send me nice patches :)
-
-The GNU coreutils C<join> tool expects sorted columns. This sort order is
-I<assumed> to be lexicographical, without any way to change this. For C<sort>,
-this is the default sort order, but C<sort> has many options to change the sort
-order; these are options that are sorely missing from C<join>. The real-world
-use case that is affected by this is the joining of numerical data. If you have
-C<a.vnl>:
-
- # time a
- 9  w
- 10 x
-
-and C<b.vnl>:
-
- # time b
- 9  y
- 10 z
-
-Then you cannot use C<vnl-join> directly:
-
- $ vnl-join -j time a.vnl b.vnl
- # time a b
- join: /dev/fd/5:2: is not sorted: 10 x
-
-Instead you must re-sort both files lexicographically, and then (because you
-probably want to) sort it back into numerical order:
-
- $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) | vnl-sort -n -k time
- # time a b
- 9 w y
- 10 x z
-
-Yuck. I have some ideas about fixing this somewhat, but in the meantime the
-above is the only workaround.
 
 =head1 SEE ALSO
 
