@@ -28,6 +28,12 @@ my @specs = ( # options with no args
 
              "help");
 
+@specs = (@specs,
+          "vnl-prefix1=s",
+          "vnl-suffix1=s",
+          "vnl-prefix2=s",
+          "vnl-suffix2=s");
+
 my %options_unsupported = ( 't' => <<'EOF',
 vnlog is built on assuming a particular field separator
 EOF
@@ -121,6 +127,12 @@ if( !defined $options->{o} )
     $options->{o} = 'auto';
 }
 
+$options->{'vnl-prefix1'} //= '';
+$options->{'vnl-suffix1'} //= '';
+$options->{'vnl-prefix2'} //= '';
+$options->{'vnl-suffix2'} //= '';
+
+
 my $inputs = read_and_preparse_input($filenames);
 my $keys_output = substitute_field_keys($options, $inputs);
 
@@ -134,12 +146,12 @@ exec 'join', @$ARGV_new;
 
 sub push_nonjoin_keys
 {
-    my ($keys_output, $keys, $key_join) = @_;
+    my ($keys_output, $keys, $key_join, $prefix, $suffix) = @_;
     for my $i (0..$#$keys)
     {
         if ( $keys->[$i] ne $key_join)
         {
-            push @$keys_output, $keys->[$i];
+            push @$keys_output, $prefix . $keys->[$i] . $suffix;
         }
     }
 }
@@ -231,8 +243,8 @@ sub substitute_field_keys
         #   all non-join fields from file2, in order
         push @keys_out, $join_field_name;
 
-        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name);
-        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name);
+        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $options->{'vnl-prefix1'}, $options->{'vnl-suffix1'});
+        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $options->{'vnl-prefix2'}, $options->{'vnl-suffix2'});
     }
 
     return \@keys_out;
@@ -286,7 +298,7 @@ vnl-join - joins two log files on a particular field
 
  Sort the data, and join on 'a'. Also print the unmatched lines from both files:
  $ vnl-join -ja -a1 -a2 <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
- # a b   c
+ # a  b   c
  -   -   23
  AA   11 -
  CC   13 -
@@ -312,7 +324,7 @@ vnl-join - joins two log files on a particular field
 
 =head1 DESCRIPTION
 
-  Usage: vnl-join [options] logfile1 logfile2
+  Usage: vnl-join [join options] [--vnl-[pre|suf]fix[1|2] xxx] logfile1 logfile2
 
 This tool joins two vnlog files on a given field. C<vnl-join> is a
 wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
@@ -345,6 +357,12 @@ to be different. So pass C<-j> instead, it makes more sense in this context.
 
 =item *
 
+C<vnl-join>-specific options are available to adjust the field-naming in the
+output: C<--vnl-prefix1>, C<--vnl-prefix2>, C<--vnl-suffix1>, C<--vnl-suffix2>.
+See below for details.
+
+=item *
+
 If no C<-o> is given, we pass C<-o auto> to make sure that missing data is shown
 as C<->.
 
@@ -371,6 +389,32 @@ records
 Past that, everything C<join> does is supported, so see that man page for
 detailed documentation. Note that all non-legend comments are stripped out,
 since it's not obvious where they should end up.
+
+=head2 Field names in the output
+
+By default, the field names in the output match those in the input. This is what
+you want most of the time. It is possible, however that a column name adjustment
+is needed. One common use case for this is if the files being joined have
+identically-named columns, which would produce duplicate columns in the output.
+Example: we fixed a bug in a program, and want to compare the results before and
+after the fix. The program produces an x-y trajectory as a function of time, so
+both the bugged and the bug-fixed programs produce a vnlog with a legend
+
+ # time x y
+
+Joining this on C<time> will produce a vnlog with a legend
+
+ # time x y x y
+
+which is confusing, and I<not> what you want. Instead, we invoke C<vnl-join> as
+
+ vnl-join --vnl-suffix1 _bugged --vnl-suffix2 _fixed -j time bugged.vnl fixed.vnl
+
+And in the output we get a legend
+
+ # time x_bugged y_bugged x_fixed y_fixed
+
+Much better.
 
 =head1 BUGS
 

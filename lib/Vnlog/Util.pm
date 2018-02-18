@@ -250,6 +250,10 @@ sub reconstruct_substituted_command
     # First I pull in the arguments
     for my $option(keys %$options)
     {
+        # vnlog-specific options are not passed on to the inner command
+        next if $option =~ /^vnl/;
+
+
         my $re_specs_noarg    = qr/^ $option (?: \| [^=:] + )*   $/x;
         my $re_specs_yesarg   = qr/^ $option (?: \| [^=:] + )* =  /x;
         my $re_specs_maybearg = qr/^ $option (?: \| [^=:] + )* :  /x;

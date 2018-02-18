@@ -65,6 +65,12 @@ check( <<'EOF', qw(-1 b -2 b), '$data1', '$data2' );
 32b 5a 4e 5c 6d 2e
 EOF
 
+check( <<'EOF', qw(-1 b -2 b --vnl-prefix1 aaa --vnl-suffix2 bbb), '$data1', '$data2' );
+# b aaaa aaae cbbb dbbb ebbb
+22b 1a 5e 1c 5d 1e
+32b 5a 4e 5c 6d 2e
+EOF
+
 check( <<'EOF', qw(-1b -2b), '$data1', '$data2' );
 # b a e c d e
 22b 1a 5e 1c 5d 1e
