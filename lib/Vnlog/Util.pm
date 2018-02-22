@@ -18,7 +18,6 @@ use lib "$Bin/lib";
 use Vnlog::Parser;
 use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 use Getopt::Long 'GetOptionsFromArray';
-Getopt::Long::Configure('gnu_getopt');
 
 
 
@@ -158,6 +157,7 @@ sub parse_options
     my @ARGV_copy = @$ARGV;
     my $result;
 
+    my $oldconfig = Getopt::Long::Configure('gnu_getopt');
     eval
     {
         $result =
@@ -165,6 +165,13 @@ sub parse_options
                                \%options,
                                @$specs );
     };
+    if('ARRAY' eq ref $oldconfig)
+    {
+        # I restore the old config. This feature (returning old configuration)
+        # is undocumented in Getopt::Long::Configure, so I try to use it if it
+        # returns a correct-looking thing
+        Getopt::Long::Configure($oldconfig);
+    }
 
     if ( $@  )
     {
