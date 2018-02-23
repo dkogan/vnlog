@@ -6,7 +6,7 @@ use feature ':5.10';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_inputs);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -239,12 +239,18 @@ sub read_and_preparse_input
     return \@inputs;
 }
 
-sub close_inputs
+sub close_nondev_inputs
 {
     my ($inputs) = @_;
     for my $input (@$inputs)
     {
-        close $input->{fh};
+        if( $input->{filename} !~ m{^-$             # stdin
+                                    |               # or
+                                    ^/(?:dev|proc)/ # device
+                               }x )
+        {
+            close $input->{fh};
+        }
     }
 }
 
@@ -253,7 +259,7 @@ sub reconstruct_substituted_command
     # reconstruct the command, invoking the internal GNU tool, but replacing the
     # filenames with the opened-and-read-past-the-legend pipe. The field
     # specifiers have already been replaced with their column indices
-    my ($inputs, $options, $specs) = @_;
+    my ($inputs, $options, $specs, $keep_normal_files) = @_;
 
     my @argv;
 
@@ -325,8 +331,15 @@ sub reconstruct_substituted_command
     }
 
     # And then I pull in the files
-    push @argv, map { my $fd = fileno $_->{fh}; "/dev/fd/$fd" } @$inputs;
-
+    push @argv,
+      map {
+          ($keep_normal_files && $_->{filename} !~ m{^-$             # stdin
+                                                     |               # or
+                                                     ^/(?:dev|proc)/ # device
+                                                }x) ?
+            $_->{filename} :
+            ("/dev/fd/" . fileno $_->{fh})
+      } @$inputs;
     return \@argv;
 }
 

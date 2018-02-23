@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_inputs);
+use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent close_nondev_inputs reconstruct_substituted_command);
 
 
 
@@ -98,11 +98,19 @@ my $inputs = read_and_preparse_input($filenames,
 ensure_all_legends_equivalent($inputs);
 say '# ' . join(' ', @{$inputs->[0]{keys}});
 
-# I exec with the original command. I.e. I do NOT substitute filenames. This
-# allows --follow=name to work. The only thing I do here is to make absolutely
-# sure the legend is reported correctly
-close_inputs($inputs);
-exec 'tail', @ARGV;
+
+# When looking at normal files, tail needs the original filenames to be able to
+# do its thing. A pipe filter won't do; especially if we're doing a tail -f. But
+# if the thing I'm tailing is a pipe to begin with, I need to give it that pipe.
+# The NAME of the device won't do. Thus I call reconstruct_substituted_command()
+# telling it to substitute the dev filenames, but leave non-dev filenames alone.
+#
+# Additionally, since I don't use the file filter anymore, I close those pipes
+
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs, 1);
+close_nondev_inputs($inputs);
+exec 'tail', @$ARGV_new;
+
 
 
 __END__
