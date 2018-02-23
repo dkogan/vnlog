@@ -439,6 +439,8 @@ sub expr_subst_col_names
 
     for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_input)
     {
+        next unless defined $colindices_input{$key};
+
         # This looks odd. Mostly, $bound0 = $bound1 = '\b'. This would work to
         # Find "normal" alphanumeric keys in the string. But my keys may have
         # special characters in them. For instance, if I grab keys from the
