@@ -149,6 +149,10 @@ if(defined $options->{'vnl-sort'})
     # wants. We'll re-sort the output by the desired order again
     my $key = $options->{j};
     $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
+    if($options->{'ignore-case'})
+    {
+        push @$input_filter, '-f';
+    }
 }
 
 
