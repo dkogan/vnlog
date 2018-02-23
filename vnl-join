@@ -140,9 +140,9 @@ my $join_key = $options->{j};
 my $input_filter = undef;
 if(defined $options->{'vnl-sort'})
 {
-    if($options->{'vnl-sort'} !~ /^[dfgiMhnRrV]+$/)
+    if($options->{'vnl-sort'} !~ /^(?: [dfgiMhnRrV]+ | -)$/x)
     {
-        die("--vnl-sort must be followed by one or more of the ordering options that 'sort' takes: dfgiMhnRrV");
+        die("--vnl-sort must be followed by '-' or one or more of the ordering options that 'sort' takes: dfgiMhnRrV");
     }
 
     # We sort with the default order (lexicographical) since that's what join
@@ -162,9 +162,9 @@ my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
 my $legend = '# ' . join(' ', @$keys_output) . "\n";
 
-# Simple case used 99% of the time: we're not pre-or post-filtering anything.
-# Just invoke the join, and we're done
-if(!defined $options->{'vnl-sort'})
+# Simple case used 99% of the time: we're not post-filtering anything. Just
+# invoke the join, and we're done
+if(!defined $options->{'vnl-sort'} || $options->{'vnl-sort'} eq '-')
 {
     syswrite(*STDOUT, $legend);
     exec 'join', @$ARGV_new;
@@ -355,19 +355,19 @@ vnl-join - joins two log files on a particular field
  join: /dev/fd/6:3: is not sorted: bb 4
 
  Sort the data, and join on 'a':
- $ vnl-join -j a <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
- # a b  c
+ $ vnl-join --vnl-sort - -j a a.vnl b.vnl | vnl-align
+ # a  b c
  bb  12 4
 
  Sort the data, and join on 'a', ignoring case:
- $ vnl-join -i -j a <(vnl-sort -f -ka a.vnl) <(vnl-sort -f -ka b.vnl) | vnl-align
+ $ vnl-join -i --vnl-sort - -j a a.vnl b.vnl | vnl-align
  # a b c
  AA 11 1
  bb 12 4
  CC 13 3
 
  Sort the data, and join on 'a'. Also print the unmatched lines from both files:
- $ vnl-join -ja -a1 -a2 <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
+ $ vnl-join -a1 -a2 --vnl-sort - -j a a.vnl b.vnl | vnl-align
  # a  b   c
  -   -   23
  AA   11 -
@@ -380,7 +380,7 @@ vnl-join - joins two log files on a particular field
  ee  -    5
 
  Sort the data, and join on 'a'. Print the unmatched lines from both files, Output ONLY column 'c' from the 2nd input:
- $ vnl-join -ja -a1 -a2 -o 2.c <(vnl-sort -ka a.vnl) <(vnl-sort -ka b.vnl) | vnl-align
+ $ vnl-join -a1 -a2 -o 2.c --vnl-sort - -j a a.vnl b.vnl | vnl-align
  # c
  23
  -
@@ -395,7 +395,7 @@ vnl-join - joins two log files on a particular field
 =head1 DESCRIPTION
 
   Usage: vnl-join [join options]
-                  [--vnl-sort [dfgiMhnRrV]+]
+                  [--vnl-sort -|[dfgiMhnRrV]+]
                   [--vnl-[pre|suf]fix[1|2] xxx]
                   logfile1 logfile2
 
@@ -436,8 +436,8 @@ See below for details.
 
 =item *
 
-A C<vnl-join>-specific option C<--vnl-sort> is available to re-sort the input
-and output. See below for details.
+A C<vnl-join>-specific option C<--vnl-sort> is available to sort the input
+and/or output. See below for details.
 
 =item *
 
@@ -451,7 +451,7 @@ C<-e> is not supported because vnlog uses C<-> to represent undefined fields.
 =item *
 
 C<--header> is not supported because vnlog assumes a specific header
-structure, and C<vnl-sort> makes sure that this header is handled properly
+structure, and C<vnl-join> makes sure that this header is handled properly
 
 =item *
 
@@ -494,13 +494,32 @@ And in the output we get a legend
 
 Much better.
 
-=head2 Non-lexicographical sort order
+=head2 Sorting of input and output
 
-The GNU coreutils C<join> tool expects sorted columns. This sort order is
-I<assumed> to be lexicographical, without any way to change this. For C<sort>,
-this is the default sort order, but C<sort> has many options to change the sort
-order; these options are sorely missing from C<join>. One real-world use case
-that is affected by this is the joining of numerical data. If you have C<a.vnl>:
+The GNU coreutils C<join> tool expects sorted columns because it can then take
+only a single pass through the data. If the input isn't sorted, then we can use
+normal shell substitutions to sort it:
+
+ $ vnl-join -j key <(vnl-sort -k key a.vnl) <(vnl-sort -k key b.vnl)
+
+For convenience C<vnl-join> provides a C<--vnl-sort> option. This allows the
+above to be equivalently expressed as
+
+ $ vnl-join -j key --vnl-sort - a.vnl b.vnl
+
+The C<-> after the C<--vnl-sort> indicates that we want to sort the I<input>
+only. If we also want to sort the output, pass the short codes C<sort> accepts
+instead of the C<->. For instance, to sort the input for C<join> and to sort the
+output numerically, in reverse, do this:
+
+ $ vnl-join -j key --vnl-sort rg a.vnl b.vnl
+
+The reason this shorthand exists is to work around a quirk of C<join>. The sort
+order is I<assumed> by C<join> to be lexicographical, without any way to change
+this. For C<sort>, this is the default sort order, but C<sort> has many options
+to change the sort order, options which are sorely missing from C<join>. A
+real-world example affected by this is the joining of numerical data. If you
+have C<a.vnl>:
 
  # time a
  8 a
@@ -522,8 +541,8 @@ Then you cannot use C<vnl-join> directly to join the data on time:
  9 b d
  10 c e
 
-Instead you must re-sort both files lexicographically, and then (because you
-probably want to) sort it back into numerical order:
+Instead you must re-sort both files lexicographically, I<and> then (because you
+almost certainly want to) sort it back into numerical order:
 
  $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) |
    vnl-sort -n -k time
@@ -531,9 +550,8 @@ probably want to) sort it back into numerical order:
  9 b d
  10 c e
 
-Yuck. The above pre- and post-sorting is clearly an ugly workaround, but it's
-useful. So to save the user typing, this uglyness can be expressed more
-concisely like this:
+Yuck. The shorthand described earlier makes the interface part of this
+palatable:
 
  $ vnl-join -j time --vnl-sort n a.vnl b.vnl
  # time a b
