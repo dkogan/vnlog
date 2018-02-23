@@ -280,8 +280,24 @@ sub reconstruct_substituted_command
         my $dashoption = length($option) == 1 ? "-$option" : "--$option";
         my $push_value = sub
         {
-            push @argv, $dashoption;
-            push @argv, $_[0] if $_[0] ne '';
+            # This is overly complex, but mostly exists for "vnl-tail
+            # --follow=name". This does NOT work as 'vnl-tail --follow name'
+            if($_[0] eq '')
+            {
+                # -x or --xyz
+                push @argv, $dashoption;
+            }
+            elsif($dashoption =~ '^--')
+            {
+                # --xyz=123
+                push @argv, "$dashoption=$_[0]";
+            }
+            else
+            {
+                # -x 123
+                push @argv, $dashoption;
+                push @argv, $_[0];
+            }
         };
 
 
