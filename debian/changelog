@@ -1,3 +1,9 @@
+vnlog (1.1) unstable; urgency=medium
+
+  * A number of updates
+
+ -- Dima Kogan <dkogan@debian.org>  Thu, 22 Feb 2018 23:07:17 -0800
+
 vnlog (1.0) unstable; urgency=medium
 
   * First public release!
