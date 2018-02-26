@@ -1,3 +1,9 @@
+vnlog (1.2) unstable; urgency=medium
+
+  * minor fix to not complain about doubly-defined columns
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 26 Feb 2018 12:33:24 -0800
+
 vnlog (1.1) unstable; urgency=medium
 
   * A number of updates
