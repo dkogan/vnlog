@@ -29,7 +29,6 @@ local ordering='(-d --dictionary-order -g --general-numeric-sort -M --month-sort
 args=(
   "(-c --check -C)-c[check whether input is sorted; don't sort]"
   '(-m --merge)'{-m,--merge}"[merge already sorted files; don't sort]"
-  '(-o --output)'{-o+,--output=}'[write result to file instead of standard output]:output file:_files'
   \*{-T+,--temporary-directory=}'[specify directory for temporary files]:directory:_directories'
   '(-u --unique)'{-u,--unique}'[with -c, check for strict ordering; without -c, output only the first of an equal run]'
   "$ordering"{-d,--dictionary-order}'[consider only blanks and alphanumeric characters]'
