@@ -26,7 +26,7 @@ my @specs = ( # options with no args
              # options that take an arg
              "a=s@", "e=s", "1=s", "2=s", "j=s", "o=s", "t=s", "v=s@",
 
-             "help");
+             "help|h");
 
 @specs = (@specs,
           "vnl-prefix1=s",
@@ -51,7 +51,45 @@ vnlog is built on assuming a particular record separator
 EOF
                           );
 
-my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, <<EOF);
+
+  $0 [join options]
+           [--vnl-sort -|[dfgiMhnRrV]+]
+           [--vnl-[pre|suf]fix[1|2] xxx]
+           logfile1 logfile2
+
+The most common options are (from the GNU sort manpage)
+
+  -j FIELD
+         join on this FIELD. This is the vnlog field we're joining on
+
+  -i, --ignore-case
+         ignore differences in case when comparing fields
+
+  -a FILENUM
+         also print unpairable lines from file FILENUM, where FILENUM
+         is 1 or 2, corresponding to FILE1 or FILE2
+
+  -v FILENUM
+         like -a FILENUM, but suppress joined output lines
+
+There're also a few vnlog-specific options
+
+  --vnl-prefix1 xxx
+  --vnl-suffix1 xxx
+  --vnl-prefix2 xxx
+  --vnl-suffix2 xxx
+         Add a suffix/prefix to the output column labels of the 1st/2nd data
+         file. Very useful if we're joining datasets with identically-named
+         fields
+
+  --vnl-sort -|[dfgiMhnRrV]+]
+         Pre-sort both input files lexicographically (join assumes this sort
+         order). If the argument isn't -, then ALSO post-sort the output
+         using the given sort order. This is both for convenience and to work
+         around the hard-coded sort order that join assumes.
+EOF
+
 for my $key(keys %$options)
 {
     if($options_unsupported{$key})

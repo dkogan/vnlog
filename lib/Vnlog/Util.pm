@@ -151,7 +151,7 @@ sub pull_key
 }
 sub parse_options
 {
-    my ($ARGV, $specs) = @_;
+    my ($ARGV, $specs, $usage) = @_;
 
     my %options;
     my @ARGV_copy = @$ARGV;
@@ -192,6 +192,14 @@ and options are almost identical. Main difference is that fields are referenced
 by name instead of number. Please see the manpages for 'vnl-$what' and
 '$what' for more detail
 EOF
+
+        if($usage)
+        {
+            print <<EOF;
+Basic usage is:
+$usage
+EOF
+        }
         exit 0;
     }
 

@@ -30,7 +30,7 @@ my @specs = ( # options with no args
              # special-case options. Kinda take args
              "follow:s",
 
-             "help");
+             "help|h");
 
 
 
@@ -65,7 +65,19 @@ if( @ifollow )
         $ARGV[$i] = $last;
     }
 }
-my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, <<EOF);
+  $0 [options] logfile logfile logfile ... < logfile
+
+The most common options are (from the GNU tail manpage)
+
+  -n, --lines=[+]NUM
+         output the last NUM lines, instead of the last 10;
+         or use -n +NUM to output starting with line NUM
+
+  -f, --follow[={name|descriptor}]
+         output appended data as the file grows;
+         an absent option argument means 'descriptor'
+EOF
 
 if( defined $options->{follow}         &&
     length($options->{follow}) > 0     &&

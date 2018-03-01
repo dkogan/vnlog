@@ -48,7 +48,7 @@ my @specs = ( # options with no args
               "check:s",
               "c|C",
 
-              "help");
+              "help|h");
 
 my %options_unsupported = ( 'files0-from' => <<'EOF',
 Support for this could be added but has not been (yet)
@@ -67,7 +67,55 @@ vnlog is built on assuming a particular record separator
 EOF
                           );
 
-my ($filenames,$options) = parse_options(\@ARGV, \@specs);
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, <<EOF);
+  $0 [options] logfile logfile logfile ... < logfile
+
+The most common options are (from the GNU sort manpage)
+
+  -k, --key=KEYDEF
+         sort via a key. This is the vnlog field we're sorting on
+
+  -s, --stable
+         stabilize sort by disabling last-resort comparison
+
+  -u, --unique
+         with -c, check for strict ordering;
+         without -c, output only the first of an equal run
+
+  -f, --ignore-case
+         fold lower case to upper case characters
+
+  -r, --reverse
+         reverse the result of comparisons
+
+These all choose the sort order:
+
+  -d, --dictionary-order
+         consider only blanks and alphanumeric characters
+
+  -g, --general-numeric-sort
+         compare according to general numerical value
+
+  -h, --human-numeric-sort
+         compare human readable numbers (e.g., 2K 1G)
+
+  -M, --month-sort
+         compare (unknown) < 'JAN' < ... < 'DEC'
+
+  -n, --numeric-sort
+         compare according to string numerical value
+
+  -R, --random-sort
+         shuffle, but group identical keys.  See shuf(1)
+
+  -V, --version-sort
+         natural sort of (version) numbers within text
+
+  --sort=WORD
+         sort according to WORD: general-numeric -g, human-numeric -h,
+         month -M, numeric -n, random -R, version -V
+EOF
+
 for my $key(keys %$options)
 {
     if($options_unsupported{$key})
