@@ -1,0 +1,80 @@
+#compdef vnl-tail
+
+# This is mostly from the zsh _tail file. It is copyright 1992-2014 The Zsh
+# Development Group. Distributed under the zsh license:
+#
+# Permission is hereby granted, without written agreement and without
+# licence or royalty fees, to use, copy, modify, and distribute this
+# software and to distribute modified versions of this software for any
+# purpose, provided that the above copyright notice and the following
+# two paragraphs appear in all copies of this software.
+# .
+# In no event shall the copy right owners liable to any party for
+# direct, indirect, special, incidental, or consequential damages
+# arising out of the use of this software and its documentation, even
+# if and the copyright owners have been advised of the possibility of
+# such damage.
+# .
+# The copyright owners specifically disclaim any warranties, including,
+# but not limited to, the implied warranties of merchantability and
+# fitness for a particular purpose.  The software provided hereunder is
+# on an "as is" basis, and the copyright owners have no obligation to
+# provide maintenance, support, updates, enhancements, or
+# modifications.
+
+
+#compdef tail
+
+local curcontext=$curcontext state state_descr line opts args ret=1
+typeset -A opt_args
+
+if _pick_variant -c tail gnu=GNU unix --version; then
+  args=(
+    '(-n --lines)'{-n+,--lines=}'[print the last specified lines; with +, start at the specified line]:number of lines:->number'
+    '(-F -f)--follow=-[output appended data as the file grows]::how:(name descriptor)'
+    '(-F --follow)-f[same as --follow=descriptor]'
+    '(-f --follow --retry)-F[same as --follow=name --retry]'
+    '--max-unchanged-stats=[with --follow=name, check file rename after the specified number of iterations]:number of iterations'
+    '(-s --sleep-interval)'{-s+,--sleep-interval=}'[with -f, sleep the specfied seconds between iterations]:seconds'
+    '--pid=[with -f, terminate after the specified process dies]:pid:_pids'
+    '--retry[keep trying to open a file even when it becomes inaccessible]'
+    '(- *)--help[display help and exit]'
+    '(- *)--version[output version information and exit]'
+  )
+else
+  opts=(-A '-*')
+  args=(
+    '(-b -c)-n+[start at the specified line]:lines relative to the end (with +, beginning) of file'
+    '(-F -r)-f[wait for new data to be appended to the file]'
+  )
+  case $OSTYPE in
+    (freebsd*|darwin*|dragonfly*|netbsd*|openbsd*|solaris*)
+      args+=(
+	'(-f -F)-r[display the file in reverse order]'
+      )
+    ;|
+    (freebsd*|darwin*|dragonfly*|netbsd*)
+      args+=( '(-f -r)-F[implies -f, but also detect file rename]' )
+      ;|
+  esac
+fi
+
+_arguments -C -s -S $opts : $args '*:file:_files' && return
+
+case $state in
+  (number)
+    local mlt sign digit
+    sign='signs:sign:((+\:"start at the specified line"'
+    sign+=' -\:"output the last specified lines (default)"))'
+    digit='digits:digit:(0 1 2 3 4 5 6 7 8 9)'
+    if compset -P '(-|+|)[0-9]##'; then
+      _alternative $mlt $digit && ret=0
+    elif [[ -z $PREFIX ]]; then
+      _alternative $sign $digit && ret=0
+    elif compset -P '(+|-)'; then
+      _alternative $digit && ret=0
+    fi
+    ;;
+esac
+
+return ret

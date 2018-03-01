@@ -1,0 +1,38 @@
+#compdef vnl-join
+
+# This is mostly from the zsh _join file. It is copyright 1992-2014 The Zsh
+# Development Group. Distributed under the zsh license:
+#
+# Permission is hereby granted, without written agreement and without
+# licence or royalty fees, to use, copy, modify, and distribute this
+# software and to distribute modified versions of this software for any
+# purpose, provided that the above copyright notice and the following
+# two paragraphs appear in all copies of this software.
+# .
+# In no event shall the copy right owners liable to any party for
+# direct, indirect, special, incidental, or consequential damages
+# arising out of the use of this software and its documentation, even
+# if and the copyright owners have been advised of the possibility of
+# such damage.
+# .
+# The copyright owners specifically disclaim any warranties, including,
+# but not limited to, the implied warranties of merchantability and
+# fitness for a particular purpose.  The software provided hereunder is
+# on an "as is" basis, and the copyright owners have no obligation to
+# provide maintenance, support, updates, enhancements, or
+# modifications.
+
+_arguments -S                                                                                \
+  '*-a+[print unpairable lines from specified file]:file number:(1 2)'                       \
+  "(-1 -2)-j+[join on specified field for both files]:key"                                   \
+  '-o+[use specified output format]:format string'                                           \
+  '*-v+[like -a, but suppress joined output lines]:file number:(1 2)'                        \
+  '(-i --ignore-case)'{-i,--ignore-case}'[ignore differences in case when comparing fields]' \
+  '(-)--help[display help information]'                                                      \
+  '(--check-order --nocheck-order)'{--check-order,--nocheck-order}                           \
+  '--vnl-prefix1[prefix to add to output field labels from the first datafile]:prefix1:'     \
+  '--vnl-prefix2[prefix to add to output field labels from the second datafile]:prefix1:'    \
+  '--vnl-suffix1[suffix to add to output field labels from the first datafile]:prefix1:'     \
+  '--vnl-suffix2[suffix to add to output field labels from the second datafile]:prefix1:'    \
+  '--vnl-sort[Presort the input and maybe post-sort the output]:ordering; should match -|[dfgiMhnRrV]+:' \
+  '1:file:_files' '2:file:_files'

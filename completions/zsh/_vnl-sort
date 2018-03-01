@@ -1,0 +1,91 @@
+#compdef vnl-sort
+
+# This is mostly from the zsh _sort file. It is copyright 1992-2014 The Zsh
+# Development Group. Distributed under the zsh license:
+#
+# Permission is hereby granted, without written agreement and without
+# licence or royalty fees, to use, copy, modify, and distribute this
+# software and to distribute modified versions of this software for any
+# purpose, provided that the above copyright notice and the following
+# two paragraphs appear in all copies of this software.
+# .
+# In no event shall the copy right owners liable to any party for
+# direct, indirect, special, incidental, or consequential damages
+# arising out of the use of this software and its documentation, even
+# if and the copyright owners have been advised of the possibility of
+# such damage.
+# .
+# The copyright owners specifically disclaim any warranties, including,
+# but not limited to, the implied warranties of merchantability and
+# fitness for a particular purpose.  The software provided hereunder is
+# on an "as is" basis, and the copyright owners have no obligation to
+# provide maintenance, support, updates, enhancements, or
+# modifications.
+
+
+local args variant
+local ordering='(-d --dictionary-order -g --general-numeric-sort -M --month-sort -h --human-numeric-sort -n --numeric-sort --sort -V --version-sort --help)'
+
+args=(
+  "(-c --check -C)-c[check whether input is sorted; don't sort]"
+  '(-m --merge)'{-m,--merge}"[merge already sorted files; don't sort]"
+  '(-o --output)'{-o+,--output=}'[write result to file instead of standard output]:output file:_files'
+  \*{-T+,--temporary-directory=}'[specify directory for temporary files]:directory:_directories'
+  '(-u --unique)'{-u,--unique}'[with -c, check for strict ordering; without -c, output only the first of an equal run]'
+  "$ordering"{-d,--dictionary-order}'[consider only blanks and alphanumeric characters]'
+  '(-f --ignore-case)'{-f,--ignore-case}'[fold lower case to upper case characters]'
+  "$ordering"{-n,--numeric-sort}'[compare according to string numerical value]'
+  '(-r --reverse)'{-r,--reverse}'[reverse the result of comparisons]'
+  '(-k --key)'{-k+,--key=}'[the field to sort on]:key field'
+)
+
+_pick_variant -c sort -r variant gnu=GNU $OSTYPE --version
+case $variant in
+  dragonfly*|netbsd*|openbsd*|freebsd*|gnu)
+    args+=(
+      '(-s --stable)'{-s,--stable}'[preserve original order of lines with the same key]'
+    )
+  ;|
+  openbsd*|freebsd*|gnu|solaris2.<11->)
+    args+=(
+      "(-c --check -C)-C[check whether input is sorted silently; don't sort]"
+    )
+  ;|
+  freebsd*|gnu)
+    args+=(
+      "(-c --check -C)--check=-[check whether input is sorted; don't sort]::bad line handling:(diagnose-first silent quiet)"
+      "$ordering"{-g,--general-numeric-sort}'[compare according to general numeric value]'
+      "$ordering"{-M,--month-sort}"[compare (unknown) < 'JAN' < ... < 'DEC']"
+      "$ordering"{-h,--human-numeric-sort}'[compare human readable numbers (e.g., 2K 1G)]'
+      "$ordering"{-R,--random-sort}'[sort by random hash of keys]'
+      "$ordering"{-V,--version-sort}'[sort version numbers]'
+      "$ordering--sort=[sort according to ordering]:ordering:(general-numeric human-numeric month numeric random version)"
+      '--random-source=[get random bytes from file]:file:_files'
+      '--batch-size=[maximum inputs to merge]:number'
+      '--compress-program=[specify program to compress temporary files with]:program:(gzip bzip2 lzop xz)'
+      '--debug[annotate the of the line used to sort]'
+      '(-S --buffer-size)'{-S+,--buffer-size=}'[specify size for main memory buffer]:size'
+      '(- *)--help[display help and exit]'
+    )
+  ;|
+  netbsd*|dragonfly*)
+    args+=(
+      "${ordering}-l[sort by string length of field]"
+      "(-s)-S[don't use stable sort]"
+    )
+  ;|
+  openbsd*)
+    args+=(
+      '-H[use a merge sort instead of a radix sort]'
+    )
+  ;|
+  gnu)
+    args+=( '--parallel=[set number of sorts run concurrently]:number' )
+  ;;
+  freebsd*)
+    args+=( --radixsort  --mergesort --qsort --heapsort --mmap )
+  ;;
+  *) args=( "${(@)args:#(|\(*\))(|\*)--*}" ) ;;
+esac
+
+_arguments -s -S $args '*:file:_files'
