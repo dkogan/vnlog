@@ -1,0 +1,13 @@
+complete -W '                   \
+  -a                            \
+  -j                            \
+  -o                            \
+  -v                            \
+  -i --ignore-case              \
+  --help                        \
+  --check-order --nocheck-order \
+  --vnl-prefix1                 \
+  --vnl-prefix2                 \
+  --vnl-suffix1                 \
+  --vnl-suffix2                 \
+  --vnl-sort' vnl-join

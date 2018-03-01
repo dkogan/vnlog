@@ -1,0 +1,11 @@
+complete -W '         \
+    --has             \
+    --pick --print -p \
+    --eval            \
+    --function        \
+    --noskipempty     \
+    --skipcomments    \
+    --dumpexprs       \
+    --perl            \
+    --unbuffered      \
+    --help' vnl-filter

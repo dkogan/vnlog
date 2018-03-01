@@ -1,0 +1,13 @@
+complete -W '           \
+  -n                    \
+  --lines               \
+  --follow              \
+  -f                    \
+  -F                    \
+  --max-unchanged-stats \
+  -s                    \
+  --sleep-interval      \
+  --pid                 \
+  --retry               \
+  --help                \
+  --version' vnl-tail

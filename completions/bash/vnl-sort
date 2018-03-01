@@ -1,0 +1,38 @@
+complete -W '            \
+  -d                     \
+  --dictionary-order     \
+  -g                     \
+  --general-numeric-sort \
+  -M                     \
+  --month-sort           \
+  -h                     \
+  --human-numeric-sort   \
+  -n                     \
+  --numeric-sort         \
+  --sort                 \
+  -V                     \
+  --version-sort         \
+  --help                 \
+  -c                     \
+  -m                     \
+  --merge                \
+  -T                     \
+  --temporary-directory  \
+  -u --unique            \
+  -f --ignore-case       \
+  -r --reverse           \
+  -k --key               \
+  --check                \
+  --random-source        \
+  --batch-size           \
+  --compress-program     \
+  --debug                \
+  -S                     \
+  --buffer-size          \
+  --help                 \
+  --parallel             \
+  --radixsort            \
+  --mergesort            \
+  --qsort                \
+  --heapsort             \
+  --mmap' vnl-sort
