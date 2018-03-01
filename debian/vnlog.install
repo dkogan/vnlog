@@ -4,3 +4,4 @@
 /usr/bin/vnl-join
 /usr/bin/vnl-make-matrix
 /usr/bin/vnl-align
+completions/zsh/* /usr/share/zsh/vendor-completions
