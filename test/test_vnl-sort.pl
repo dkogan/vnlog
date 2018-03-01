@@ -272,10 +272,10 @@ EOF
 if($Nfailed == 0 )
 {
     say colored(["green"], "All tests passed!");
+    exit 0;
 }
 else
 {
     say colored(["red"], "$Nfailed tests failed!");
+    exit 1;
 }
-
-1;
