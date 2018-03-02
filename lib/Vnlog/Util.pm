@@ -6,7 +6,7 @@ use feature ':5.10';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -261,6 +261,33 @@ sub close_nondev_inputs
         }
     }
 }
+
+
+sub get_key_index
+{
+    my ($input, $key) = @_;
+
+    my $index;
+
+    my $keys = $input->{keys};
+    for my $i (0..$#$keys)
+    {
+        next unless $keys->[$i] eq $key;
+
+        if (defined $index)
+        {
+            die "File '$input->{filename}' contains key '$key' more than once!";
+        }
+        $index = $i + 1;        # keys are indexed from 1
+    }
+
+    if (!defined $index)
+    {
+        die "File '$input->{filename}' does not contain key '$key'!";
+    }
+
+    return $index;
+};
 
 sub reconstruct_substituted_command
 {

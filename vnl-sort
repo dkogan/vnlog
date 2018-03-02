@@ -7,7 +7,7 @@ use autodie;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
-use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
+use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command get_key_index);
 
 
 
@@ -129,7 +129,7 @@ $options->{'ignore-leading-blanks'} = 1;
 
 my $inputs = read_and_preparse_input($filenames);
 ensure_all_legends_equivalent($inputs);
-substitute_field_keys($options, $inputs->[0]{keys});
+substitute_field_keys($options, $inputs->[0]);
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
 say '# ' . join(' ', @{$inputs->[0]{keys}});
@@ -138,19 +138,9 @@ exec 'sort', @$ARGV_new;
 
 sub substitute_field_keys
 {
-    my ($options, $keys) = @_;
+    my ($options, $inputs) = @_;
 
     return unless defined $options->{key};
-
-    my %key_indices;
-    for my $i(0..$#$keys)
-    {
-        if ( defined $key_indices{$keys->[$i]})
-        {
-            die "File '$inputs->[0]{filename}' contains key '$keys->[$i]' more than once!";
-        }
-        $key_indices{$keys->[$i]} = $i + 1; # keys are indexed from 1
-    }
 
     # manpage of sort says that key definitions are given as
     # "F[.C][OPTS][,F[.C][OPTS]]". By default, sort works not just off the field
@@ -169,12 +159,7 @@ sub substitute_field_keys
         $options->{key}[$i_keyoption] =~ /^([^\.]+)(?:\.([bdfgiMhnRrV]+?))?$/
           or die "Couldn't parse '$_' as a sort KEYDEF";
 
-        if (!exists $key_indices{$1})
-        {
-            die "Requested key '$1' not found in the input vnlogs. Have known keys '@$keys'";
-        }
-
-        my $key  = $key_indices{$1};
+        my $key  = get_key_index($inputs, $1);
         my $opts = $2 // '';
 
         $options->{key}[$i_keyoption] = "$key,$key$opts";

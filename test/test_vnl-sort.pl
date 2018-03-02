@@ -58,12 +58,21 @@ my $data3 = <<'EOF';
 111 24 3 231
 EOF
 
+my $data_int_dup = <<'EOF';
+# a c c
+1 10 A
+2 11 B
+3 12 C
+EOF
+
+
 
 
 test_init('vnl-sort', \$Nfailed,
           '$data1'       => $data1,
           '$data2'       => $data2,
           '$data3'       => $data3,
+          '$data_int_dup'=> $data_int_dup,
           '$data_not_ab' => $data_not_ab);
 
 
@@ -263,6 +272,18 @@ check( <<'EOF', '-k', 'a.n', '-k', 'b.n', '-k', 'c.n', '-k', 'd', '$data3' );
 211 24 2 231
 211 24 3 231
 EOF
+
+
+# Now make sure irrelevant dups don't break me
+check( <<'EOF', qw(-k a), '$data_int_dup' );
+# a c c
+1 10 A
+2 11 B
+3 12 C
+EOF
+
+# But that relevant dups do
+check( 'ERROR', qw(-k c), '$data_int_dup' );
 
 
 

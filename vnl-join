@@ -10,7 +10,7 @@ use lib "$Bin/lib";
 # Non-ancient perls have this in List::Util, but I want to support ancient ones too
 use List::MoreUtils 'all';
 
-use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command);
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index);
 
 
 
@@ -269,44 +269,12 @@ sub substitute_field_keys
     # I handle -j and -o. Prior to this I converted -1 and -2 into -j
     my ($options, $inputs) = @_;
 
-
-    my $get_index = sub
-    {
-        my ($i_input, $key) = @_;
-
-        my $index;
-
-        my $keys = $inputs->[$i_input]{keys};
-        for my $i (0..$#$keys)
-        {
-            next unless $keys->[$i] eq $key;
-
-            if (defined $index)
-            {
-                die "File '$inputs->[$i_input]{filename}' contains key '$key' more than once!";
-            }
-            $index = $i + 1; # keys are indexed from 1
-        }
-
-        if (!defined $index)
-        {
-            die "File '$inputs->[$i_input]{filename}' does not contain key '$key'!";
-        }
-
-        return $index;
-    };
-
-
-
-
-
     # I convert -j into -1 and -2 because the two files might
     # have a given named field in a different position
     my $join_field_name = $options->{j};
-
     delete $options->{j};
-    $options->{1} = &$get_index(0, $join_field_name);
-    $options->{2} = &$get_index(1, $join_field_name);
+    $options->{1} = get_key_index($inputs->[0], $join_field_name);
+    $options->{2} = get_key_index($inputs->[1], $join_field_name);
 
 
 
@@ -332,7 +300,7 @@ sub substitute_field_keys
                     die "-o given '$format_element', where a field parsed to 'FILE.FIELD', but FILE must be either '1' or '2'";
                 }
 
-                my $index = &$get_index($file-1,$field);
+                my $index = get_key_index($inputs->[$file-1],$field);
                 push @format_out, "$file.$index";
                 push @keys_out, $field;
             }
