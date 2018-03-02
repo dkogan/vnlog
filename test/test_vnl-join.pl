@@ -39,10 +39,26 @@ my $data2 = <<'EOF';
 52b 6c 7d 10
 EOF
 
+my $data_int = <<'EOF';
+# a b
+1 a
+2 b
+3 c
+EOF
+
+my $data_int_dup = <<'EOF';
+# a c c
+1 10 A
+2 11 B
+3 12 C
+EOF
+
 
 test_init('vnl-join', \$Nfailed,
-          '$data1'    => $data1,
-          '$data2'    => $data2);
+          '$data1'       => $data1,
+          '$data2'       => $data2,
+          '$data_int'    => $data_int,
+          '$data_int_dup'=> $data_int_dup);
 
 
 
@@ -170,6 +186,18 @@ check( <<'EOF', qw(-j e --vnl-sort n --vnl-suffix1 1), '$data1', '$data2' );
 9 1a 22b 32b 5c 6d
 10 5a 32b 52b 6c 7d
 EOF
+
+# Now make sure irrelevant dups don't break me
+check( <<'EOF', qw(-j a), '$data_int', '$data_int_dup' );
+# a b c c
+1 a 10 A
+2 b 11 B
+3 c 12 C
+EOF
+
+
+# But that relevant dups do
+check( 'ERROR', qw(-j c), '$data_int', '$data_int_dup' );
 
 
 

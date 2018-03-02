@@ -267,46 +267,46 @@ sub push_nonjoin_keys
 sub substitute_field_keys
 {
     # I handle -j and -o. Prior to this I converted -1 and -2 into -j
-
     my ($options, $inputs) = @_;
 
 
-
-    # First I compute the field-index mapping for general imminent use
-    my @key_indices;
-    for my $i_input(0..$#$inputs)
+    my $get_index = sub
     {
+        my ($i_input, $key) = @_;
+
+        my $index;
+
         my $keys = $inputs->[$i_input]{keys};
-        my %key_indices_here;
         for my $i (0..$#$keys)
         {
-            if( defined $key_indices_here{$keys->[$i]})
+            next unless $keys->[$i] eq $key;
+
+            if (defined $index)
             {
-                die "File '$inputs->[$i_input]{filename}' contains key '$keys->[$i]' more than once!";
+                die "File '$inputs->[$i_input]{filename}' contains key '$key' more than once!";
             }
-            $key_indices_here{$keys->[$i]} = $i + 1; # keys are indexed from 1
+            $index = $i + 1; # keys are indexed from 1
         }
-        push @key_indices, \%key_indices_here;
-    }
+
+        if (!defined $index)
+        {
+            die "File '$inputs->[$i_input]{filename}' does not contain key '$key'!";
+        }
+
+        return $index;
+    };
+
+
 
 
 
     # I convert -j into -1 and -2 because the two files might
     # have a given named field in a different position
-
     my $join_field_name = $options->{j};
-    if(! exists $key_indices[0]{$join_field_name})
-    {
-        die "Requested key '$join_field_name' not found in the input vnlog '$inputs->[0]{filename}. Have known keys '@{$inputs->[0]{keys}}'";
-    }
-    if(! exists $key_indices[1]{$join_field_name})
-    {
-        die "Requested key '$join_field_name' not found in the input vnlog '$inputs->[1]{filename}. Have known keys '@{$inputs->[1]{keys}}'";
-    }
 
     delete $options->{j};
-    $options->{1} = $key_indices[0]{$join_field_name};
-    $options->{2} = $key_indices[1]{$join_field_name};
+    $options->{1} = &$get_index(0, $join_field_name);
+    $options->{2} = &$get_index(1, $join_field_name);
 
 
 
@@ -331,12 +331,9 @@ sub substitute_field_keys
                 {
                     die "-o given '$format_element', where a field parsed to 'FILE.FIELD', but FILE must be either '1' or '2'";
                 }
-                if(! defined $key_indices[$file-1]{$field})
-                {
-                    die "-o given '$format_element', where a field parsed to 'FILE.FIELD', but FIELD '$field' doesn't exist in file '$inputs->[$file-1]{filename}. Have known keys '@{$inputs->[$file-1]{keys}}'";
-                }
 
-                push @format_out, "$file.$key_indices[$file-1]{$field}";
+                my $index = &$get_index($file-1,$field);
+                push @format_out, "$file.$index";
                 push @keys_out, $field;
             }
         }
