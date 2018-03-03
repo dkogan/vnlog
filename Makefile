@@ -47,6 +47,7 @@ test check: all
 	test/test_vnl-sort.pl
 	test/test_vnl-join.pl
 	test/test_c_api.sh
+	test/test_perl_parser.pl
 	@echo "All tests passed!"
 .PHONY: test check
 
