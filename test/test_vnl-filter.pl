@@ -59,6 +59,14 @@ my $data_hasempty_hascomments = <<'EOF';
 - - -
 EOF
 
+my $data_int_dup = <<'EOF';
+# c a c
+2 1 a
+4 - b
+6 5 c
+EOF
+
+
 
 
 
@@ -468,6 +476,40 @@ check(<<'EOF', '-p', q{s=1 + %CPU,s2=%CPU + 2,s3=TIME+ + 1,s4=1 + TIME+}, {data 
 1 2 2 2
 EOF
 
+# A log with duplicated columns should generally behave normally, if we aren't
+# explicitly touching the duplicate columns
+check(<<'EOF', qw(1), {data => $data_int_dup});
+# c a c
+2 1 a
+4 - b
+6 5 c
+EOF
+
+check(<<'EOF', qw(a==1), {data => $data_int_dup});
+# c a c
+2 1 a
+EOF
+
+check('ERROR', qw(c==1), {data => $data_int_dup});
+
+check(<<'EOF', qw(-p a), {data => $data_int_dup});
+# a
+1
+5
+EOF
+
+check(<<'EOF', qw(-p a --noskipempty), {data => $data_int_dup});
+# a
+1
+-
+5
+EOF
+
+check('ERROR', qw(-p .), {data => $data_int_dup});
+check('ERROR', qw(-p c), {data => $data_int_dup});
+
+
+
 # # awk and perl write out the data with different precisions, so I test them separately for now
 # check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
 # # rel_n(lat) rel_e(lon) rel_n(lat2) rel_e(lon2)
@@ -533,6 +575,7 @@ sub check
     }
     $data //= $data_default;
 
+  LANGUAGE:
     for my $doperl (@langs)
     {
         # if the arguments are a list of strings, these are simply the args to a
@@ -547,15 +590,36 @@ sub check
         # @args is now a list-ref. Each element is a filter operation
         my $in = $data;
         my $out;
+        my $err;
         for my $arg (@args)
         {
             my @args_here = @$arg;
             push @args_here, '--perl' if $doperl;
 
             $out = '';
-            run( ["perl",
-                  "$Bin/../vnl-filter", @args_here], \$in, \$out ) or confess "Couldn't run test";
+            my $result =
+              run( ["perl",
+                    "$Bin/../vnl-filter", @args_here], \$in, \$out, \$err );
             $in = $out;
+
+            if($expected ne 'ERROR' && !$result)
+            {
+                cluck "Test failed. Expected success, but got failure";
+                $Nfailed++;
+                next LANGUAGE;
+            }
+            if($expected eq 'ERROR' && $result)
+            {
+                cluck "Test failed. Expected failure, but got success";
+                $Nfailed++;
+                next LANGUAGE;
+            }
+            if($expected eq 'ERROR' && !$result)
+            {
+                # successful failure
+                next LANGUAGE;
+            }
+
         }
 
         my $diff = diff(\$expected, \$out);
