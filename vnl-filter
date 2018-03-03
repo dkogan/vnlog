@@ -309,7 +309,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
             {
                 if( !defined $colindices_input{$col})
                 {
-                    die "I don't have column '$col'";
+                    die "I don't have a unique column '$col'";
                 }
                 push @must_have_col_indices_input, $colindices_input{$col};
             }
