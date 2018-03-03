@@ -163,35 +163,49 @@ functions are
 
 =over
 
-=item new
+=item *
+
+new()
 
 Creates new Vnlog::Parser object. Takes no arguments.
 
-=item parse
+=item *
+
+parse(line)
 
 Method to call for each input line. On error, a false value is returned.
 
-=item error
+=item *
+
+error()
 
 If an error occurred, returns a string that describes the error.
 
-=item getKeys
+=item *
+
+getKeys()
 
 Returns a list-ref containing the current column labels or undef if this hasn't
 been parsed yet.
 
-=item getValues
+=item *
+
+getValues()
 
 Returns a list-ref containing the values for the current line or undef if there
 aren't any. This isn't an error necessarily because this line could have been a
 comment.
 
-=item lookup
+=item *
+
+lookup(key)
 
 Given a string for a specific key, looks up the corresponding value in this
 line.
 
-=item pairs
+=item *
+
+pairs()
 
 Returns a list of [$key,$value] tuples.
 
