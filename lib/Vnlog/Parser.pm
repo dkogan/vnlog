@@ -100,31 +100,33 @@ sub getValues
     return $this->{values}
 }
 
+sub _makeValuesHash
+{
+    my ($this) = @_;
+    $this->{values_hash} = {};
+
+    return unless $this->{keys};
+    for my $i (0..$#{$this->{keys}})
+    {
+        $this->{values_hash}{$this->{keys}[$i]} = $this->{values}[$i];
+    }
+}
+
+sub getValuesHash
+{
+    my ($this) = @_;
+    $this->_makeValuesHash() unless $this->{values_hash};
+    return $this->{values_hash};
+}
+
 sub lookup
 {
     my ($this, $k) = @_;
 
     return undef unless $this->{keys};
 
-    if( !$this->{values_hash} )
-    {
-        $this->{values_hash} = {};
-
-        for my $i(0..$#{$this->{keys}})
-        {
-            $this->{values_hash}{$this->{keys}[$i]} = $this->{values}[$i];
-        }
-    }
-
+    $this->_makeValuesHash() unless $this->{values_hash};
     return $this->{values_hash}{$k};
-}
-
-sub pairs
-{
-    my ($this) = @_;
-    return () unless $this->{values};
-
-    return map { [$this->{keys}[$_], $this->{values}[$_]] } 0..$#{$this->{keys}};
 }
 
 1;
@@ -149,10 +151,8 @@ Vnlog::Parser - Simple library to parse vnlog data
 
      printf( "At time %f got height %f\n", $parser->lookup('time'), $parser->lookup('height') );
 
-     for my $kv ($parser->pairs())
-     {
-         printf( "got %s = %s\n", $kv->[0], $kv->[1] );
-     }
+     use Data::Dumper;
+     print Dumper $parser->values_hash();
  }
 
 =head1 DESCRIPTION
@@ -198,16 +198,18 @@ comment.
 
 =item *
 
+getValuesHash()
+
+Returns a hash-ref containing the key-value mapping for the current line or
+undef if there's no data in this line. This isn't an error necessarily because
+this line could have been a comment.
+
+=item *
+
 lookup(key)
 
 Given a string for a specific key, looks up the corresponding value in this
 line.
-
-=item *
-
-pairs()
-
-Returns a list of [$key,$value] tuples.
 
 =back
 
