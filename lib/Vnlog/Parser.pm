@@ -36,7 +36,7 @@ sub parse
         return 1;
     }
 
-    if( $line =~ /^#[!#]/ )
+    if( $line =~ /^\s*#[!#]/ )
     {
         # comment
         # no data, no error
@@ -67,7 +67,7 @@ sub parse
 
     $line =~ /^\s*(.*?)\s*$/; # get the non-newline part. Like chomp, but
                               # non-destructive
-    $this->{values} = [ map {$_ eq '-' ? '' : $_} split(/ /, $1) ];
+    $this->{values} = [ map {$_ eq '-' ? undef : $_} split(/ /, $1) ];
     if( scalar @{$this->{'keys'}} != scalar @{$this->{'values'}} )
     {
         # mismatched key/value counts
@@ -100,33 +100,30 @@ sub getValues
     return $this->{values}
 }
 
-sub _makeValuesHash
-{
-    my ($this) = @_;
-    $this->{values_hash} = {};
-
-    return unless $this->{keys};
-    for my $i (0..$#{$this->{keys}})
-    {
-        $this->{values_hash}{$this->{keys}[$i]} = $this->{values}[$i];
-    }
-}
-
 sub getValuesHash
 {
     my ($this) = @_;
-    $this->_makeValuesHash() unless $this->{values_hash};
+
+    # internally:
+    #   $this->{values_hash} == undef:  not yet computed
+    #   $this->{values_hash} == {}:     computed, but no-data
+    # returning: undef if computed, but no-data
+
+    if( defined $this->{values_hash} )
+    {
+        return undef if 0 == scalar(%{$this->{values_hash}});
+        return $this->{values_hash};
+    }
+
+    $this->{values_hash} = {};
+    if($this->{keys} && $this->{values})
+    {
+        for my $i (0..$#{$this->{keys}})
+        {
+            $this->{values_hash}{$this->{keys}[$i]} = $this->{values}[$i];
+        }
+    }
     return $this->{values_hash};
-}
-
-sub lookup
-{
-    my ($this, $k) = @_;
-
-    return undef unless $this->{keys};
-
-    $this->_makeValuesHash() unless $this->{values_hash};
-    return $this->{values_hash}{$k};
 }
 
 1;
@@ -140,20 +137,19 @@ Vnlog::Parser - Simple library to parse vnlog data
  use Vnlog::Parser;
 
  my $parser = Vnlog::Parser->new();
- while (<>)
+ while (<DATA>)
  {
      if( !$parser->parse($_) )
      {
          die "Error parsing vnlog line '$_': " . $parser->error();
      }
 
-     next unless $parser->getValues();
+     my $d = $parser->getValuesHash();
+     next unless %$d;
 
-     printf( "At time %f got height %f\n", $parser->lookup('time'), $parser->lookup('height') );
-
-     use Data::Dumper;
-     print Dumper $parser->values_hash();
+     say "$d->{time}: $d->{height}";
  }
+
 
 =head1 DESCRIPTION
 
@@ -194,7 +190,8 @@ getValues()
 
 Returns a list-ref containing the values for the current line or undef if there
 aren't any. This isn't an error necessarily because this line could have been a
-comment.
+comment. Empty fields are '-' in the vnlog and undef in the values returned
+here.
 
 =item *
 
@@ -202,14 +199,10 @@ getValuesHash()
 
 Returns a hash-ref containing the key-value mapping for the current line or
 undef if there's no data in this line. This isn't an error necessarily because
-this line could have been a comment.
+this line could have been a comment. Empty fields are '-' in the vnlog and undef
+in the values returned here.
 
 =item *
-
-lookup(key)
-
-Given a string for a specific key, looks up the corresponding value in this
-line.
 
 =back
 
