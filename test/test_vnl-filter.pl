@@ -49,6 +49,17 @@ my $data_specialchars = <<'EOF';
     1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd
 EOF
 
+my $data_hasempty_hascomments = <<'EOF';
+#!adsf
+# a b c
+1 2 3
+## zcxv
+4 - 6
+7 9 -
+- - -
+EOF
+
+
 
 
 check( <<'EOF', qw(-p s=b) );
@@ -66,6 +77,40 @@ check( <<'EOF', qw(-p s=b --noskipempty) );
 -
 9
 11
+EOF
+
+check( <<'EOF', qw(--noskipempty), {data => $data_hasempty_hascomments} );
+#!adsf
+# a b c
+1 2 3
+## zcxv
+4 - 6
+7 9 -
+- - -
+EOF
+
+check( <<'EOF', qw(--skipempty), {data => $data_hasempty_hascomments} );
+#!adsf
+# a b c
+1 2 3
+## zcxv
+4 - 6
+7 9 -
+EOF
+
+check( <<'EOF', qw(--noskipempty --skipcomments), {data => $data_hasempty_hascomments} );
+# a b c
+1 2 3
+4 - 6
+7 9 -
+- - -
+EOF
+
+check( <<'EOF', qw(--skipempty --skipcomments), {data => $data_hasempty_hascomments} );
+# a b c
+1 2 3
+4 - 6
+7 9 -
 EOF
 
 check( <<'EOF', '-p', 's=b,a' );

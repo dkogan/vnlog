@@ -110,13 +110,38 @@ my @must_have_col_names = @{$options{has}};
 my @must_have_col_indices_input;
 
 # if no columns requested, just print everything
-if( !@picked_exprs_named && !@must_have_col_names && !@{$options{matches}} && !defined $options{eval} )
+if( !@picked_exprs_named  &&
+    !@must_have_col_names &&
+    !@{$options{matches}} &&
+    !defined $options{eval} )
 {
+    if($options{dumpexprs})
+    {
+
+        say "--dumpexprs: No-op special case; printing everything, modulo --skipcomments, --noskipempty";
+        exit 0;
+    }
+    my $gotlegend;
     while(<STDIN>)
     {
+        if( $options{skipempty} )
+        {
+            next if /^ \s* - (?: \s+ - )* \s* $/x;
+        }
+        if( $options{skipcomments})
+        {
+            next if /^#[#!]/;
+            if( /^\s*#/)
+            {
+                next if $gotlegend;
+                $gotlegend = 1;
+            }
+        }
+
         print;
         flush STDOUT if $options{unbuffered};
     }
+    exit 0;
 }
 
 my @colnames_output;
