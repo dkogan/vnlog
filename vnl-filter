@@ -207,42 +207,43 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
         # If we weren't asked for particular columns, take them all. This isn't
         # a no-op because we can have --has
-        @picked_exprs_named = @cols_all_legend_input unless @picked_exprs_named;
 
-      COLUMN:
-        foreach my $picked_expr_named (@picked_exprs_named)
+        if( @picked_exprs_named )
         {
-            my $accept = sub
+          COLUMN:
+            foreach my $picked_expr_named (@picked_exprs_named)
             {
-                my ($exprs, $name) = @_;
-
-                if( defined $name )
+                my $accept = sub
                 {
-                    if( @$exprs != 1 )
+                    my ($exprs, $name) = @_;
+
+                    if ( defined $name )
                     {
-                        die "A named expression can only refer to ONE column";
+                        if ( @$exprs != 1 )
+                        {
+                            die "A named expression can only refer to ONE column";
+                        }
+                        push @colnames_output, $name;
                     }
-                    push @colnames_output, $name;
-                }
-                else
-                {
-                    push @colnames_output, @$exprs;
-                }
-
-                my @output_fields;
-                for my $expr(@$exprs)
-                {
-                    my ($output_field, $colidx_needed_max_here) =
-                      expr_subst_col_names($options{perl} ? 'perl' : 'awk',
-                                           $expr);
-                    if ( $colidx_needed_max_here > $colidx_needed_max )
+                    else
                     {
-                        $colidx_needed_max = $colidx_needed_max_here;
+                        push @colnames_output, @$exprs;
                     }
-                    push @output_fields, $output_field;
-                }
-                push @langspecific_output_fields, @output_fields;
-            };
+
+                    my @output_fields;
+                    for my $expr (@$exprs)
+                    {
+                        my ($output_field, $colidx_needed_max_here) =
+                          expr_subst_col_names($options{perl} ? 'perl' : 'awk',
+                                               $expr);
+                        if ( $colidx_needed_max_here > $colidx_needed_max )
+                        {
+                            $colidx_needed_max = $colidx_needed_max_here;
+                        }
+                        push @output_fields, $output_field;
+                    }
+                    push @langspecific_output_fields, @output_fields;
+                };
 
 
 
@@ -250,49 +251,65 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
 
 
-            my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
-            if( !defined $picked_expr )
-            {
-                $picked_expr = $picked_expr_named;
-            }
-
-
-            # do I have an exact column match?
-            if( defined $colindices_input{$picked_expr} )
-            {
-                # We have exactly ONE matched column
-                $accept->( [$picked_expr], $name);
-                next;
-            }
-            if( exists $colindices_input{$picked_expr} )
-            {
-                die "Found more than one column that string-matched '$picked_expr' exactly";
-            }
-
-            # No exact column match. If this is a named expression, I pass it on
-            # to awk/perl
-            if( defined $name )
-            {
-                $accept->([$picked_expr], $name);
-                next;
-            }
-
-            # No exact matches were found, and not a named expression. Let me
-            # try a regex
-            my $picked_expr_re;
-            eval { $picked_expr_re = qr/$picked_expr/; };
-            if( !$@ )
-            {
-                # compiled regex successfully
-                my @matching_input_cols = grep /$picked_expr_re/, @cols_all_legend_input;
-                if( @matching_input_cols >= 1 )
+                my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
+                if ( !defined $picked_expr )
                 {
-                    $accept->(\@matching_input_cols);
+                    $picked_expr = $picked_expr_named;
+                }
+
+
+                # do I have an exact column match?
+                if ( defined $colindices_input{$picked_expr} )
+                {
+                    # We have exactly ONE matched column
+                    $accept->( [$picked_expr], $name);
                     next;
                 }
-            }
+                if ( exists $colindices_input{$picked_expr} )
+                {
+                    die "Found more than one column that string-matched '$picked_expr' exactly";
+                }
 
-            die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
+                # No exact column match. If this is a named expression, I pass it on
+                # to awk/perl
+                if ( defined $name )
+                {
+                    $accept->([$picked_expr], $name);
+                    next;
+                }
+
+                # No exact matches were found, and not a named expression. Let me
+                # try a regex
+                my $picked_expr_re;
+                eval { $picked_expr_re = qr/$picked_expr/; };
+                if ( !$@ )
+                {
+                    # compiled regex successfully
+                    my @matching_input_cols = grep /$picked_expr_re/, @cols_all_legend_input;
+                    if ( @matching_input_cols >= 1 )
+                    {
+                        $accept->(\@matching_input_cols);
+                        next;
+                    }
+                }
+
+                die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
+            }
+        }
+        else
+        {
+            # no columns requested. I take ALL the columns. I make sure to not
+            # explicitly look at any of the column names, so if we have
+            # duplicate columns, things will remain functional
+            @colnames_output = @cols_all_legend_input;
+            if( !$options{perl} )
+            {
+                @langspecific_output_fields = map { '$'. $_ } 1..(1+$#cols_all_legend_input);
+            }
+            else
+            {
+                @langspecific_output_fields = map { "\$fields[$_]" } 0..$#cols_all_legend_input;
+            }
         }
 
         # print out the new legend
@@ -654,7 +671,10 @@ sub makeAwkProgram
 
     # skip incomplete records. Can happen if a log line at the end of a file
     # was cut off in the middle
-    $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
+    if( $colidx_needed_max >= 0)
+    {
+        $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
+    }
 
     # skip records that have empty input columns that must be non-empty
     if (@must_have_col_indices_input)
