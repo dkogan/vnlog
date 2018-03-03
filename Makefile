@@ -48,12 +48,14 @@ test check: all
 	test/test_vnl-join.pl
 	test/test_c_api.sh
 	test/test_perl_parser.pl
+	test/test_python_parser.py
 	@echo "All tests passed!"
 .PHONY: test check
 
 DIST_INCLUDE      := *.h
 DIST_BIN          := $(TOOLS)
 DIST_PERL_MODULES := lib/Vnlog
+DIST_PY2_MODULES  := lib/vnlog.py
 
 install: doc
 DIST_MAN     := man1/ man3/
