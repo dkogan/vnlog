@@ -8,18 +8,20 @@ License:        LGPL-2.1+
 URL:            https://github.com/dkogan/vnlog/
 Source0:        https://github.com/dkogan/vnlog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
-BuildRequires: /usr/bin/pod2man
+BuildRequires: python2-devel
 BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
 BuildRequires: perl-List-MoreUtils
+BuildRequires: mawk
 BuildRequires: make
 BuildRequires: chrpath
+
+BuildRequires: /usr/bin/pod2man
 BuildRequires: perl-autodie
+BuildRequires: perl-Data-Dumper
 
 
-# for tests
-BuildRequires: mawk
 
 %description
 We want to manipulate data logged in a very simple whitespace-separated ASCII
@@ -61,6 +63,12 @@ make check
 %install
 %make_install
 
+mkdir -p %{buildroot}%{_datadir}/zsh/site-functions
+cp completions/zsh/* %{buildroot}%{_datadir}/zsh/site-functions
+
+mkdir -p %{buildroot}%{_datadir}/bash-completion/completions
+cp completions/bash/* %{buildroot}%{_datadir}/bash-completion/completions
+
 %clean
 make clean
 
@@ -69,6 +77,7 @@ make clean
 %{_libdir}/*.so.*
 %doc %{_mandir}/man3/*
 %{_datadir}/perl5
+%{python2_sitelib}/*
 
 %files devel
 %{_libdir}/*.so
@@ -89,3 +98,5 @@ make clean
 %doc %{_mandir}/man1/vnl-join.1.gz
 %doc %{_mandir}/man1/vnl-make-matrix.1.gz
 %doc %{_mandir}/man1/vnl-align.1.gz
+%{_datadir}/zsh/*
+%{_datadir}/bash-completion/*
