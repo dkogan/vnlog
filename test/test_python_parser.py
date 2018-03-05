@@ -29,8 +29,10 @@ None None
 7 8
 '''
 
-f = cStringIO.StringIO(inputstring)
 
+
+# Parsing manually
+f = cStringIO.StringIO(inputstring)
 parser = vnlog.vnlog()
 resultstring = ''
 for l in f:
@@ -39,7 +41,6 @@ for l in f:
     if not d:
         continue
     resultstring += '{} {}\n'.format(d['time'],d['height'])
-
 if resultstring != ref:
     print "Expected '{}' but got '{}'".format(ref, resultstring)
     print "Test failed!"
@@ -47,11 +48,10 @@ if resultstring != ref:
 
 
 
-
+# Iterating
 f = cStringIO.StringIO(inputstring)
-
 resultstring = ''
-for d in vnlog.vnlog('/tmp/tst.vnl'):
+for d in vnlog.vnlog(f):
     resultstring += '{} {}\n'.format(d['time'],d['height'])
 if resultstring != ref:
     print "Expected '{}' but got '{}'".format(ref, resultstring)
@@ -59,7 +59,7 @@ if resultstring != ref:
     sys.exit(1)
 
 
-
+# Slurping
 inputstring_noundef = r'''#! zxcv
 # time height
 ## qewr
