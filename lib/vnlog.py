@@ -1,8 +1,5 @@
 #!/usr/bin/python2
 
-import re
-import numpy as np
-
 r'''A simple parser for vnlog data
 
 Synopsis:
@@ -51,6 +48,9 @@ but also the most verbose
 
 '''
 
+
+import re
+import numpy as np
 
 class vnlog:
 
