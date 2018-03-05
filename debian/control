@@ -26,8 +26,8 @@ Provides: ${python:Provides}
 Description: Tools to manipulate whitespace-separated ASCII logs
  Vnlog (pronounced "vanillog") is a trivially-simple log format consisting of an
  ASCII table with comments and labelled fields. This package provides a C
- library that simplifies generating such logs and a simple perl library to parse
- such logs.
+ library that simplifies generating such logs, simple python and perl libraries
+ to parse such logs, and some supporting stuff to make the vnl-xxx tools work.
 
 Package: libvnlog-dev
 Section: libdevel

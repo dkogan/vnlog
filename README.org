@@ -240,6 +240,8 @@ vnl-filter --eval '{s += x} END {print s}'
 
 - =Vnlog::Parser= is a simple perl library to read a vnlog
 
+- =vnlog= is a simple python library to read a vnlog
+
 - =libvnlog= is a C library to simplify writing a vnlog. Clearly all you
   /really/ need is =printf()=, but this is useful if we have lots of columns,
   many containing null values in any given row, and/or if we have parallel
