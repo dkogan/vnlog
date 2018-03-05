@@ -20,6 +20,7 @@ BuildRequires: chrpath
 BuildRequires: /usr/bin/pod2man
 BuildRequires: perl-autodie
 BuildRequires: perl-Data-Dumper
+BuildRequires: numpy
 
 
 
