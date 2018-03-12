@@ -5,6 +5,7 @@
 *.d
 *.so
 *.so.*
+*.pyc
 cscope*
 *_generated.h
 test/test1
