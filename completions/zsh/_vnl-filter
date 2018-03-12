@@ -11,4 +11,4 @@ _arguments -S                                                                   
     '--perl[Use perl for all the expressions instead of awk]'                                     \
     '--unbuffered[Flush the output pipe with every record]'                                       \
     '--help'                                                                                      \
-    '*:Expression that must evaluate to true for a record to be selected for output:'
+    '*: :_guard "^-*" "Expression that must evaluate to true for a record to be selected for output"'
