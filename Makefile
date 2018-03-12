@@ -42,15 +42,19 @@ test/vnlog_fields_generated%.h: test/vnlog%.defs vnl-gen-header
 	./vnl-gen-header < $< | perl -pe 's{vnlog/vnlog.h}{vnlog.h}' > $@
 EXTRA_CLEAN += test/vnlog_fields_generated*.h test/*.got
 
-test check: all
-	test/test_vnl-filter.pl
-	test/test_vnl-sort.pl
-	test/test_vnl-join.pl
-	test/test_c_api.sh
-	test/test_perl_parser.pl
-	test/test_python_parser.py
-	@echo "All tests passed!"
+# Set up the test suite to be runnable in parallel
+test check:					\
+   test/test_vnl-filter.pl.RUN			\
+   test/test_vnl-sort.pl.RUN			\
+   test/test_vnl-join.pl.RUN			\
+   test/test_c_api.sh.RUN			\
+   test/test_perl_parser.pl.RUN			\
+   test/test_python_parser.py.RUN
+	@echo "All tests in the test suite passed!"
 .PHONY: test check
+%.RUN: %
+	$<
+test/test_c_api.sh.RUN: test/test1
 
 DIST_INCLUDE      := *.h
 DIST_BIN          := $(TOOLS)
