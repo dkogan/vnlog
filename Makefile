@@ -49,7 +49,8 @@ test check:					\
    test/test_vnl-join.pl.RUN			\
    test/test_c_api.sh.RUN			\
    test/test_perl_parser.pl.RUN			\
-   test/test_python_parser.py.RUN
+   test/test_python2_parser.sh.RUN              \
+   test/test_python3_parser.sh.RUN
 	@echo "All tests in the test suite passed!"
 .PHONY: test check
 %.RUN: %
