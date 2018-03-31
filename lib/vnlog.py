@@ -1,8 +1,5 @@
 #!/usr/bin/python2
 
-from __future__ import print_function
-
-
 r'''A simple parser for vnlog data
 
 Synopsis:
@@ -52,6 +49,7 @@ but also the most verbose
 '''
 
 
+from __future__ import print_function
 import re
 import numpy as np
 
