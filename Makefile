@@ -268,8 +268,8 @@ endif
 	$(call install_rule,DIST_MAN,         $(DESTDIR)/usr/share/man,)
 	$(call install_rule,DIST_DATA,        $(DESTDIR)/usr/share/$(PROJECT_NAME),)
 	$(call install_rule,DIST_PERL_MODULES,$(DESTDIR)/usr/share/perl5,)
-	$(call install_rule,DIST_PY2_MODULES, $(DESTDIR)/usr/lib/python2.7/site-packages,)
-	$(call install_rule,DIST_PY3_MODULES, $(DESTDIR)/usr/lib/python3.4/site-packages,)
+	$(call install_rule,DIST_PY2_MODULES, $(DESTDIR)/usr/lib/python2.7/dist-packages,)
+	$(call install_rule,DIST_PY3_MODULES, $(DESTDIR)/usr/lib/python3/dist-packages,)
 
         # In filenames I rename __colon__ -> :
         # This is required because Make can't deal with : in rules
