@@ -1,5 +1,8 @@
 #!/usr/bin/python2
 
+from __future__ import print_function
+
+
 r'''A simple parser for vnlog data
 
 Synopsis:
@@ -195,7 +198,7 @@ class vnlog:
 
         self._values_dict = {}
         if self._keys and self._values:
-            for i in xrange(len(self._keys)):
+            for i in range(len(self._keys)):
                 self._values_dict[self._keys[i]] = self._values[i]
         return self._values_dict
 
@@ -236,7 +239,7 @@ def _slurp(f):
             break
 
     dict_key_index = {}
-    for i in xrange(len(keys)):
+    for i in range(len(keys)):
         dict_key_index[keys[i]] = i
 
     return np.loadtxt(f),keys,dict_key_index
@@ -271,9 +274,12 @@ def slurp(f):
 # Basic usage. More examples in test_python_parser.py
 if __name__ == '__main__':
 
-    import cStringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
-    f = cStringIO.StringIO('''#! zxcv
+    f = StringIO('''#! zxcv
 # time height
 ## qewr
 1 2
@@ -286,4 +292,4 @@ if __name__ == '__main__':
 ''')
 
     for d in vnlog(f):
-        print d['time'],d['height']
+        print(d['time'],d['height'])

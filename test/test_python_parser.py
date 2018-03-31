@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+
 import os
 import sys
 import numpy as np
@@ -7,7 +9,11 @@ import numpy as np
 sys.path[:0] = (os.path.abspath(os.path.dirname(sys.argv[0])) + "/../lib",)
 
 import vnlog
-import cStringIO
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 inputstring = '''#! zxcv
 # time height
@@ -32,7 +38,7 @@ None None
 
 
 # Parsing manually
-f = cStringIO.StringIO(inputstring)
+f = StringIO(inputstring)
 parser = vnlog.vnlog()
 resultstring = ''
 for l in f:
@@ -42,20 +48,20 @@ for l in f:
         continue
     resultstring += '{} {}\n'.format(d['time'],d['height'])
 if resultstring != ref:
-    print "Expected '{}' but got '{}'".format(ref, resultstring)
-    print "Test failed!"
+    print("Expected '{}' but got '{}'".format(ref, resultstring))
+    print("Test failed!")
     sys.exit(1)
 
 
 
 # Iterating
-f = cStringIO.StringIO(inputstring)
+f = StringIO(inputstring)
 resultstring = ''
 for d in vnlog.vnlog(f):
     resultstring += '{} {}\n'.format(d['time'],d['height'])
 if resultstring != ref:
-    print "Expected '{}' but got '{}'".format(ref, resultstring)
-    print "Test failed!"
+    print("Expected '{}' but got '{}'".format(ref, resultstring))
+    print("Test failed!")
     sys.exit(1)
 
 
@@ -69,7 +75,7 @@ inputstring_noundef = r'''#! zxcv
 7 8
 '''
 ref_noundef = np.array(((1,2),(3,4),(7,8)))
-f = cStringIO.StringIO(inputstring_noundef)
+f = StringIO(inputstring_noundef)
 log_numpy_array,list_keys,dict_key_index = vnlog.slurp(f)
 if np.linalg.norm((ref_noundef - log_numpy_array).ravel()) > 1e-8:
     raise Exception("Array mismatch: expected '{}' but got '{}". \
@@ -83,6 +89,6 @@ if len(dict_key_index) != 2 or dict_key_index['time'] != 0 or dict_key_index['he
 
 
 
-print "Test passed";
+print("Test passed")
 sys.exit(0);
 
