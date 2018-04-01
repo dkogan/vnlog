@@ -500,9 +500,12 @@ like that is more trouble than it's worth.
 
 https://github.com/dkogan/vnlog/
 
-* Author
+* Authors
 
 Dima Kogan (=dima@secretsauce.net=)
+
+Chris Venter (=chris.venter@gmail.com=) wrote the base64 encoder
+
 
 * License and copyright
 
