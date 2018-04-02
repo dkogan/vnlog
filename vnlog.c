@@ -195,36 +195,23 @@ set_field_prelude(struct vnlog_context_t* ctx,
     return ctx;
 }
 
-// printf() is type agnostic as far as the ABI is concerned, so I pass it the
-// correct raw bits without letting C know of the details: all possible integer
-// types are passed in via union vnlog_context_t. Past that the code path is
-// the same regardless of type. The guts of printf() reinterprets the bits based
-// on the format string. Floating-point types are handled differently by the
-// ABI, so I do handle those specially
-void
-_vnlog_set_field_value_int(struct vnlog_context_t* ctx,
-                           const char* fieldname, int idx,
-                           const char* fmt, union vnlog_field_types_t arg)
-{
-    ctx = set_field_prelude(ctx, fieldname, idx);
-    if( (int)sizeof(ctx->fields[0].c) <=
-        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) )
-    {
-        ERR("Field size exceeded for field '%s'", fieldname);
-    }
+
+#define DEFINE_SET_FIELD_FUNCTION(type, typename, fmt)                  \
+void                                                                    \
+_vnlog_set_field_value_ ## typename(struct vnlog_context_t* ctx,        \
+                                    const char* fieldname, int idx,     \
+                                    type arg)                           \
+{                                                                       \
+    ctx = set_field_prelude(ctx, fieldname, idx);                       \
+    if( (int)sizeof(ctx->fields[0].c) <=                                \
+        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) ) \
+    {                                                                   \
+        ERR("Field size exceeded for field '%s'", fieldname);           \
+    }                                                                   \
 }
-void
-_vnlog_set_field_value_double(struct vnlog_context_t* ctx,
-                              const char* fieldname, int idx,
-                              const char* fmt, double arg)
-{
-    ctx = set_field_prelude(ctx, fieldname, idx);
-    if( (int)sizeof(ctx->fields[0].c) <=
-        snprintf(ctx->fields[idx].c, sizeof(ctx->fields[0].c), fmt, arg) )
-    {
-        ERR("Field size exceeded for field '%s'", fieldname);
-    }
-}
+
+VNLOG_TYPES( DEFINE_SET_FIELD_FUNCTION )
+#undef DEFINE_SET_FIELD_FUNCTION
 
 void
 _vnlog_set_field_value_binary(struct vnlog_context_t* ctx,

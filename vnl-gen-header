@@ -72,26 +72,6 @@ sub gen_field
 
     state $idx = 0;
 
-    my %fmt_type =
-      (
-       'int'          => '"%d"',
-       'int8_t'       => '"%" PRId8',
-       'int16_t'      => '"%" PRId16',
-       'int32_t'      => '"%" PRId32',
-       'int64_t'      => '"%" PRId64',
-       'unsigned int' => '"%u"',
-       'unsigned'     => '"%u"',
-       'uint8_t'      => '"%" PRIu8',
-       'uint16_t'     => '"%" PRIu16',
-       'uint32_t'     => '"%" PRIu32',
-       'uint64_t'     => '"%" PRIu64',
-       'char'         => '"%c"',
-       'float'        => '"%.20g"', # should fit into a VNLOG_MAX_FIELD_LEN
-       'double'       => '"%.20g"',
-       'const char*'  => '"%s"',
-       'char*'        => '"%s"'
-      );
-
     my ($type, $name, $options) =
       $field =~ /\s*
                  (.+?) # A maximal string. May have space in the middle
@@ -131,25 +111,39 @@ EOF
     }
     else
     {
-        my $fmt = $fmt_type{$type} or die "Unknown type '$type'. I only know about " . join(' ', keys %fmt_type);
+        my %typenames =
+          (
+           'int'          => "",
+           'int8_t'       => "",
+           'int16_t'      => "",
+           'int32_t'      => "",
+           'int64_t'      => "",
+           'unsigned int' => "unsignedint",
+           'unsigned'     => "",
+           'uint8_t'      => "",
+           'uint16_t'     => "",
+           'uint32_t'     => "",
+           'uint64_t'     => "",
+           'char'         => "",
+           'float'        => "",
+           'double'       => "",
+           'const char*'  => "ccharp",
+           'char*'        => "charp",
+           'void*'        => ""
+          );
 
-        my $set_field_value;
-        my ($type_footer, $type_arg);
-        if ( $type =~ /double|float/ )
+        my $typename = $typenames{$type};
+        if( !defined $typename )
         {
-            $type_footer = "double";
-            $type_arg    = "(double)(x)";
-        }
-        else
-        {
-            my $otype = '__' . ($type =~ s/ /_/gr =~ s/char\*/str/gr);
-            $type_footer = "int";
-            $type_arg    = "(union vnlog_field_types_t){.$otype = (x)}";
+            die "Unknown type '$type'. I only know about " . join(' ', keys %typenames);
         }
 
-        $set_field_value = <<EOF;
-#define vnlog_set_field_value_ctx__$name(ctx, x) _vnlog_set_field_value_${type_footer}(ctx,  "$name", $idx, $fmt, $type_arg)
-#define vnlog_set_field_value__$name(x)          _vnlog_set_field_value_${type_footer}(NULL, "$name", $idx, $fmt, $type_arg)
+        $typename = $type if $typename eq "";
+        my $arg = "($type)(x)";
+
+        my $set_field_value = <<EOF;
+#define vnlog_set_field_value_ctx__$name(ctx, x) _vnlog_set_field_value_${typename}(ctx,  "$name", $idx, $arg)
+#define vnlog_set_field_value__$name(x)          _vnlog_set_field_value_${typename}(NULL, "$name", $idx, $arg)
 EOF
 
         @ret = ($set_field_value, $name);
