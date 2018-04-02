@@ -1,3 +1,9 @@
+vnlog (1.6)
+
+  * ABI break: C library works on armhf, armel. API unchanged
+
+ -- Dima Kogan <dkogan@debian.org>  Sun, 01 Apr 2018 22:12:27 -0700
+
 vnlog (1.5)
 
   * Test suite runs in parallel
