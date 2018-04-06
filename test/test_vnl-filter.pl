@@ -509,6 +509,25 @@ check('ERROR', qw(-p .), {data => $data_int_dup});
 check('ERROR', qw(-p c), {data => $data_int_dup});
 
 
+check( <<'EOF', qw(-p b) );
+#!/bin/xxx
+# b
+2
+9
+11
+EOF
+
+check( <<'EOF', qw(-p b*) );
+#!/bin/xxx
+# b
+2
+9
+11
+EOF
+
+check('ERROR', qw(-p X*));
+
+
 
 # # awk and perl write out the data with different precisions, so I test them separately for now
 # check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );

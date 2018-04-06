@@ -285,12 +285,17 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 if ( !$@ )
                 {
                     # compiled regex successfully
-                    my @matching_input_cols = grep /$picked_expr_re/, @cols_all_legend_input;
-                    if ( @matching_input_cols >= 1 )
+                    my $matched_any;
+                    for my $matched_legend_input (@cols_all_legend_input)
                     {
-                        $accept->(\@matching_input_cols);
-                        next;
+                        if( $matched_legend_input =~ /$picked_expr/p && length(${^MATCH}) > 0 )
+                        {
+                            say STDERR "matched '$matched_legend_input'";
+                            $accept->([$matched_legend_input]);
+                            $matched_any = 1;
+                        }
                     }
+                    next if $matched_any;
                 }
 
                 die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
