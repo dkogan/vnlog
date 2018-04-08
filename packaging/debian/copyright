@@ -1,0 +1,56 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://github.com/dkogan/vnlog/
+Upstream-Contact: Dima Kogan <dima@secretsauce.net>
+Upstream-Name: vnlog
+
+Files: *
+Copyright: 2016-2017 California Institute of Technology
+           2017-2018 Dima Kogan <dima@secretsauce.net>
+License: LGPL-2.1+
+
+Files: b64_cencode.c
+Copyright: none
+License: public-domain
+
+
+
+License: LGPL-2.1+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ On Debian GNU/Linux systems, the complete text of the Lesser General
+ Public License 2.1 can be found in
+ `/usr/share/common-licenses/LGPL-2.1'.
+
+License: public-domain
+ Copyright-Only Dedication (based on United States law)
+ or Public Domain Certification
+ .
+ The person or persons who have associated work with this document (the
+ "Dedicator" or "Certifier") hereby either (a) certifies that, to the best of
+ his knowledge, the work of authorship identified is in the public domain of
+ the country from which the work is published, or (b) hereby dedicates whatever
+ copyright the dedicators holds in the work of authorship identified below (the
+ "Work") to the public domain. A certifier, moreover, dedicates any copyright
+ interest he may have in the associated work, and for these purposes, is
+ described as a "dedicator" below.
+ .
+ A certifier has taken reasonable steps to verify the copyright status of this
+ work. Certifier recognizes that his good faith efforts may not shield him from
+ liability if in fact the work certified is not in the public domain.
+ .
+ Dedicator makes this dedication for the benefit of the public at large and to
+ the detriment of the Dedicator's heirs and successors. Dedicator intends this
+ dedication to be an overt act of relinquishment in perpetuity of all present
+ and future rights under copyright law, whether vested or contingent, in the
+ Work. Dedicator understands that such relinquishment of all rights includes
+ the relinquishment of all rights to enforce (by lawsuit or otherwise) those
+ copyrights in the Work.
+ .
+ Dedicator recognizes that, once placed in the public domain, the Work may be
+ freely reproduced, distributed, transmitted, used, modified, built upon, or
+ otherwise exploited by anyone for any purpose, commercial or non-commercial,
+ and in any way, including by methods that have not yet been invented or
+ conceived.
