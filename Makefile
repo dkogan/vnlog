@@ -16,6 +16,28 @@ TOOLS :=					\
   vnl-sort
 
 
+# I construct the README.org from the template. The only thing I do is to insert
+# the manpages
+define MAKE_README =
+BEGIN									\
+{									\
+  for $$a (@ARGV)							\
+  {									\
+    $$c{$$a} = `pod2text $$a | mawk "/REPOSITORY/{exit} {print}"`;	\
+  }									\
+}									\
+									\
+while(<STDIN>)								\
+{									\
+  print s/xxx-manpage-(.*?)-xxx/$$c{$$1}/gr;				\
+}
+endef
+
+README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail
+	< $(filter README%,$^) perl -e '$(MAKE_README)' $(filter-out README%,$^) > $@
+all: README.org
+
+
 
 b64_cencode.o: CFLAGS += -Wno-implicit-fallthrough
 
@@ -31,7 +53,7 @@ man1/%.1: % | man1/
 	pod2man -r '' --section 1 --center "vnlog" $< $@
 man3/Vnlog$(coloncolon)%.3pm: lib/Vnlog/%.pm | man3/
 	pod2man -r '' --section 3pm --center "vnlog" $< $@
-EXTRA_CLEAN += man1 man3
+EXTRA_CLEAN += man1 man3 README.org
 
 CFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
