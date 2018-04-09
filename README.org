@@ -280,6 +280,48 @@ $ cat /tmp/x.matrix
 All the tools have manpages that contain more detail. And tools will probably be
 added with time.
 
+* Installation
+
+** On Debian-based boxes
+At this time vnlog is a part of Debian/sid, and will migrate to the latest
+Ubuntu release in the near future. On those boxes you can simply
+
+#+BEGIN_EXAMPLE
+$ sudo apt install vnlog libvnlog-dev libvnlog-perl libvnlog-python
+#+END_EXAMPLE
+
+to get the binary tools, the C API, the perl and python interfaces respectively.
+
+On a Debian (or Ubuntu) machine that's too old to have the packages already
+available, you can build and install them:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ cp -r packaging/debian .
+$ dpkg-buildpackage -us -uc -b
+$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../libvnlog-python*.deb
+#+END_EXAMPLE
+
+** On non-Debian-based boxes
+
+With the exception of the C API, every part of the toolkit is written in an
+interpreted language, and there's nothing to "install". You can run everything
+directly from the source tree:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ ./vnl-filter .....
+#+END_EXAMPLE
+
+If you /do/ want to install to some location, do this:
+
+#+BEGIN_EXAMPLE
+$ make
+$ DESTDIR=/home/goober/local make install
+#+END_EXAMPLE
+
 * C interface
 
 For most uses, these logfiles are simple enough to be generated with plain
