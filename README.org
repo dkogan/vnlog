@@ -537,7 +537,6 @@ one is that columns are whitespace-separated. There is /no/ mechanism for
 escaping or quoting whitespace into a single field. I think supporting something
 like that is more trouble than it's worth.
 
-
 * Repository
 
 https://github.com/dkogan/vnlog/
@@ -547,7 +546,6 @@ https://github.com/dkogan/vnlog/
 Dima Kogan (=dima@secretsauce.net=)
 
 Chris Venter (=chris.venter@gmail.com=) wrote the base64 encoder
-
 
 * License and copyright
 
