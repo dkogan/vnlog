@@ -1,4 +1,4 @@
-vnlog (1.6-1) unstable; urgency=medium
+vnlog (1.6unreleased1) UNRELEASED; urgency=medium
 
   * New upstream release. C library works on armhf, armel
 
