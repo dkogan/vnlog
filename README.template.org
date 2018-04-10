@@ -346,7 +346,7 @@ If you /do/ want to install to some location, do this:
 
 #+BEGIN_EXAMPLE
 $ make
-$ DESTDIR=/home/goober/local make install
+$ PREFIX=/usr/local make install
 #+END_EXAMPLE
 
 * C interface

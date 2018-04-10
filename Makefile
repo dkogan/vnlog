@@ -229,12 +229,33 @@ distclean: clean
 
 
 ########################### installation business
+# The distro will 'DESTDIR=debian/tmp make install'. I then set PREFIX=/usr to
+# install everything into debian/tmp/usr
+#
+# A user might do 'PREFIX=/usr/local make install' to write to /usr/local/lib,
+# /usr/local/bin, ...
 
 ifneq (,$(filter install,$(MAKECMDGOALS)))
-  ifeq  ($(strip $(DESTDIR)),)
-    $(error Tried to make install without having DESTDIR defined \
-"make install" is ONLY for package building. \
+  ifeq  ($(strip $(DESTDIR)$(PREFIX)),)
+    $(error 'make install' MUST be called with EITHER DESTDIR or PREFIX defined. \
+"DESTDIR=xxx make install" is for package building; \
+"PREFIX=/usr/local make install" is for local installs; \
 What are you trying to do?)
+  endif
+
+  ifneq ($(and $(DESTDIR),$(PREFIX)),)
+    $(error 'make install' MUST be called with EITHER DESTDIR or PREFIX defined. \
+"DESTDIR=xxx make install" is for package building; \
+"PREFIX=/usr/local make install" is for local installs; \
+What are you trying to do?)
+  endif
+
+  ifneq ($(DESTDIR),)
+PREFIX := /usr
+  endif
+
+  ifneq ($(PREFIX),)
+# DESTDIR should be empty, and is already empty
   endif
 endif
 
@@ -254,10 +275,10 @@ DIST_INCLUDE = $(filter-out $(wildcard $(DIST_INCLUDE_EXCEPT)),		\
 ifneq (,$(shell grep -qi debian /etc/os-release 2>/dev/null && echo yep))
   # we're a debian box, use the multiarch dir
   DEB_HOST_MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null)
-  USRLIB             := usr/lib/$(DEB_HOST_MULTIARCH)
+  USRLIB             := $(PREFIX)/lib/$(DEB_HOST_MULTIARCH)
 else
   # we're something else. If /usr/lib64 exists, use that. Otherwise /usr/lib
-  USRLIB := $(if $(wildcard /usr/lib64),usr/lib64,usr/lib)
+  USRLIB := $(if $(wildcard $(PREFIX)/lib64),$(PREFIX)/lib64,$(PREFIX)/lib)
 endif
 
 # Generates the install rules. Arguments:
@@ -285,14 +306,14 @@ ifneq ($(strip $(LIB_SOURCES)),)
 	ln -fs $(notdir $(LIB_TARGET_SO_FULL)) $(DESTDIR)/$(USRLIB)/$(notdir $(LIB_TARGET_SO_ABI))
 	ln -fs $(notdir $(LIB_TARGET_SO_FULL)) $(DESTDIR)/$(USRLIB)/$(notdir $(LIB_TARGET_SO_BARE))
 endif
-	$(call install_rule,DIST_BIN,         $(DESTDIR)/usr/bin,)
-	$(call install_rule,DIST_INCLUDE,     $(DESTDIR)/usr/include/$(PROJECT_NAME),)
-	$(call install_rule,DIST_DOC,         $(DESTDIR)/usr/share/doc/$(PROJECT_NAME),)
-	$(call install_rule,DIST_MAN,         $(DESTDIR)/usr/share/man,)
-	$(call install_rule,DIST_DATA,        $(DESTDIR)/usr/share/$(PROJECT_NAME),)
-	$(call install_rule,DIST_PERL_MODULES,$(DESTDIR)/usr/share/perl5,)
-	$(call install_rule,DIST_PY2_MODULES, $(DESTDIR)/usr/lib/python2.7/dist-packages,)
-	$(call install_rule,DIST_PY3_MODULES, $(DESTDIR)/usr/lib/python3/dist-packages,)
+	$(call install_rule,DIST_BIN,         $(DESTDIR)$(PREFIX)/bin,)
+	$(call install_rule,DIST_INCLUDE,     $(DESTDIR)$(PREFIX)/include/$(PROJECT_NAME),)
+	$(call install_rule,DIST_DOC,         $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT_NAME),)
+	$(call install_rule,DIST_MAN,         $(DESTDIR)$(PREFIX)/share/man,)
+	$(call install_rule,DIST_DATA,        $(DESTDIR)$(PREFIX)/share/$(PROJECT_NAME),)
+	$(call install_rule,DIST_PERL_MODULES,$(DESTDIR)$(PREFIX)/share/perl5,)
+	$(call install_rule,DIST_PY2_MODULES, $(DESTDIR)$(PREFIX)/lib/python2.7/dist-packages,)
+	$(call install_rule,DIST_PY3_MODULES, $(DESTDIR)$(PREFIX)/lib/python3/dist-packages,)
 
         # In filenames I rename __colon__ -> :
         # This is required because Make can't deal with : in rules
@@ -304,7 +325,7 @@ endif
         # could be extension modules for the various languages, and I thus look
         # for those EVERYWHERE
 ifneq ($(strip $(DIST_BIN)),)
-	$(if $(wildcard $(DESTDIR)/usr/bin/*),chrpath -d $(DESTDIR)/usr/bin/* 2>/dev/null || true)
+	$(if $(wildcard $(DESTDIR)$(PREFIX)/bin/*),chrpath -d $(DESTDIR)$(PREFIX)/bin/* 2>/dev/null || true)
 endif
 	find $(DESTDIR) -name '*.so' | xargs chrpath -d
 
@@ -312,13 +333,13 @@ endif
         # exists to let these run in-tree, but needs to be removed at
         # install-time (similar to an RPATH)
 ifneq ($(strip $(DIST_BIN)),)
-	for fil in `find $(DESTDIR)/usr/bin -type f`; do head -n1 $$fil | grep -q '^#!.*/perl$$' && perl -n -i -e 'print unless /^\s* use \s+ lib \b/x' $$fil; done
+	for fil in `find $(DESTDIR)$(PREFIX)/bin -type f`; do head -n1 $$fil | grep -q '^#!.*/perl$$' && perl -n -i -e 'print unless /^\s* use \s+ lib \b/x' $$fil; done
 endif
-	find $(DESTDIR)/usr/share/perl5 -type f | xargs perl -n -i -e 'print unless /^\s* use \s+ lib \b/x'
+	find $(DESTDIR)$(PREFIX)/share/perl5 -type f | xargs perl -n -i -e 'print unless /^\s* use \s+ lib \b/x'
 
 ifneq ($(strip $(DIST_BIN)),)
         # Everything executable needs specific permission bits
-	chmod 0755 $(DESTDIR)/usr/bin/*
+	chmod 0755 $(DESTDIR)$(PREFIX)/bin/*
 endif
 
 .PHONY: install
