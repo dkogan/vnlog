@@ -1149,10 +1149,11 @@ At this time vnlog is a part of Debian/sid, and will migrate to the latest
 Ubuntu release in the near future. On those boxes you can simply
 
 #+BEGIN_EXAMPLE
-$ sudo apt install vnlog libvnlog-dev libvnlog-perl libvnlog-python
+$ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
 #+END_EXAMPLE
 
-to get the binary tools, the C API, the perl and python interfaces respectively.
+to get the binary tools, the C API, the perl and python2 interfaces
+respectively.
 
 On a Debian (or Ubuntu) machine that's too old to have the packages already
 available, you can build and install them:
@@ -1162,7 +1163,7 @@ $ git clone git@github.com:dkogan/vnlog.git
 $ cd vnlog
 $ cp -r packaging/debian .
 $ dpkg-buildpackage -us -uc -b
-$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../libvnlog-python*.deb
+$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
 #+END_EXAMPLE
 
 ** On non-Debian-based boxes
