@@ -15,11 +15,11 @@ BuildRequires: perl-List-MoreUtils
 BuildRequires: mawk
 BuildRequires: make
 BuildRequires: chrpath
+BuildRequires: mrbuild
 
 BuildRequires: /usr/bin/pod2man
 BuildRequires: perl-autodie
 BuildRequires: perl-Data-Dumper
-BuildRequires: numpy
 
 
 %description
