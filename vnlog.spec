@@ -8,6 +8,7 @@ URL:            https://github.com/dkogan/vnlog/
 Source0:        https://github.com/dkogan/vnlog/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 
 BuildRequires: python2-devel
+BuildRequires: python34-devel
 BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
