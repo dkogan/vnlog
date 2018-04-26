@@ -290,7 +290,6 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     {
                         if( $matched_legend_input =~ /$picked_expr/p && length(${^MATCH}) > 0 )
                         {
-                            say STDERR "matched '$matched_legend_input'";
                             $accept->([$matched_legend_input]);
                             $matched_any = 1;
                         }
