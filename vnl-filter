@@ -215,34 +215,25 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
             {
                 my $accept = sub
                 {
-                    my ($exprs, $name) = @_;
+                    my ($expr, $name) = @_;
 
                     if ( defined $name )
                     {
-                        if ( @$exprs != 1 )
-                        {
-                            die "A named expression can only refer to ONE column";
-                        }
                         push @colnames_output, $name;
                     }
                     else
                     {
-                        push @colnames_output, @$exprs;
+                        push @colnames_output, $expr;
                     }
 
-                    my @output_fields;
-                    for my $expr (@$exprs)
+                    my ($output_field, $colidx_needed_max_here) =
+                      expr_subst_col_names($options{perl} ? 'perl' : 'awk',
+                                           $expr);
+                    if ( $colidx_needed_max_here > $colidx_needed_max )
                     {
-                        my ($output_field, $colidx_needed_max_here) =
-                          expr_subst_col_names($options{perl} ? 'perl' : 'awk',
-                                               $expr);
-                        if ( $colidx_needed_max_here > $colidx_needed_max )
-                        {
-                            $colidx_needed_max = $colidx_needed_max_here;
-                        }
-                        push @output_fields, $output_field;
+                        $colidx_needed_max = $colidx_needed_max_here;
                     }
-                    push @langspecific_output_fields, @output_fields;
+                    push @langspecific_output_fields, $output_field;
                 };
 
 
@@ -257,12 +248,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     $picked_expr = $picked_expr_named;
                 }
 
-
                 # do I have an exact column match?
                 if ( defined $colindices_input{$picked_expr} )
                 {
                     # We have exactly ONE matched column
-                    $accept->( [$picked_expr], $name);
+                    $accept->( $picked_expr, $name);
                     next;
                 }
                 if ( exists $colindices_input{$picked_expr} )
@@ -274,7 +264,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 # to awk/perl
                 if ( defined $name )
                 {
-                    $accept->([$picked_expr], $name);
+                    $accept->($picked_expr, $name);
                     next;
                 }
 
@@ -290,7 +280,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     {
                         if( $matched_legend_input =~ /$picked_expr/p && length(${^MATCH}) > 0 )
                         {
-                            $accept->([$matched_legend_input]);
+                            $accept->($matched_legend_input);
                             $matched_any = 1;
                         }
                     }
