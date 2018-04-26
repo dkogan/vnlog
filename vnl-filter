@@ -199,9 +199,12 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
             push @{$colindices_input{$cols_all_legend_input[$idx]}}, $idx;
         }
 
+        # each element is a tuple representing a picked field:
+        # (output_field, colidx_needed_max_here, colname_output)
+        my @picked_fields;
+
         # If we weren't asked for particular columns, take them all. This isn't
         # a no-op because we can have --has
-
         if( @picked_exprs_named )
         {
           COLUMN:
@@ -209,25 +212,13 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
             {
                 my $accept = sub
                 {
-                    my ($expr, $name) = @_;
+                    my ($expr, $name, $dupindex) = @_;
 
-                    if ( defined $name )
-                    {
-                        push @colnames_output, $name;
-                    }
-                    else
-                    {
-                        push @colnames_output, $expr;
-                    }
-
-                    my ($output_field, $colidx_needed_max_here) =
-                      expr_subst_col_names($options{perl} ? 'perl' : 'awk',
-                                           $expr);
-                    if ( $colidx_needed_max_here > $colidx_needed_max )
-                    {
-                        $colidx_needed_max = $colidx_needed_max_here;
-                    }
-                    push @langspecific_output_fields, $output_field;
+                    push @picked_fields,
+                      [ expr_subst_col_names($options{perl} ? 'perl' : 'awk',
+                                             $expr,
+                                             $dupindex),
+                        $name // $expr ];
                 };
 
 
@@ -245,13 +236,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 # do I have an exact column match?
                 if(defined $colindices_input{$picked_expr})
                 {
-                    if ( 1 == @{$colindices_input{$picked_expr}})
+                    for my $dupindex (0..$#{$colindices_input{$picked_expr}})
                     {
-                        # We have exactly ONE matched column
-                        $accept->( $picked_expr, $name);
-                        next;
+                        $accept->( $picked_expr, $name, $dupindex);
                     }
-                    die "Found more than one column that string-matched '$picked_expr' exactly";
+                    next;
                 }
 
                 # No exact column match. If this is a named expression, I pass it on
@@ -270,18 +259,38 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 {
                     # compiled regex successfully
                     my $matched_any;
+                    my %next_dupindex;
+
+                    # I look through cols_all_legend_input instead of
+                    # keys(%colindices_input) to preserve the original order
                     for my $matched_legend_input (@cols_all_legend_input)
                     {
+                        $next_dupindex{$matched_legend_input} //= 0;
                         if( $matched_legend_input =~ /$picked_expr_re/p && length(${^MATCH}) > 0 )
                         {
-                            $accept->($matched_legend_input);
+                            $accept->($matched_legend_input, undef,
+                                      $next_dupindex{$matched_legend_input});
                             $matched_any = 1;
+                            $next_dupindex{$matched_legend_input}++;
                         }
                     }
                     next if $matched_any;
                 }
 
                 die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
+            }
+
+            for my $picked_field (@picked_fields)
+            {
+                my ($output_field, $colidx_needed_max_here, $colname_output) = @$picked_field;
+
+                push @colnames_output, $colname_output;
+
+                if ( $colidx_needed_max_here > $colidx_needed_max )
+                {
+                    $colidx_needed_max = $colidx_needed_max_here;
+                }
+                push @langspecific_output_fields, $output_field;
             }
         }
         else
@@ -463,7 +472,7 @@ sub expr_subst_col_names
     # I take in a string with awk/perl code, and replace field references to
     # column references that the awk/perl program will understand. To minimize
     # the risk of ambiguous matches, I try to match longer strings first
-    my ($language, $out) = @_;
+    my ($language, $out, $dupindex) = @_;
 
     my $colidx_needed_max_here = -1;
 
@@ -485,31 +494,32 @@ sub expr_subst_col_names
 
         next unless $out =~ /$re/;
 
-        if (1 != @{$colindices_input{$key}})
+        if (!defined $dupindex && 1 != @{$colindices_input{$key}})
         {
             die "Asked to operate on key '$key', but this isn't unique";
         }
+        $dupindex //= 0;
 
 
         if ( $language eq 'perl' )
         {
-            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}[0]]/g;
+            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}[$dupindex]]/g;
 
-            if($found && $colindices_input{$key}[0] > $colidx_needed_max_here)
+            if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key}[0];
+                $colidx_needed_max_here = $colindices_input{$key}[$dupindex];
             }
         }
         elsif( $language eq 'awk' )
         {
             # column index that awk knows about
-            my $colidx = $colindices_input{$key}[0] + 1;
+            my $colidx = $colindices_input{$key}[$dupindex] + 1;
 
             my $found = $out =~ s/$re/\$$colidx/g;
 
-            if($found && $colindices_input{$key}[0] > $colidx_needed_max_here)
+            if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key}[0];
+                $colidx_needed_max_here = $colindices_input{$key}[$dupindex];
             }
         }
         else
