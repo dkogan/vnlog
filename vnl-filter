@@ -278,7 +278,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     my $matched_any;
                     for my $matched_legend_input (@cols_all_legend_input)
                     {
-                        if( $matched_legend_input =~ /$picked_expr/p && length(${^MATCH}) > 0 )
+                        if( $matched_legend_input =~ /$picked_expr_re/p && length(${^MATCH}) > 0 )
                         {
                             $accept->($matched_legend_input);
                             $matched_any = 1;
