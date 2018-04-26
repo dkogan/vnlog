@@ -146,8 +146,8 @@ if( !@picked_exprs_named  &&
 
 my @colnames_output;
 
-# input column-name to index map. If I have more than one of the same column,
-# this maps to undef. Not an error unless we try to use the columns
+# input column-name to index map. This always maps to a listref of indices, even
+# if I only have a single index
 my %colindices_input;
 
 my $colidx_needed_max = -1;
@@ -195,14 +195,8 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         my @cols_all_legend_input = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
         foreach my $idx (0..$#cols_all_legend_input)
         {
-            if( exists $colindices_input{$cols_all_legend_input[$idx]} )
-            {
-                $colindices_input{$cols_all_legend_input[$idx]} = undef;
-            }
-            else
-            {
-                $colindices_input{$cols_all_legend_input[$idx]} = $idx;
-            }
+            $colindices_input{$cols_all_legend_input[$idx]} //= [];
+            push @{$colindices_input{$cols_all_legend_input[$idx]}}, $idx;
         }
 
         # If we weren't asked for particular columns, take them all. This isn't
@@ -249,14 +243,14 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 }
 
                 # do I have an exact column match?
-                if ( defined $colindices_input{$picked_expr} )
+                if(defined $colindices_input{$picked_expr})
                 {
-                    # We have exactly ONE matched column
-                    $accept->( $picked_expr, $name);
-                    next;
-                }
-                if ( exists $colindices_input{$picked_expr} )
-                {
+                    if ( 1 == @{$colindices_input{$picked_expr}})
+                    {
+                        # We have exactly ONE matched column
+                        $accept->( $picked_expr, $name);
+                        next;
+                    }
                     die "Found more than one column that string-matched '$picked_expr' exactly";
                 }
 
@@ -318,11 +312,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         {
             foreach my $col (@must_have_col_names)
             {
-                if( !defined $colindices_input{$col})
+                if( !(defined $colindices_input{$col} && 1 == @{$colindices_input{$col}}) )
                 {
                     die "I don't have a unique column '$col'";
                 }
-                push @must_have_col_indices_input, $colindices_input{$col};
+                push @must_have_col_indices_input, $colindices_input{$col}[0];
             }
         }
         last;
@@ -491,7 +485,7 @@ sub expr_subst_col_names
 
         next unless $out =~ /$re/;
 
-        if (exists $colindices_input{$key} && !defined $colindices_input{$key})
+        if (1 != @{$colindices_input{$key}})
         {
             die "Asked to operate on key '$key', but this isn't unique";
         }
@@ -499,23 +493,23 @@ sub expr_subst_col_names
 
         if ( $language eq 'perl' )
         {
-            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}]/g;
+            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}[0]]/g;
 
-            if($found && $colindices_input{$key} > $colidx_needed_max_here)
+            if($found && $colindices_input{$key}[0] > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key};
+                $colidx_needed_max_here = $colindices_input{$key}[0];
             }
         }
         elsif( $language eq 'awk' )
         {
             # column index that awk knows about
-            my $colidx = $colindices_input{$key} + 1;
+            my $colidx = $colindices_input{$key}[0] + 1;
 
             my $found = $out =~ s/$re/\$$colidx/g;
 
-            if($found && $colindices_input{$key} > $colidx_needed_max_here)
+            if($found && $colindices_input{$key}[0] > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key};
+                $colidx_needed_max_here = $colindices_input{$key}[0];
             }
         }
         else
