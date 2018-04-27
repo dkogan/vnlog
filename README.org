@@ -517,6 +517,31 @@ ARGUMENTS
 
     A single column called "l" would be produced.
 
+    We can also *exclude* columns by preceding their name with "!". This
+    works like you expect. Rules:
+
+    *   The pick/exclude directives are processed in order given to produce
+        the output picked-column list
+
+    *   If the first "-p" item is an exclusion, we implicitly pick *all* the
+        columns prior to processing the "-p".
+
+    *   The exclusion expressions match the *output* column names, not the
+        *input* names.
+
+    *   We match the exact column names first. If that fails, we match as a
+        regex
+
+    Example. To grab all the columns *except* the temperature(s) do this:
+
+     vnl-filter -p !temperature
+
+    To grab all the columns that describe *something* about a robot (columns
+    whose names have the string "robot_" in them), but *not* its temperature
+    (i.e. *not* "robot_temperature"), do this:
+
+     vnl-filter -p robot_,!temperature
+
   --has a,b,c,...
     Used to select records (rows) that have a non-empty value in a
     particular field (column). A *null* value in a column is designated with
