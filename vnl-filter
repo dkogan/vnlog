@@ -207,8 +207,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         # a no-op because we can have --has
         if( @picked_exprs_named )
         {
-          COLUMN:
-            foreach my $picked_expr_named (@picked_exprs_named)
+            foreach my $i_picked_exprs_named (0..$#picked_exprs_named)
             {
                 my $accept = sub
                 {
@@ -221,11 +220,89 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                         $name // $expr ];
                 };
 
+                my $acceptExactMatch = sub
+                {
+                    my ($picked_expr, $name) = @_;
+
+                    if (defined $colindices_input{$picked_expr})
+                    {
+                        for my $dupindex (0..$#{$colindices_input{$picked_expr}})
+                        {
+                            $accept->( $picked_expr, $name, $dupindex);
+                        }
+                        return 1;
+                    }
+                    return undef;
+                };
+
+                my $acceptRegexMatch = sub
+                {
+                    my ($picked_expr) = @_;
+
+                    my $picked_expr_re;
+                    eval { $picked_expr_re = qr/$picked_expr/; };
+                    if ( !$@ )
+                    {
+                        # compiled regex successfully
+                        my $matched_any;
+                        my %next_dupindex;
+
+                        # I look through cols_all_legend_input instead of
+                        # keys(%colindices_input) to preserve the original order
+                        for my $matched_legend_input (@cols_all_legend_input)
+                        {
+                            $next_dupindex{$matched_legend_input} //= 0;
+                            if ( $matched_legend_input =~ /$picked_expr_re/p && length(${^MATCH}) > 0 )
+                            {
+                                $accept->($matched_legend_input, undef,
+                                          $next_dupindex{$matched_legend_input});
+                                $matched_any = 1;
+                                $next_dupindex{$matched_legend_input}++;
+                            }
+                        }
+                        return $matched_any;
+                    }
+                    return undef;
+                };
+
+                my $excludeExactMatch = sub
+                {
+                    my ($expr) = @_;
+
+                    my @picked_fields_filtered = grep {$_->[2] ne $expr} @picked_fields;
+                    if( scalar(@picked_fields_filtered) == scalar(@picked_fields) )
+                    {
+                        return undef;
+                    }
+
+                    @picked_fields = @picked_fields_filtered;
+                    return 1;
+                };
+
+                my $excludeRegexMatch = sub
+                {
+                    my ($expr) = @_;
+
+                    my $expr_re;
+
+                    eval { $expr_re = qr/$expr/; };
+                    return undef if $@;
+
+                    my @picked_fields_filtered = grep {! ($_->[2] =~ /$expr_re/p && length(${^MATCH})) } @picked_fields;
+
+                    if( scalar(@picked_fields_filtered) == scalar(@picked_fields) )
+                    {
+                        return undef;
+                    }
+
+                    @picked_fields = @picked_fields_filtered;
+                    return 1;
+                };
 
 
 
 
-
+                my $picked_expr_named = $picked_exprs_named[$i_picked_exprs_named];
 
                 my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
                 if ( !defined $picked_expr )
@@ -233,15 +310,8 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     $picked_expr = $picked_expr_named;
                 }
 
-                # do I have an exact column match?
-                if(defined $colindices_input{$picked_expr})
-                {
-                    for my $dupindex (0..$#{$colindices_input{$picked_expr}})
-                    {
-                        $accept->( $picked_expr, $name, $dupindex);
-                    }
-                    next;
-                }
+
+                next if $acceptExactMatch->($picked_expr, $name);
 
                 # No exact column match. If this is a named expression, I pass it on
                 # to awk/perl
@@ -251,33 +321,39 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     next;
                 }
 
-                # No exact matches were found, and not a named expression. Let me
-                # try a regex
-                my $picked_expr_re;
-                eval { $picked_expr_re = qr/$picked_expr/; };
-                if ( !$@ )
+                # No exact matches were found, and not a named expression. This
+                # is either a regex or an exclusion expression
+                if( $picked_expr =~ /^!(.*)/ )
                 {
-                    # compiled regex successfully
-                    my $matched_any;
-                    my %next_dupindex;
+                    # exclusion expression. I apply the same logic as before:
+                    # try exact column matches first, and then a regex.
+                    #
+                    # I accumulate the picked list in order the arguments were
+                    # given: each exclusion expression removes columns from the
+                    # so-far-picked list. If the picked list BEGINS with an
+                    # exclusion expression, we assume that ALL columns have been
+                    # previously picked
+                    #
+                    # Here we match on the names of the OUTPUT columns
+                    $picked_expr = $1;
 
-                    # I look through cols_all_legend_input instead of
-                    # keys(%colindices_input) to preserve the original order
-                    for my $matched_legend_input (@cols_all_legend_input)
-                    {
-                        $next_dupindex{$matched_legend_input} //= 0;
-                        if( $matched_legend_input =~ /$picked_expr_re/p && length(${^MATCH}) > 0 )
-                        {
-                            $accept->($matched_legend_input, undef,
-                                      $next_dupindex{$matched_legend_input});
-                            $matched_any = 1;
-                            $next_dupindex{$matched_legend_input}++;
-                        }
-                    }
-                    next if $matched_any;
+                    if($i_picked_exprs_named == 0) { $acceptRegexMatch->('.'); }
+
+                    next if $excludeExactMatch->($picked_expr);
+                    next if $excludeRegexMatch->($picked_expr);
+
+                    my @output_names_have = map {$_->[2]} @picked_fields;
+                    die "Couldn't find requested column '$picked_expr' to exclude. Currently have output columns '@output_names_have'";
                 }
 
+                next if $acceptRegexMatch->($picked_expr);
+
                 die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
+            }
+
+            if(!@picked_fields)
+            {
+                die "After processing --pick options, no fields remain!";
             }
 
             for my $picked_field (@picked_fields)
@@ -1064,6 +1140,42 @@ length of a vector in separate columns C<x>, C<y>, and C<z> you can do:
  vnl-filter -p 'l=sqrt(x*x + y*y + z*z)'
 
 A single column called C<l> would be produced.
+
+We can also I<exclude> columns by preceding their name with C<!>. This works like
+you expect. Rules:
+
+=over
+
+=item *
+
+The pick/exclude directives are processed in order given to produce the output
+picked-column list
+
+=item *
+
+If the first C<-p> item is an exclusion, we implicitly pick I<all> the columns
+prior to processing the C<-p>.
+
+=item *
+
+The exclusion expressions match the I<output> column names, not the I<input>
+names.
+
+=item *
+
+We match the exact column names first. If that fails, we match as a regex
+
+=back
+
+Example. To grab all the columns I<except> the temperature(s) do this:
+
+ vnl-filter -p !temperature
+
+To grab all the columns that describe I<something> about a robot (columns whose
+names have the string C<robot_> in them), but I<not> its temperature (i.e.
+I<not> "robot_temperature"), do this:
+
+ vnl-filter -p robot_,!temperature
 
 =head2 --has a,b,c,...
 
