@@ -1,3 +1,14 @@
+vnlog (1.7) unstable; urgency=medium
+
+  * vnl-filter: added exclusion columns: vnl-filter -p !xxx
+  * vnl-filter handles duplicate columns robustly
+  * 'vnl-filter -p x*' no longer matches all the columns
+  * Implemented and documented non-distro installation
+  * added sample packaging files
+  * README.org now contains all the manpages
+
+ -- Dima Kogan <dkogan@debian.org>  Thu, 26 Apr 2018 20:26:48 -0700
+
 vnlog (1.6)
 
   * ABI break: C library works on armhf, armel. API unchanged
