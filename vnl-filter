@@ -240,7 +240,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     my ($picked_expr) = @_;
 
                     my $picked_expr_re;
-                    eval { $picked_expr_re = qr/$picked_expr/; };
+                    eval { $picked_expr_re = qr/$picked_expr/p; };
                     if ( !$@ )
                     {
                         # compiled regex successfully
@@ -285,7 +285,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
                     my $expr_re;
 
-                    eval { $expr_re = qr/$expr/; };
+                    eval { $expr_re = qr/$expr/p; };
                     return undef if $@;
 
                     my @picked_fields_filtered = grep {! ($_->[2] =~ /$expr_re/p && length(${^MATCH})) } @picked_fields;
@@ -492,7 +492,7 @@ sub subst_reldiff
         $outer_list = \@diff_outer;
     }
 
-    my $whatre = qr/\b$what\s*\(/;
+    my $whatre = qr/\b$what\s*\(/p;
     while( $expr =~ /$whatre/p )
     {
         if( !$isouter )
