@@ -1,0 +1,11 @@
+vnlog (1.6unreleased1) UNRELEASED; urgency=medium
+
+  * New upstream release. C library works on armhf, armel
+
+ -- Dima Kogan <dkogan@debian.org>  Sun, 01 Apr 2018 22:14:38 -0700
+
+vnlog (1.5-1) unstable; urgency=medium
+
+  * Initial release (Closes: #891595)
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 31 Mar 2018 15:06:12 -0700

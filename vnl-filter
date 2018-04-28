@@ -146,8 +146,8 @@ if( !@picked_exprs_named  &&
 
 my @colnames_output;
 
-# input column-name to index map. If I have more than one of the same column,
-# this maps to undef. Not an error unless we try to use the columns
+# input column-name to index map. This always maps to a listref of indices, even
+# if I only have a single index
 my %colindices_input;
 
 my $colidx_needed_max = -1;
@@ -195,61 +195,114 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         my @cols_all_legend_input = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
         foreach my $idx (0..$#cols_all_legend_input)
         {
-            if( exists $colindices_input{$cols_all_legend_input[$idx]} )
-            {
-                $colindices_input{$cols_all_legend_input[$idx]} = undef;
-            }
-            else
-            {
-                $colindices_input{$cols_all_legend_input[$idx]} = $idx;
-            }
+            $colindices_input{$cols_all_legend_input[$idx]} //= [];
+            push @{$colindices_input{$cols_all_legend_input[$idx]}}, $idx;
         }
+
+        # each element is a tuple representing a picked field:
+        # (output_field, colidx_needed_max_here, colname_output)
+        my @picked_fields;
 
         # If we weren't asked for particular columns, take them all. This isn't
         # a no-op because we can have --has
-
         if( @picked_exprs_named )
         {
-          COLUMN:
-            foreach my $picked_expr_named (@picked_exprs_named)
+            foreach my $i_picked_exprs_named (0..$#picked_exprs_named)
             {
                 my $accept = sub
                 {
-                    my ($exprs, $name) = @_;
+                    my ($expr, $name, $dupindex) = @_;
 
-                    if ( defined $name )
+                    push @picked_fields,
+                      [ expr_subst_col_names($options{perl} ? 'perl' : 'awk',
+                                             $expr,
+                                             $dupindex),
+                        $name // $expr ];
+                };
+
+                my $acceptExactMatch = sub
+                {
+                    my ($picked_expr, $name) = @_;
+
+                    if (defined $colindices_input{$picked_expr})
                     {
-                        if ( @$exprs != 1 )
+                        for my $dupindex (0..$#{$colindices_input{$picked_expr}})
                         {
-                            die "A named expression can only refer to ONE column";
+                            $accept->( $picked_expr, $name, $dupindex);
                         }
-                        push @colnames_output, $name;
+                        return 1;
                     }
-                    else
+                    return undef;
+                };
+
+                my $acceptRegexMatch = sub
+                {
+                    my ($picked_expr) = @_;
+
+                    my $picked_expr_re;
+                    eval { $picked_expr_re = qr/$picked_expr/; };
+                    if ( !$@ )
                     {
-                        push @colnames_output, @$exprs;
+                        # compiled regex successfully
+                        my $matched_any;
+                        my %next_dupindex;
+
+                        # I look through cols_all_legend_input instead of
+                        # keys(%colindices_input) to preserve the original order
+                        for my $matched_legend_input (@cols_all_legend_input)
+                        {
+                            $next_dupindex{$matched_legend_input} //= 0;
+                            if ( $matched_legend_input =~ /$picked_expr_re/p && length(${^MATCH}) > 0 )
+                            {
+                                $accept->($matched_legend_input, undef,
+                                          $next_dupindex{$matched_legend_input});
+                                $matched_any = 1;
+                                $next_dupindex{$matched_legend_input}++;
+                            }
+                        }
+                        return $matched_any;
+                    }
+                    return undef;
+                };
+
+                my $excludeExactMatch = sub
+                {
+                    my ($expr) = @_;
+
+                    my @picked_fields_filtered = grep {$_->[2] ne $expr} @picked_fields;
+                    if( scalar(@picked_fields_filtered) == scalar(@picked_fields) )
+                    {
+                        return undef;
                     }
 
-                    my @output_fields;
-                    for my $expr (@$exprs)
+                    @picked_fields = @picked_fields_filtered;
+                    return 1;
+                };
+
+                my $excludeRegexMatch = sub
+                {
+                    my ($expr) = @_;
+
+                    my $expr_re;
+
+                    eval { $expr_re = qr/$expr/; };
+                    return undef if $@;
+
+                    my @picked_fields_filtered = grep {! ($_->[2] =~ /$expr_re/p && length(${^MATCH})) } @picked_fields;
+
+                    if( scalar(@picked_fields_filtered) == scalar(@picked_fields) )
                     {
-                        my ($output_field, $colidx_needed_max_here) =
-                          expr_subst_col_names($options{perl} ? 'perl' : 'awk',
-                                               $expr);
-                        if ( $colidx_needed_max_here > $colidx_needed_max )
-                        {
-                            $colidx_needed_max = $colidx_needed_max_here;
-                        }
-                        push @output_fields, $output_field;
+                        return undef;
                     }
-                    push @langspecific_output_fields, @output_fields;
+
+                    @picked_fields = @picked_fields_filtered;
+                    return 1;
                 };
 
 
 
 
-
-
+                my $picked_expr_named = $picked_exprs_named[$i_picked_exprs_named];
 
                 my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
                 if ( !defined $picked_expr )
@@ -258,42 +311,62 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                 }
 
 
-                # do I have an exact column match?
-                if ( defined $colindices_input{$picked_expr} )
-                {
-                    # We have exactly ONE matched column
-                    $accept->( [$picked_expr], $name);
-                    next;
-                }
-                if ( exists $colindices_input{$picked_expr} )
-                {
-                    die "Found more than one column that string-matched '$picked_expr' exactly";
-                }
+                next if $acceptExactMatch->($picked_expr, $name);
 
                 # No exact column match. If this is a named expression, I pass it on
                 # to awk/perl
                 if ( defined $name )
                 {
-                    $accept->([$picked_expr], $name);
+                    $accept->($picked_expr, $name);
                     next;
                 }
 
-                # No exact matches were found, and not a named expression. Let me
-                # try a regex
-                my $picked_expr_re;
-                eval { $picked_expr_re = qr/$picked_expr/; };
-                if ( !$@ )
+                # No exact matches were found, and not a named expression. This
+                # is either a regex or an exclusion expression
+                if( $picked_expr =~ /^!(.*)/ )
                 {
-                    # compiled regex successfully
-                    my @matching_input_cols = grep /$picked_expr_re/, @cols_all_legend_input;
-                    if ( @matching_input_cols >= 1 )
-                    {
-                        $accept->(\@matching_input_cols);
-                        next;
-                    }
+                    # exclusion expression. I apply the same logic as before:
+                    # try exact column matches first, and then a regex.
+                    #
+                    # I accumulate the picked list in order the arguments were
+                    # given: each exclusion expression removes columns from the
+                    # so-far-picked list. If the picked list BEGINS with an
+                    # exclusion expression, we assume that ALL columns have been
+                    # previously picked
+                    #
+                    # Here we match on the names of the OUTPUT columns
+                    $picked_expr = $1;
+
+                    if($i_picked_exprs_named == 0) { $acceptRegexMatch->('.'); }
+
+                    next if $excludeExactMatch->($picked_expr);
+                    next if $excludeRegexMatch->($picked_expr);
+
+                    my @output_names_have = map {$_->[2]} @picked_fields;
+                    die "Couldn't find requested column '$picked_expr' to exclude. Currently have output columns '@output_names_have'";
                 }
 
+                next if $acceptRegexMatch->($picked_expr);
+
                 die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
+            }
+
+            if(!@picked_fields)
+            {
+                die "After processing --pick options, no fields remain!";
+            }
+
+            for my $picked_field (@picked_fields)
+            {
+                my ($output_field, $colidx_needed_max_here, $colname_output) = @$picked_field;
+
+                push @colnames_output, $colname_output;
+
+                if ( $colidx_needed_max_here > $colidx_needed_max )
+                {
+                    $colidx_needed_max = $colidx_needed_max_here;
+                }
+                push @langspecific_output_fields, $output_field;
             }
         }
         else
@@ -324,11 +397,11 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         {
             foreach my $col (@must_have_col_names)
             {
-                if( !defined $colindices_input{$col})
+                if( !(defined $colindices_input{$col} && 1 == @{$colindices_input{$col}}) )
                 {
                     die "I don't have a unique column '$col'";
                 }
-                push @must_have_col_indices_input, $colindices_input{$col};
+                push @must_have_col_indices_input, $colindices_input{$col}[0];
             }
         }
         last;
@@ -475,7 +548,7 @@ sub expr_subst_col_names
     # I take in a string with awk/perl code, and replace field references to
     # column references that the awk/perl program will understand. To minimize
     # the risk of ambiguous matches, I try to match longer strings first
-    my ($language, $out) = @_;
+    my ($language, $out, $dupindex) = @_;
 
     my $colidx_needed_max_here = -1;
 
@@ -497,31 +570,32 @@ sub expr_subst_col_names
 
         next unless $out =~ /$re/;
 
-        if (exists $colindices_input{$key} && !defined $colindices_input{$key})
+        if (!defined $dupindex && 1 != @{$colindices_input{$key}})
         {
             die "Asked to operate on key '$key', but this isn't unique";
         }
+        $dupindex //= 0;
 
 
         if ( $language eq 'perl' )
         {
-            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}]/g;
+            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}[$dupindex]]/g;
 
-            if($found && $colindices_input{$key} > $colidx_needed_max_here)
+            if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key};
+                $colidx_needed_max_here = $colindices_input{$key}[$dupindex];
             }
         }
         elsif( $language eq 'awk' )
         {
             # column index that awk knows about
-            my $colidx = $colindices_input{$key} + 1;
+            my $colidx = $colindices_input{$key}[$dupindex] + 1;
 
             my $found = $out =~ s/$re/\$$colidx/g;
 
-            if($found && $colindices_input{$key} > $colidx_needed_max_here)
+            if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key};
+                $colidx_needed_max_here = $colindices_input{$key}[$dupindex];
             }
         }
         else
@@ -1066,6 +1140,42 @@ length of a vector in separate columns C<x>, C<y>, and C<z> you can do:
  vnl-filter -p 'l=sqrt(x*x + y*y + z*z)'
 
 A single column called C<l> would be produced.
+
+We can also I<exclude> columns by preceding their name with C<!>. This works like
+you expect. Rules:
+
+=over
+
+=item *
+
+The pick/exclude directives are processed in order given to produce the output
+picked-column list
+
+=item *
+
+If the first C<-p> item is an exclusion, we implicitly pick I<all> the columns
+prior to processing the C<-p>.
+
+=item *
+
+The exclusion expressions match the I<output> column names, not the I<input>
+names.
+
+=item *
+
+We match the exact column names first. If that fails, we match as a regex
+
+=back
+
+Example. To grab all the columns I<except> the temperature(s) do this:
+
+ vnl-filter -p !temperature
+
+To grab all the columns that describe I<something> about a robot (columns whose
+names have the string C<robot_> in them), but I<not> its temperature (i.e.
+I<not> "robot_temperature"), do this:
+
+ vnl-filter -p robot_,!temperature
 
 =head2 --has a,b,c,...
 

@@ -280,6 +280,936 @@ $ cat /tmp/x.matrix
 All the tools have manpages that contain more detail. And tools will probably be
 added with time.
 
+* Manpages
+** vnl-filter
+#+BEGIN_EXAMPLE
+NAME
+    vnl-filter - filters vnlogs to select particular rows, fields
+
+SYNOPSIS
+     $ cat run.vnl
+
+     # time x   y   z   temperature
+     3      1   2.3 4.8 30
+     4      1.1 2.2 4.7 31
+     6      1   2.0 4.0 35
+     7      1   1.6 3.1 42
+
+
+     $ <run.vnl vnl-filter -p x,y,z | vnl-align
+
+     # x  y   z
+     1   2.3 4.8
+     1.1 2.2 4.7
+     1   2.0 4.0
+     1   1.6 3.1
+
+
+     $ <run.vnl vnl-filter -p i=NR,time,'dist=sqrt(x*x + y*y + z*z)' | vnl-align
+
+     # i time   dist
+     1   3    5.41572
+     2   4    5.30471
+     3   6    4.58258
+     4   7    3.62905
+
+
+     $ <run.vnl vnl-filter 'temperature >= 35' | vnl-align
+
+     # time x  y   z  temperature
+     6      1 2.0 4.0 35
+     7      1 1.6 3.1 42
+
+
+
+     $ <run.vnl vnl-filter --eval '{s += temperature} END { print "mean temp: " s/NR}'
+
+     mean temp: 34.5
+
+
+     $ <run.vnl vnl-filter -p x,y | feedgnuplot --terminal 'dumb 80,30' --unset grid --domain --lines --exit
+
+       2.3 +---------------------------------------------------------------------+
+           |           +          +          ***************         +           |
+           |                                                **************       |
+           |                                                              *******|
+       2.2 |-+                                                       ************|
+           |                                                 ********            |
+           |                                         ********                    |
+       2.1 |-+                              *********                          +-|
+           |                        ********                                     |
+           |                ********                                             |
+           |            ****                                                     |
+         2 |-+         *                                                       +-|
+           |           *                                                         |
+           |           *                                                         |
+           |           *                                                         |
+       1.9 |-+         *                                                       +-|
+           |           *                                                         |
+           |           *                                                         |
+           |           *                                                         |
+       1.8 |-+         *                                                       +-|
+           |           *                                                         |
+           |           *                                                         |
+       1.7 |-+         *                                                       +-|
+           |           *                                                         |
+           |           *                                                         |
+           |           *          +           +           +          +           |
+       1.6 +---------------------------------------------------------------------+
+          0.98         1         1.02        1.04        1.06       1.08        1.1
+
+DESCRIPTION
+    This tool is largely a frontend for awk to operate on vnlog files. Vnlog
+    is both an input and an output. This tool makes it very simple to select
+    specific rows and columns for output and to manipulate the data in
+    various ways.
+
+    This is a UNIX-style tool, so the input/output of this tool is strictly
+    STDIN/STDOUT. Furthermore, in its usual form this tool is a filter, so
+    the format of the output is *exactly* the same as the format of the
+    input. The exception to this is when using "--eval", in which the output
+    is dependent on whatever expression we're evaluating.
+
+    This tool is convenient to process both stored data or live data; in the
+    latter case, it's very useful to pipe the streaming output to
+    "feedgnuplot --stream" to get a realtime visualization of the incoming
+    data.
+
+    This tool reads enough of the input file to get a legend, at which point
+    it constructs an awk program to do the main work, and execs to awk (it's
+    possible to use perl as well, but this isn't as fast).
+
+  Input/output data format
+    The input/output data is vnlog: a plain-text table of values. Any lines
+    beginning with "#" are treated as comments, and are passed through. The
+    first line that begins with "#" but not "##" or "#!" is a *legend* line.
+    After the "#", follow whitespace-separated field names. Each subsequent
+    line is whitespace-separated values matching this legend. For instance,
+    this is a valid vnlog file:
+
+     #!/usr/bin/something
+     ## more comments
+     # x y z
+     -0.016107 0.004362 0.005369
+     -0.017449 0.006711 0.006711
+     -0.018456 0.014093 0.006711
+     -0.017449 0.018791 0.006376
+
+    "vnl-filter" uses this format for both the input and the output. The
+    comments are preserved, but the legend is updated to reflect the fields
+    in the output file.
+
+    A string "-" is used to indicate an undefined value, so this is also a
+    valid vnlog file:
+
+     # x y z
+     1 2 3
+     4 - 6
+     - - 7
+
+  Filtering
+    To select specific *columns*, pass their names to the "-p" option (short
+    for "--print" or "--pick", which are synonyms). In its simplest form, to
+    grab only columns "x" and "y", do
+
+     vnl-filter -p x,y
+
+    See the detailed description of "-p" below for more detail.
+
+    To select specific *rows*, we use *matches* expressions. Anything on the
+    "vnl-filter" commandline and not attached to any "--xxx" option is such
+    an expression. For instance
+
+     vnl-filter 'size > 10'
+
+    would select only those rows whose "size" column contains a value > 10.
+    See the detailed description of matches expressions below for more
+    detail.
+
+  Backend choice
+    By default, the parsing of arguments and the legend happens in perl,
+    which then constructs a simple awk script, and invokes "mawk" to
+    actually read the data and to process it. This is done because awk is
+    lighter weight and runs faster, which is important because our data sets
+    could be quite large. We default to "mawk" specifically, since this is a
+    simpler implementation than "gawk", and runs much faster. If for
+    whatever reason we want to do everything with perl, this can be
+    requested with the "--perl" option.
+
+  Special functions
+    For convenience we support two special functions in any expression
+    passed on to awk or perl (named expressions, matches expressions,
+    "--eval" strings). These are
+
+    *   rel(x) returns value of "x" relative to the first value of "x". For
+        instance we might want to see the time or position relative to the
+        start, not relative to some absolute beginning. Example:
+
+         $ cat tst.vnl
+
+         # time x
+         100    200
+         101    212
+         102    209
+
+
+         $ <tst.vnl vnl-filter -p 't=rel(time),x=rel(x)
+
+         # t x
+         0 0
+         1 12
+         2 9
+
+    *   diff(x) returns the difference between the current value of "x" and
+        the previous value of "x". Example:
+
+         $ cat tst.vnl
+
+         # x
+         1
+         8
+         27
+         64
+         125
+
+
+         $ <tst.vnl vnl-filter -p 'd1=diff(x),d2=diff(diff(x))'
+
+         # d1 d2
+         0 0
+         7 7
+         19 12
+         37 18
+         61 24
+
+ARGUMENTS
+  -p|--print|--pick expr
+    These option provide the mechanism to select specific columns for
+    output. For instance to pull out columns called "lat", "lon", and any
+    column whose name contains the string "feature_", do
+
+     vnl-filter -p lat,lon,'feature_.*'
+
+    or, equivalently
+
+     vnl-filter --print lat --print lon --print 'feature_.*'
+
+    We look for exact column name matches first, and if none are found, we
+    try a regex. If there was no column called exactly "feature_", then the
+    above would be equivalent to
+
+     vnl-filter -p lat,lon,feature_
+
+    This mechanism is much more powerful than just selecting columns. First
+    off, we can rename chosen fields:
+
+     vnl-filter -p w=feature_width
+
+    would pick the "feature_width" field, but the resulting column in the
+    output would be named "w". When renaming a column in this way regexen
+    are *not* supported, and exact field names must be given. But the string
+    to the right of the "=" is passed on directly to awk (after replacing
+    field names with column indices), so any awk expression can be used
+    here. For instance to compute the length of a vector in separate columns
+    "x", "y", and "z" you can do:
+
+     vnl-filter -p 'l=sqrt(x*x + y*y + z*z)'
+
+    A single column called "l" would be produced.
+
+    We can also *exclude* columns by preceding their name with "!". This
+    works like you expect. Rules:
+
+    *   The pick/exclude directives are processed in order given to produce
+        the output picked-column list
+
+    *   If the first "-p" item is an exclusion, we implicitly pick *all* the
+        columns prior to processing the "-p".
+
+    *   The exclusion expressions match the *output* column names, not the
+        *input* names.
+
+    *   We match the exact column names first. If that fails, we match as a
+        regex
+
+    Example. To grab all the columns *except* the temperature(s) do this:
+
+     vnl-filter -p !temperature
+
+    To grab all the columns that describe *something* about a robot (columns
+    whose names have the string "robot_" in them), but *not* its temperature
+    (i.e. *not* "robot_temperature"), do this:
+
+     vnl-filter -p robot_,!temperature
+
+  --has a,b,c,...
+    Used to select records (rows) that have a non-empty value in a
+    particular field (column). A *null* value in a column is designated with
+    a single "-". If we want to select only records that have a value in the
+    "x" column, we pass "--has x". To select records that have data for
+    *all* of a given set of columns, the "--has" option can be repeated, or
+    these multiple columns can be given in a whitespace-less comma-separated
+    list. For instance if we want only records that have data in *both*
+    columns "x" *and* "y" we can pass in "--has x,y" or "--has x --has y".
+    If we want to combine multiple columns in an *or* (select rows that have
+    data in *any* of a given set of columns), use a matches expression, as
+    documented below.
+
+    If we want to select a column *and* pick only rows that have a value in
+    this column, a shorthand syntax exists:
+
+     vnl-filter --has col -p col
+
+    is equivalent to
+
+     vnl-filter -p +col
+
+  Matches expressions
+    Anything on the commandline not attached to any "--xxx" option is a
+    *matches* expression. These are used to select particular records (rows)
+    in a data file. For each row, we evaluate all the expressions. If *all*
+    the expressions evaluate to true, that row is output. This expression is
+    passed directly to the awk (or perl) backend.
+
+    Example: to select all rows that have valid data in column "a" *or*
+    column "b" *or* column "c" you can
+
+     vnl-filter 'a != "-" || b != "-" || c != "-"'
+
+    or
+
+     vnl-filter --perl 'defined a || defined b || defined c'
+
+    As with the named expressions given to "-p" (described above), these are
+    passed directly to awk, so anything that can be done with awk is
+    supported here.
+
+  --eval expr
+    Instead of printing out all matching records and picked columns, just
+    run the given chunk of awk (or perl). In this mode of operation,
+    "vnl-filter" acts just like a glorified awk, that allows fields to be
+    accessed by name instead of by number, as it would be in raw awk.
+
+    Since the expression may print *anything* or nothing at all, the output
+    in this mode is not necessarily itself a valid vnlog stream. And no
+    column-selecting arguments should be given, since they make no sense in
+    this mode.
+
+    In awk the expr is a full set of pattern/action statements. So to print
+    the sum of columns "a" and "b" in each row, and at the end, print the
+    sum of all values in the "a" column
+
+     vnl-filter --eval '{print a+b; suma += a} END {print suma}'
+
+    In perl the arbitrary expression fits in like this:
+
+     while(<>) # read each line
+     {
+       next unless matches; # skip non-matching lines
+       eval expression;     # evaluate the arbitrary expression
+     }
+
+  --function|--sub
+    Evaluates the given expression as a function that can be used in other
+    expressions. This is most useful when you want to print something that
+    can't trivially be written as a simple expression. For instance:
+
+     $ cat tst.vnl
+     # s
+     1-2
+     3-4
+     5-6
+
+     $ < tst.vnl
+       vnl-filter --function 'before(x) { sub("-.*","",x); return x }' \
+                  --function 'after(x)  { sub(".*-","",x); return x }' \
+                  -p 'b=before(s),a=after(s)'
+     # b a
+     1 2
+     3 4
+     5 6
+
+    See the CAVEATS section below if you're doing something
+    sufficiently-complicated where you need this.
+
+  --[no]skipempty
+    Do [not] skip records where all fields are blank. By default we *do*
+    skip all empty records; to include them, pass "--noskipempty"
+
+  --skipcomments
+    Don't output non-legend comments
+
+  --perl
+    By default all procesing is performed by "mawk", but if for whatever
+    reason we want perl instead, pass "--perl". Both modes work, but "mawk"
+    is noticeably faster. "--perl" could be useful because it is more
+    powerful, which could be important since a number of things pass
+    commandline strings directly to the underlying language (named
+    expressions, matches expressions, "--eval" strings). Note that while
+    variables in perl use sigils, column references should *not* use sigils.
+    To print the sum of all values in column "a" you'd do this in awk
+
+     vnl-filter --eval '{suma += a} END {print suma}'
+
+    and this in perl
+
+     vnl-filter --perl --eval '{$suma += a} END {say $suma}'
+
+    The perl strings are evaluated without "use strict" or "use warnings" so
+    I didn't have to declare $suma in the example.
+
+  --dumpexprs
+    Used for debugging. This spits out all the final awk (or perl) program
+    we run for the given commandline options and given input. This is the
+    final program, with the column references resolved to numeric indices,
+    so one can figure out what went wrong.
+
+  --unbuffered
+    Flushes each line after each print. This makes sure each line is output
+    as soon as it is available, which is crucial for realtime output and
+    streaming plots.
+
+CAVEATS
+    This tool is very lax in its input validation (on purpose). As a result,
+    columns with names like %CPU and "TIME+" do work (i.e. you can more or
+    less feed in output from "top -b"). The downside is that shooting
+    yourself in the foot is possible. This tradeoff is currently set to work
+    well for my use cases, but I'd be interested in hearing other people's
+    experiences. Potential pitfalls/unexpected behaviors:
+
+    *   When substituting column names I match *either* a word-nonword
+        transition ("\b") *or* a whitespace-nonword transition. The word
+        boundaries is what would be used 99% of the time. But the keys may
+        have special characters in them, which don't work with "\b". This
+        means that whitespace becomes important: "1+%CPU" will not be parsed
+        as expected, which is correct since "+%CPU" is also a valid field
+        name. But "1+ %CPU" will be parsed correctly, so if you have weird
+        field names, put the whitespace into your expressions. It'll make
+        them more readable anyway.
+
+    *   Strings passed to "-p" are split on "," *except* if the "," is
+        inside balanced <()>. This makes it possible to say things like
+        "vnl-filter --function 'f(a,b) { ... }' -p 'c=f(a,b)'". This is
+        probably the right behavior, although some questionable looking
+        field names become potentially impossible: "f(a" and "b)" *could*
+        otherwise be legal field names, but you're probably asking for
+        trouble if you do that.
+
+    *   All column names are replaced in all eval strings without regard to
+        context. The earlier example that reports the sum of values in a
+        column: "vnl-filter --eval '{suma += a} END {print suma}'" will work
+        fine if we *do* have a column named "a" and do <not> have a column
+        named "suma". But will not do the right thing if any of those are
+        violated. It's the user's responsibility to make sure we're talking
+        about the right columns. The focus here was one-liners so hopefully
+        nobody has so many columns, they can't keep track of all of them in
+        their head. I don't see any way to resolve this without seriously
+        impacting the scope of the tool, so I'm leaving this alone. Comments
+        welcome.
+
+    *   Currently there're two modes: a pick/print mode and an "--eval"
+        mode. Then there's also "--function", which adds bits of "--eval" to
+        the pick/print mode, but it feels maybe insufficient. I don't yet
+        have strong feelings about what this should become. Comments welcome
+
+
+#+END_EXAMPLE
+
+** vnl-align
+#+BEGIN_EXAMPLE
+NAME
+    vnl-align - aligns vnlog columns for easy interpretation by humans
+
+SYNOPSIS
+     $ cat tst.vnl
+
+     # w x y z
+     -10 40 asdf -
+     -20 50 - 0.300000
+     -30 10 whoa 0.500000
+
+
+     $ vnl-align tst.vnl
+
+     # w  x   y      z
+     -10 40 asdf -
+     -20 50 -    0.300000
+     -30 10 whoa 0.500000
+
+DESCRIPTION
+    The basic usage is
+
+     vnl-align logfile
+
+    The arguments are assumed to be the vnlog files. If no arguments are
+    given, the input comes from STDIN.
+
+    This is very similar to "column -t", but handles "#" lines properly:
+
+    1. The first "#" line is the legend. For the purposes of alignment, the
+    leading "#" character and the first column label are treated as one
+    column
+
+    2. All other "#" lines are output verbatim.
+
+
+#+END_EXAMPLE
+
+** vnl-sort
+#+BEGIN_EXAMPLE
+NAME
+    vnl-sort - sorts an vnlog file, preserving the legend
+
+SYNOPSIS
+     $ cat a.vnl
+     # a b
+     AA 11
+     bb 12
+     CC 13
+     dd 14
+     dd 123
+
+     Sort lexically by a:
+     $ <a.vnl vnl-sort -k a
+     # a b
+     AA 11
+     CC 13
+     bb 12
+     dd 123
+     dd 14
+
+     Sort lexically by a, ignoring case:
+     $ <a.vnl vnl-sort -k a --ignore-case
+     # a b
+     AA 11
+     bb 12
+     CC 13
+     dd 123
+     dd 14
+
+     Sort lexically by a, then numerically by b:
+     $ <a.vnl vnl-sort -k a -k b.n
+     # a b
+     AA 11
+     CC 13
+     bb 12
+     dd 14
+     dd 123
+
+     Sort lexically by a, then numerically by b in reverse:
+     $ <a.vnl vnl-sort -k a -k b.nr
+     # a b
+     AA 11
+     CC 13
+     bb 12
+     dd 123
+     dd 14
+
+
+     Sort by month and then day:
+     $ cat dat.vnl
+     # month day
+     March 5
+     Jan 2
+     Feb 1
+     March 30
+     Jan 21
+
+     $ <dat.vnl vnl-sort -k month.M -k day.n
+     # month day
+     Jan 2
+     Jan 21
+     Feb 1
+     March 5
+     March 30
+
+DESCRIPTION
+      Usage: vnl-sort [options] logfile logfile logfile ... < logfile
+
+    This tool sorts given vnlog files in various ways. "vnl-sort" is a
+    wrapper around the GNU coreutils "sort" tool. Since this is a wrapper,
+    most commandline options and behaviors of the "sort" tool are present;
+    consult the sort(1) manpage for detail. The differences from GNU
+    coreutils "sort" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   The columns are referenced by name, not index. So instead of saying
+
+          sort -k1
+
+        to sort by the first column, you say
+
+          sort -k time
+
+        to sort by column "time".
+
+    *   The fancy "KEYDEF" spec from "sort" is only partially supported. I
+        only allow us to sort by full *fields*, so the start/stop positions
+        don't make sense. I *do* support the "OPTS" to change the type of
+        sorting in a given particular column. For instance, to sort by month
+        and then by day, do this (see example above):
+
+          vnl-sort -k month.M -k day.n
+
+    *   "--files0-from" is not supported due to lack of time. If somebody
+        really needs it, talk to me.
+
+    *   "--output" is not supported due to an uninteresting technical
+        limitation. The output always goes to standard out.
+
+    *   "--field-separator" is not supported because vnlog assumes
+        whitespace-separated fields
+
+    *   "--zero-terminated" is not supported because vnlog assumes
+        newline-separated records
+
+    Past that, everything "sort" does is supported, so see that man page for
+    detailed documentation. Note that all non-legend comments are stripped
+    out, since it's not obvious where they should end up.
+
+BUGS
+    This and the other "vnl-xxx" tools that wrap coreutils are written
+    specifically to work with the Linux kernel and the GNU coreutils. None
+    of these have been tested with BSD tools or with non-Linux kernels, and
+    I'm sure things don't just work. It's probably not too effortful to get
+    that running, but somebody needs to at least bug me for that. Or better
+    yet, send me nice patches :)
+
+SEE ALSO
+    sort(1)
+
+
+#+END_EXAMPLE
+
+** vnl-join
+#+BEGIN_EXAMPLE
+NAME
+    vnl-join - joins two log files on a particular field
+
+SYNOPSIS
+     $ cat a.vnl
+     # a b
+     AA 11
+     bb 12
+     CC 13
+     dd 14
+     dd 123
+
+     $ cat b.vnl
+     # a c
+     aa 1
+     cc 3
+     bb 4
+     ee 5
+     - 23
+
+     Try to join unsorted data on field 'a':
+     $ vnl-join -j a a.vnl b.vnl
+     # a b c
+     join: /dev/fd/5:3: is not sorted: CC 13
+     join: /dev/fd/6:3: is not sorted: bb 4
+
+     Sort the data, and join on 'a':
+     $ vnl-join --vnl-sort - -j a a.vnl b.vnl | vnl-align
+     # a  b c
+     bb  12 4
+
+     Sort the data, and join on 'a', ignoring case:
+     $ vnl-join -i --vnl-sort - -j a a.vnl b.vnl | vnl-align
+     # a b c
+     AA 11 1
+     bb 12 4
+     CC 13 3
+
+     Sort the data, and join on 'a'. Also print the unmatched lines from both files:
+     $ vnl-join -a1 -a2 --vnl-sort - -j a a.vnl b.vnl | vnl-align
+     # a  b   c
+     -   -   23
+     AA   11 -
+     CC   13 -
+     aa  -    1
+     bb   12  4
+     cc  -    3
+     dd  123 -
+     dd   14 -
+     ee  -    5
+
+     Sort the data, and join on 'a'. Print the unmatched lines from both files, Output ONLY column 'c' from the 2nd input:
+     $ vnl-join -a1 -a2 -o 2.c --vnl-sort - -j a a.vnl b.vnl | vnl-align
+     # c
+     23
+     -
+     -
+      1
+      4
+      3
+     -
+     -
+      5
+
+DESCRIPTION
+      Usage: vnl-join [join options]
+                      [--vnl-sort -|[dfgiMhnRrV]+]
+                      [--vnl-[pre|suf]fix[1|2] xxx]
+                      logfile1 logfile2
+
+    This tool joins two vnlog files on a given field. "vnl-join" is a
+    wrapper around the GNU coreutils "join" tool. Since this is a wrapper,
+    most commandline options and behaviors of the "join" tool are present;
+    consult the join(1) manpage for detail. The differences from GNU
+    coreutils "join" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   The columns are referenced by name, not index. So instead of saying
+
+          join -j1
+
+        to join on the first column, you say
+
+          join -j time
+
+        to join on column "time".
+
+    *   -1 and -2 are supported, but *must* refer to the same field. Since
+        vnlog knows the identify of each field, it makes no sense for -1 and
+        -2 to be different. So pass "-j" instead, it makes more sense in
+        this context.
+
+    *   "vnl-join"-specific options are available to adjust the field-naming
+        in the output: "--vnl-prefix1", "--vnl-prefix2", "--vnl-suffix1",
+        "--vnl-suffix2". See below for details.
+
+    *   A "vnl-join"-specific option "--vnl-sort" is available to sort the
+        input and/or output. See below for details.
+
+    *   If no "-o" is given, we pass "-o auto" to make sure that missing
+        data is shown as "-".
+
+    *   "-e" is not supported because vnlog uses "-" to represent undefined
+        fields.
+
+    *   "--header" is not supported because vnlog assumes a specific header
+        structure, and "vnl-join" makes sure that this header is handled
+        properly
+
+    *   "-t" is not supported because vnlog assumes whitespace-separated
+        fields
+
+    *   "--zero-terminated" is not supported because vnlog assumes
+        newline-separated records
+
+    Past that, everything "join" does is supported, so see that man page for
+    detailed documentation. Note that all non-legend comments are stripped
+    out, since it's not obvious where they should end up.
+
+  Field names in the output
+    By default, the field names in the output match those in the input. This
+    is what you want most of the time. It is possible, however that a column
+    name adjustment is needed. One common use case for this is if the files
+    being joined have identically-named columns, which would produce
+    duplicate columns in the output. Example: we fixed a bug in a program,
+    and want to compare the results before and after the fix. The program
+    produces an x-y trajectory as a function of time, so both the bugged and
+    the bug-fixed programs produce a vnlog with a legend
+
+     # time x y
+
+    Joining this on "time" will produce a vnlog with a legend
+
+     # time x y x y
+
+    which is confusing, and *not* what you want. Instead, we invoke
+    "vnl-join" as
+
+     vnl-join --vnl-suffix1 _bugged --vnl-suffix2 _fixed -j time bugged.vnl fixed.vnl
+
+    And in the output we get a legend
+
+     # time x_bugged y_bugged x_fixed y_fixed
+
+    Much better.
+
+  Sorting of input and output
+    The GNU coreutils "join" tool expects sorted columns because it can then
+    take only a single pass through the data. If the input isn't sorted,
+    then we can use normal shell substitutions to sort it:
+
+     $ vnl-join -j key <(vnl-sort -k key a.vnl) <(vnl-sort -k key b.vnl)
+
+    For convenience "vnl-join" provides a "--vnl-sort" option. This allows
+    the above to be equivalently expressed as
+
+     $ vnl-join -j key --vnl-sort - a.vnl b.vnl
+
+    The "-" after the "--vnl-sort" indicates that we want to sort the
+    *input* only. If we also want to sort the output, pass the short codes
+    "sort" accepts instead of the "-". For instance, to sort the input for
+    "join" and to sort the output numerically, in reverse, do this:
+
+     $ vnl-join -j key --vnl-sort rg a.vnl b.vnl
+
+    The reason this shorthand exists is to work around a quirk of "join".
+    The sort order is *assumed* by "join" to be lexicographical, without any
+    way to change this. For "sort", this is the default sort order, but
+    "sort" has many options to change the sort order, options which are
+    sorely missing from "join". A real-world example affected by this is the
+    joining of numerical data. If you have "a.vnl":
+
+     # time a
+     8 a
+     9 b
+     10 c
+
+    and "b.vnl":
+
+     # time b
+     9  d
+     10 e
+
+    Then you cannot use "vnl-join" directly to join the data on time:
+
+     $ vnl-join -j time a.vnl b.vnl
+     # time a b
+     join: /dev/fd/4:3: is not sorted: 10 c
+     join: /dev/fd/5:2: is not sorted: 10 e
+     9 b d
+     10 c e
+
+    Instead you must re-sort both files lexicographically, *and* then
+    (because you almost certainly want to) sort it back into numerical
+    order:
+
+     $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) |
+       vnl-sort -n -k time
+     # time a b
+     9 b d
+     10 c e
+
+    Yuck. The shorthand described earlier makes the interface part of this
+    palatable:
+
+     $ vnl-join -j time --vnl-sort n a.vnl b.vnl
+     # time a b
+     9 b d
+     10 c e
+
+BUGS
+    This and the other "vnl-xxx" tools that wrap coreutils are written
+    specifically to work with the Linux kernel and the GNU coreutils. None
+    of these have been tested with BSD tools or with non-Linux kernels, and
+    I'm sure things don't just work. It's probably not too effortful to get
+    that running, but somebody needs to at least bug me for that. Or better
+    yet, send me nice patches :)
+
+SEE ALSO
+    join(1)
+
+
+#+END_EXAMPLE
+
+** vnl-tail
+#+BEGIN_EXAMPLE
+NAME
+    vnl-tail - tail a log file, preserving the legend
+
+SYNOPSIS
+     $ read_temperature | tee temp.vnl
+     # temperature
+     29.5
+     30.4
+     28.3
+     22.1
+     ... continually produces data
+
+     ... at the same time, in another terminal
+     $ vnl-tail -f temp.vnl
+     # temperature
+     28.3
+     22.1
+     ... outputs data as it comes in
+
+DESCRIPTION
+      Usage: vnl-tail [options] logfile logfile logfile ... < logfile
+
+    This tool runs tail on given vnlog files in various ways. "vnl-tail" is
+    a wrapper around the GNU coreutils "tail" tool. Since this is a wrapper,
+    most commandline options and behaviors of the "tail" tool are present;
+    consult the tail(1) manpage for detail. The differences from GNU
+    coreutils "tail" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   "-c" is not supported because vnlog really doesn't want to break up
+        lines
+
+    *   "--zero-terminated" is not supported because vnlog assumes
+        newline-separated records
+
+    Past that, everything "tail" does is supported, so see that man page for
+    detailed documentation.
+
+BUGS
+    This and the other "vnl-xxx" tools that wrap coreutils are written
+    specifically to work with the Linux kernel and the GNU coreutils. None
+    of these have been tested with BSD tools or with non-Linux kernels, and
+    I'm sure things don't just work. It's probably not too effortful to get
+    that running, but somebody needs to at least bug me for that. Or better
+    yet, send me nice patches :)
+
+SEE ALSO
+    tail(1)
+
+
+#+END_EXAMPLE
+
+* Installation
+
+** On Debian-based boxes
+At this time vnlog is a part of Debian/sid, and will migrate to the latest
+Ubuntu release in the near future. On those boxes you can simply
+
+#+BEGIN_EXAMPLE
+$ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
+#+END_EXAMPLE
+
+to get the binary tools, the C API, the perl and python2 interfaces
+respectively.
+
+On a Debian (or Ubuntu) machine that's too old to have the packages already
+available, you can build and install them:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ cp -r packaging/debian .
+$ dpkg-buildpackage -us -uc -b
+$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
+#+END_EXAMPLE
+
+** On non-Debian-based boxes
+
+With the exception of the C API, every part of the toolkit is written in an
+interpreted language, and there's nothing to "install". You can run everything
+directly from the source tree:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ ./vnl-filter .....
+#+END_EXAMPLE
+
+If you /do/ want to install to some location, do this:
+
+#+BEGIN_EXAMPLE
+$ make
+$ PREFIX=/usr/local make install
+#+END_EXAMPLE
+
 * C interface
 
 For most uses, these logfiles are simple enough to be generated with plain
@@ -495,7 +1425,6 @@ one is that columns are whitespace-separated. There is /no/ mechanism for
 escaping or quoting whitespace into a single field. I think supporting something
 like that is more trouble than it's worth.
 
-
 * Repository
 
 https://github.com/dkogan/vnlog/
@@ -505,7 +1434,6 @@ https://github.com/dkogan/vnlog/
 Dima Kogan (=dima@secretsauce.net=)
 
 Chris Venter (=chris.venter@gmail.com=) wrote the base64 encoder
-
 
 * License and copyright
 

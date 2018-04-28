@@ -505,8 +505,85 @@ check(<<'EOF', qw(-p a --noskipempty), {data => $data_int_dup});
 5
 EOF
 
-check('ERROR', qw(-p .), {data => $data_int_dup});
-check('ERROR', qw(-p c), {data => $data_int_dup});
+check(<<'EOF', qw(-p .), {data => $data_int_dup});
+# c a c
+2 1 a
+4 - b
+6 5 c
+EOF
+
+check(<<'EOF', qw(-p c), {data => $data_int_dup});
+# c c
+2 a
+4 b
+6 c
+EOF
+
+
+check( <<'EOF', qw(-p b) );
+#!/bin/xxx
+# b
+2
+9
+11
+EOF
+
+check( <<'EOF', qw(-p b*) );
+#!/bin/xxx
+# b
+2
+9
+11
+EOF
+
+check('ERROR', qw(-p X*));
+
+# exclusions
+check(<<'EOF', '--noskipempty', '-p', '.,!c', {data => $data_int_dup});
+# a
+1
+-
+5
+EOF
+
+check(<<'EOF', '--noskipempty', '-p', '.,!a', {data => $data_int_dup});
+# c c
+2 a
+4 b
+6 c
+EOF
+
+check(<<'EOF', '--noskipempty', '-p', '.,!c*', {data => $data_int_dup});
+# a
+1
+-
+5
+EOF
+
+check(<<'EOF', '--noskipempty', qw(-p !c), {data => $data_int_dup});
+# a
+1
+-
+5
+EOF
+
+check(<<'EOF', '--noskipempty', qw(-p !a), {data => $data_int_dup});
+# c c
+2 a
+4 b
+6 c
+EOF
+
+check('ERROR', '--noskipempty', '-p', '.,!.*', {data => $data_int_dup}); # no cols left
+
+check('ERROR', '--noskipempty', '-p', '.,!xxxx', {data => $data_int_dup}); # col not found
+
+check(<<'EOF', '--noskipempty', '-p', 'a,b=a,z=a,![az]', {data => $data_int_dup});
+# b
+1
+-
+5
+EOF
 
 
 

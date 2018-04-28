@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS := hardening=+all
+
+%:
+	dh $@ --with python2 --with python3
+
+override_dh_auto_build:
+	make all doc
