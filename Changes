@@ -1,4 +1,11 @@
-vnlog (1.7) unstable; urgency=medium
+vnlog (1.8)
+
+  * vnl-filter: bug-fix for compatibility with older perls (5.16 works
+    now)
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 28 Apr 2018 19:46:49 -0700
+
+vnlog (1.7)
 
   * vnl-filter: added exclusion columns: vnl-filter -p !xxx
   * vnl-filter handles duplicate columns robustly
