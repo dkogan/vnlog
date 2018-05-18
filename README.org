@@ -1437,7 +1437,9 @@ https://github.com/dkogan/vnlog/
 
 * Authors
 
-Dima Kogan (=dima@secretsauce.net=)
+Dima Kogan (=dima@secretsauce.net=) wrote this toolkit for his work at the Jet
+Propulsion Laboratory, and is delighted to have been able to release it
+publically
 
 Chris Venter (=chris.venter@gmail.com=) wrote the base64 encoder
 

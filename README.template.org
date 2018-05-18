@@ -18,12 +18,12 @@ Example:
 #+END_EXAMPLE
 
 Such data works very nicely with normal UNIX tools (=awk=, =sort=, =join=), can
-be easily read by fancier tools (=numpy=, =matlab= (yuck), =excel= (/yuck/), etc),
-and can be plotted with =feedgnuplot=. This tookit provides some tools to
-manipulate =vnlog= data and a few libraries to read/write it. The core
-philosophy is to keep everything as simple and light as possible, and to provide
-methods to enable existing (and familiar!) tools and workflows to be utilized in
-nicer ways.
+be easily read by fancier tools (=numpy=, =matlab=, =excel=, etc), and can be
+plotted with =feedgnuplot=. This tookit provides some tools to manipulate
+=vnlog= data and a few libraries to read/write it. The core philosophy is to
+keep everything as simple and light as possible, and to provide methods to
+enable existing (and familiar!) tools and workflows to be utilized in nicer
+ways.
 
 * Synopsis
 
@@ -192,6 +192,12 @@ exist other tools that are similar. For instance:
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
 - https://github.com/eBay/tsv-utils-dlang
+- http://harelba.github.io/q/
+- https://github.com/BatchLabs/charlatan
+- https://github.com/dinedal/textql
+- https://github.com/BurntSushi/xsv
+- https://github.com/dbohdan/sqawk
+
 
 These all provide facilities to run various analyses, and are neither simple nor
 light. Vnlog by contrast doesn't analyze anything, but makes it easy to write
@@ -570,7 +576,9 @@ https://github.com/dkogan/vnlog/
 
 * Authors
 
-Dima Kogan (=dima@secretsauce.net=)
+Dima Kogan (=dima@secretsauce.net=) wrote this toolkit for his work at the Jet
+Propulsion Laboratory, and is delighted to have been able to release it
+publically
 
 Chris Venter (=chris.venter@gmail.com=) wrote the base64 encoder
 
