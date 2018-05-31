@@ -10,6 +10,9 @@ use lib "$Bin/lib";
 # Non-ancient perls have this in List::Util, but I want to support ancient ones too
 use List::MoreUtils 'all';
 
+use POSIX;
+use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
+
 use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index);
 
 
@@ -33,6 +36,10 @@ my @specs = ( # options with no args
           "vnl-suffix1=s",
           "vnl-prefix2=s",
           "vnl-suffix2=s",
+          "vnl-prefix3=s",
+          "vnl-suffix3=s",
+          "vnl-prefix4=s",
+          "vnl-suffix4=s",
 
           "vnl-sort=s");
 
@@ -79,9 +86,16 @@ There're also a few vnlog-specific options
   --vnl-suffix1 xxx
   --vnl-prefix2 xxx
   --vnl-suffix2 xxx
-         Add a suffix/prefix to the output column labels of the 1st/2nd data
+  --vnl-prefix3 xxx
+  --vnl-suffix3 xxx
+  --vnl-prefix4 xxx
+  --vnl-suffix4 xxx
+         Add a suffix/prefix to the output column labels of the nth data
          file. Very useful if we're joining datasets with identically-named
          fields
+
+  --vnl-autoprefix
+         xxx
 
   --vnl-sort -|[dfgiMhnRrV]+]
          Pre-sort both input files lexicographically (join assumes this sort
@@ -99,9 +113,11 @@ for my $key(keys %$options)
     }
 }
 
-if( scalar(@$filenames) != 2 )
+my $Ndatafiles = scalar(@$filenames);
+
+if( $Ndatafiles < 2 )
 {
-    die "Exactly two inputs should have been given";
+    die "At least two inputs should have been given";
 }
 if(defined $options->{j} &&
    (defined $options->{1} || defined $options->{2}))
@@ -115,6 +131,11 @@ if(( defined $options->{1} && !defined $options->{2}) ||
 }
 if( defined $options->{1})
 {
+    if( $Ndatafiles != 2 )
+    {
+        die "If passing -1/-2 we must be joining EXACTLY two data files";
+    }
+
     if($options->{1} ne $options->{2})
     {
         die "-1 and -2 should refer to the same field. Using -j is recommended";
@@ -133,29 +154,155 @@ if( !defined $options->{j} )
 if( defined $options->{a} )
 {
     my $N = scalar @{$options->{a}};
-    if( $N < 1 || $N > 2 )
+    if( $N < 1 || $N > $Ndatafiles )
     {
-        die "-a should have been passed at most 2 times";
+        die "-a should have been passed at most Ndatafiles=$Ndatafiles times";
     }
 
-    if( !all {/^[12]$/} @{$options->{a}} )
+    if( !all {$_ >= 1 && $_ <= $Ndatafiles} @{$options->{a}} )
     {
-        die "-a MUST be given either 1 or 2";
+        die "-a MUST be an integer in [1 .. Ndatafiles=$Ndatafiles]";
     }
 }
 if( defined $options->{v} )
 {
     my $N = scalar @{$options->{v}};
-    if( $N < 1 || $N > 2 )
+    if( $N < 1 || $N > $Ndatafiles )
     {
-        die "-v should have been passed at most 2 times";
+        die "-v should have been passed at most Ndatafiles=$Ndatafiles times";
     }
 
-    if( !all {/^[12]$/} @{$options->{v}} )
+    if( !all {$_ >= 1 && $_ <= $Ndatafiles} @{$options->{v}} )
     {
-        die "-v MUST be given either 1 or 2";
+        die "-v MUST be an integer in [1 .. Ndatafiles=$Ndatafiles]";
     }
 }
+
+$options->{'vnl-prefix1'} //= '';
+$options->{'vnl-suffix1'} //= '';
+$options->{'vnl-prefix2'} //= '';
+$options->{'vnl-suffix2'} //= '';
+$options->{'vnl-prefix3'} //= '';
+$options->{'vnl-suffix3'} //= '';
+$options->{'vnl-prefix4'} //= '';
+$options->{'vnl-suffix4'} //= '';
+
+
+if( $Ndatafiles > 2 )
+{
+    # I have more than two datafiles, but the coreutils join only supports 2 at
+    # a time. I thus subdivide my problem into a set of pairwise ones. I can do
+    # this with a reduce(), but this would cause each sub-join to be dependent
+    # on a previous one. Instead I rearrange the calls to make the sub-joins
+    # independent, and thus parallelizable
+
+    sub subjoin
+    {
+        # my $pid = fork;
+        # if( $pid )
+        # {
+        #     # parent
+        # }
+        # else
+        # {
+        #     # child
+        # }
+
+        # inputs $in0 and $in1 are integers. >= 0 means they're open file
+        # descriptors. < 0 means negated indices into @$filenames
+        my ($in0, $in1, $to_stdout) = @_;
+
+        sub infile
+        {
+            my ($file) = @_;
+            if( $file >= 0 ) { return "/dev/fd/$file"; }
+            return $filenames->[-$file - 1];
+        }
+
+        my $ARGV_new = reconstruct_substituted_command([], $options, \@specs);
+        my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
+
+        my ($fd_read, $fd_write);
+        if( !$to_stdout)
+        {
+#            $^F=255;
+            ($fd_read, $fd_write) = POSIX::pipe();
+            # my $flags = POSIX::fcntl($fd_read, F_GETFD, 0);
+            # POSIX::fcntl($fd_read, F_SETFD, ($flags & ~FD_CLOEXEC));
+        }
+
+        my $childpid_subjoin = fork();
+        if ( $childpid_subjoin == 0 )
+        {
+            POSIX::close(0);
+
+            if( !$to_stdout)
+            {
+                POSIX::close($fd_read);
+                POSIX::close(1);
+                POSIX::dup2($fd_write, 1);
+            }
+
+            exec @run_opts;
+        }
+        waitpid $childpid_subjoin, 0;
+        my $result = $?;
+
+
+
+
+
+        POSIX::close($fd_write) if defined($fd_write);
+
+        if( $in0 >= 0) { POSIX::close($in0); }
+        if( $in1 >= 0) { POSIX::close($in1); }
+        if($result != 0)
+        {
+            die "Subjoin in PID $childpid_subjoin failed!";
+        }
+
+        return $fd_read;
+    }
+
+    sub dispatch_subjoins
+    {
+        my @inputs = @_;
+
+        while(1)
+        {
+            my $N = scalar @inputs;
+
+            # First index of each pairwise subjoin. If we have an odd number of
+            # inputs, we use the last one directly
+            my @i0 = map {2*$_} 0..int($N/2)-1;
+
+            if($N == 2)
+            {
+                # run the subjoin, and write out to stdout
+                subjoin(@inputs, 1);
+                return;
+            }
+
+            # This map() should run in parallel
+            my @outputs = map { subjoin(@inputs[$_, $_+1]) } @i0;
+            push @outputs, $inputs[$N-1] if ($N % 2)==1;
+
+            @inputs = @outputs;
+        }
+    }
+
+
+    # I pass in indices <0 to indicate input filenames. This is to distinguish
+    # it from indices >= 0 that signify file descriptors
+    dispatch_subjoins( map {-$_-1} 0..$#$filenames);
+    exit;
+}
+
+
+
+
+
+
 
 
 # vnlog uses - to represent empty fields
@@ -166,11 +313,6 @@ if( !defined $options->{o} )
     # Some format MUST be given. Otherwise join doesn't respect -e
     $options->{o} = 'auto';
 }
-
-$options->{'vnl-prefix1'} //= '';
-$options->{'vnl-suffix1'} //= '';
-$options->{'vnl-prefix2'} //= '';
-$options->{'vnl-suffix2'} //= '';
 
 my $join_key = $options->{j};
 
@@ -211,7 +353,6 @@ if(!defined $options->{'vnl-sort'} || $options->{'vnl-sort'} eq '-')
 
 # Complicated case. We're post-filtering our output. I set up the pipes, fork
 # and exec
-use POSIX;
 my ($fdread,$fdwrite) = POSIX::pipe();
 
 my $childpid_sort = fork();

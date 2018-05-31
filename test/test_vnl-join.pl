@@ -39,6 +39,13 @@ my $data2 = <<'EOF';
 52b 6c 7d 10
 EOF
 
+my $data3 = <<'EOF';
+# b f
+22b 18
+32b 29
+52b 30
+EOF
+
 my $data_int = <<'EOF';
 # a b
 1 a
@@ -57,6 +64,7 @@ EOF
 test_init('vnl-join', \$Nfailed,
           '$data1'       => $data1,
           '$data2'       => $data2,
+          '$data3'       => $data3,
           '$data_int'    => $data_int,
           '$data_int_dup'=> $data_int_dup);
 
@@ -198,6 +206,13 @@ EOF
 
 # But that relevant dups do
 check( 'ERROR', qw(-j c), '$data_int', '$data_int_dup' );
+
+# 3-way joins
+check( <<'EOF', qw(-jb), '$data1', '$data2', '$data3');
+# b a e c d e f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
 
 
 
