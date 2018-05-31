@@ -118,7 +118,7 @@ EOF
 
     # parent
 
-    # I'm explicitly passing these to an exec, so FD_CLOSEXEC must be off
+    # I'm explicitly passing these to an exec, so FD_CLOEXEC must be off
     my $flags = fcntl $fh, F_GETFD, 0;
     fcntl $fh, F_SETFD, ($flags & ~FD_CLOEXEC);
 
