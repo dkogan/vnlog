@@ -433,6 +433,7 @@ POSIX::close($fdwrite);
 waitpid $childpid_join, 0;
 waitpid $childpid_sort, 0;
 
+exit 0;
 
 
 
