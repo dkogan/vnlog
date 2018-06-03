@@ -196,6 +196,17 @@ if( $Ndatafiles > 2 )
     # on a previous one. Instead I rearrange the calls to make the sub-joins
     # independent, and thus parallelizable
 
+    my %all_a = ();
+    my %all_v = ();
+    for my $a(@{$options->{a}})
+    {
+        $all_a{$a} = 1;
+    }
+    for my $v(@{$options->{v}})
+    {
+        $all_v{$v} = 1;
+    }
+
     sub subjoin
     {
         # my $pid = fork;
@@ -208,18 +219,41 @@ if( $Ndatafiles > 2 )
         #     # child
         # }
 
-        # inputs $in0 and $in1 are integers. >= 0 means they're open file
-        # descriptors. < 0 means negated indices into @$filenames
+        # inputs $in0 and $in1 are a hashref describing the input
         my ($in0, $in1, $to_stdout) = @_;
 
         sub infile
         {
-            my ($file) = @_;
-            if( $file >= 0 ) { return "/dev/fd/$file"; }
-            return $filenames->[-$file - 1];
+            my ($in) = @_;
+            if( exists $in->{i_filename} )
+            {
+                return $filenames->[ $in->{i_filename} ];
+            }
+
+            my $fd = $in->{fd};
+            return "/dev/fd/$fd";
         }
 
-        my $ARGV_new = reconstruct_substituted_command([], $options, \@specs);
+        # deep copy
+        my %sub_options = %$options;
+        $sub_options{a} = [];
+        my $has_a = undef;
+        if( ( exists $in0->{i_filename} && $all_a{$in0->{i_filename}+1}) ||
+            (!exists $in0->{i_filename} && $in0->{has_a} ) )
+        {
+            push @{$sub_options{a}}, 1;
+            $has_a = 1;
+        }
+        if( ( exists $in1->{i_filename} && $all_a{$in1->{i_filename}+1}) ||
+            (!exists $in1->{i_filename} && $in1->{has_a} ) )
+        {
+            push @{$sub_options{a}}, 2;
+            $has_a = 1;
+        }
+
+
+
+        my $ARGV_new = reconstruct_substituted_command([], \%sub_options, \@specs);
         my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
 
         my ($fd_read, $fd_write);
@@ -254,14 +288,15 @@ if( $Ndatafiles > 2 )
 
         POSIX::close($fd_write) if defined($fd_write);
 
-        if( $in0 >= 0) { POSIX::close($in0); }
-        if( $in1 >= 0) { POSIX::close($in1); }
+        if( exists $in0->{fd}) { POSIX::close($in0->{fd}); }
+        if( exists $in1->{fd}) { POSIX::close($in1->{fd}); }
         if($result != 0)
         {
             die "Subjoin in PID $childpid_subjoin failed!";
         }
 
-        return $fd_read;
+        return { fd    => $fd_read,
+                 has_a => $has_a };
     }
 
     sub dispatch_subjoins
@@ -292,9 +327,7 @@ if( $Ndatafiles > 2 )
     }
 
 
-    # I pass in indices <0 to indicate input filenames. This is to distinguish
-    # it from indices >= 0 that signify file descriptors
-    dispatch_subjoins( map {-$_-1} 0..$#$filenames);
+    dispatch_subjoins( map { {i_filename => $_} } 0..$#$filenames);
     exit;
 }
 

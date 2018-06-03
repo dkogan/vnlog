@@ -44,6 +44,7 @@ my $data3 = <<'EOF';
 22b 18
 32b 29
 52b 30
+62b 11
 EOF
 
 my $data_int = <<'EOF';
@@ -212,6 +213,38 @@ check( <<'EOF', qw(-jb), '$data1', '$data2', '$data3');
 # b a e c d e f
 22b 1a 9 1c 5d 8 18
 32b 5a 10 5c 6d 9 29
+EOF
+
+check( 'ERROR', qw(-1b), '$data1', '$data2', '$data3');
+
+check( <<'EOF', qw(-jb -a1), '$data1', '$data2', '$data3');
+# b a e c d e f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+42b 6a 11 - - - -
+EOF
+
+check( <<'EOF', qw(-jb -a2), '$data1', '$data2', '$data3');
+# b a e c d e f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+52b - - 6c 7d 10 30
+EOF
+
+check( <<'EOF', qw(-jb -a3), '$data1', '$data2', '$data3');
+# b a e c d e f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+52b - - 6c 7d 10 30
+62b - - - - - 11
+EOF
+
+check( <<'EOF', qw(-jb -a1 -a2), '$data1', '$data2', '$data3');
+# b a e c d e f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+42b 6a 11 - - - -
+52b - - 6c 7d 10 30
 EOF
 
 
