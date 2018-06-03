@@ -217,36 +217,60 @@ EOF
 
 check( 'ERROR', qw(-1b), '$data1', '$data2', '$data3');
 
-check( <<'EOF', qw(-jb -a1), '$data1', '$data2', '$data3');
+# I check -a- with ALL ordering of passed-in data
+check( <<'EOF', qw(-jb -a-), '$data1', '$data2', '$data3');
 # b a e c d e f
 22b 1a 9 1c 5d 8 18
 32b 5a 10 5c 6d 9 29
 42b 6a 11 - - - -
-EOF
-
-check( <<'EOF', qw(-jb -a2), '$data1', '$data2', '$data3');
-# b a e c d e f
-22b 1a 9 1c 5d 8 18
-32b 5a 10 5c 6d 9 29
-52b - - 6c 7d 10 30
-EOF
-
-check( <<'EOF', qw(-jb -a3), '$data1', '$data2', '$data3');
-# b a e c d e f
-22b 1a 9 1c 5d 8 18
-32b 5a 10 5c 6d 9 29
 52b - - 6c 7d 10 30
 62b - - - - - 11
 EOF
 
-check( <<'EOF', qw(-jb -a1 -a2), '$data1', '$data2', '$data3');
-# b a e c d e f
-22b 1a 9 1c 5d 8 18
-32b 5a 10 5c 6d 9 29
+check( <<'EOF', qw(-jb -a-), '$data1', '$data3', '$data2');
+# b a e f c d e
+22b 1a 9 18 1c 5d 8
+32b 5a 10 29 5c 6d 9
 42b 6a 11 - - - -
-52b - - 6c 7d 10 30
+52b - - 30 6c 7d 10
+62b - - 11 - - -
 EOF
 
+check( <<'EOF', qw(-jb -a-), '$data2', '$data1', '$data3');
+# b c d e a e f
+22b 1c 5d 8 1a 9 18
+32b 5c 6d 9 5a 10 29
+42b - - - 6a 11 -
+52b 6c 7d 10 - - 30
+62b - - - - - 11
+EOF
+
+check( <<'EOF', qw(-jb -a-), '$data2', '$data3', '$data1');
+# b c d e f a e
+22b 1c 5d 8 18 1a 9
+32b 5c 6d 9 29 5a 10
+42b - - - - 6a 11
+52b 6c 7d 10 30 - -
+62b - - - 11 - -
+EOF
+
+check( <<'EOF', qw(-jb -a-), '$data3', '$data1', '$data2');
+# b f a e c d e
+22b 18 1a 9 1c 5d 8
+32b 29 5a 10 5c 6d 9
+42b - 6a 11 - - -
+52b 30 - - 6c 7d 10
+62b 11 - - - - -
+EOF
+
+check( <<'EOF', qw(-jb -a-), '$data3', '$data2', '$data1');
+# b f c d e a e
+22b 18 1c 5d 8 1a 9
+32b 29 5c 6d 9 5a 10
+42b - - - - 6a 11
+52b 30 6c 7d 10 - -
+62b 11 - - - - -
+EOF
 
 
 

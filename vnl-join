@@ -151,30 +151,65 @@ if( !defined $options->{j} )
     die "Either (both -1 and -2) or -j MUST be given, but not both. -j is recommended";
 }
 
-if( defined $options->{a} )
+for my $av (qw(a v))
 {
-    my $N = scalar @{$options->{a}};
-    if( $N < 1 || $N > $Ndatafiles )
+    if ( defined $options->{$av} )
     {
-        die "-a should have been passed at most Ndatafiles=$Ndatafiles times";
-    }
+        my $N = scalar @{$options->{$av}};
+        if ($Ndatafiles == 2)
+        {
+            # "normal" mode. Joining exactly two data items
 
-    if( !all {$_ >= 1 && $_ <= $Ndatafiles} @{$options->{a}} )
-    {
-        die "-a MUST be an integer in [1 .. Ndatafiles=$Ndatafiles]";
-    }
-}
-if( defined $options->{v} )
-{
-    my $N = scalar @{$options->{v}};
-    if( $N < 1 || $N > $Ndatafiles )
-    {
-        die "-v should have been passed at most Ndatafiles=$Ndatafiles times";
-    }
+            # -a- is -a1 -a2 and -v- is -v1 -v2
+            if( $N == 1 && $options->{$av}[0] == '-')
+            {
+                $N = 2;
+                $options->{$av}[0] = 1;
+                $options->{$av}[1] = 2;
+            }
+            else
+            {
+                if ( !($N == 1 || $N == 2) )
+                {
+                    die "-$av should have been passed at most 2 times";
+                }
 
-    if( !all {$_ >= 1 && $_ <= $Ndatafiles} @{$options->{v}} )
-    {
-        die "-v MUST be an integer in [1 .. Ndatafiles=$Ndatafiles]";
+                if ( !all {$_ == 1 || $_ == 2} @{$options->{$av}} )
+                {
+                    die "-$av MUST be an integer in [1 .. 2]";
+                }
+            }
+        }
+        else
+        {
+            # "cascaded" mode: N-way join made of a set of 2-way joins.
+            #
+            # I only support -a applied to ALL the datafiles. Finer-grained
+            # support is probably possible, but the implementation is
+            # non-obvious and I'm claiming it's not worth the effort.
+            #
+            # "-a-" means "full outer join": I print ALL the unmatched rows for
+            # ALL the data files. This conceptually means -a1 -a2 -a3 ... -aN,
+            # but I don't support that: you MUST say "-a-" to take ALL the
+            # datafiles.
+            #
+            # The implementation of -v is un-obvious even for -v-. It's also not
+            # obvious that this is a feature anybody cares about, so I leave it
+            # un-implemented for now.
+            if($av eq 'v')
+            {
+                die
+                  "When given more than 2 data files, -v is not implemented.\n" .
+                  "It COULD be done, but nobody has done it. Talk to Dima if you need this.";
+            }
+
+            if( !($N == 1 && $options->{$av}[0] == '-'))
+            {
+                die
+                  "When given more than 2 data files, I only support \"-${av}-\".\n" .
+                  "Finer-grained support is possible. Talk to Dima if you need this.";
+            }
+        }
     }
 }
 
@@ -195,17 +230,6 @@ if( $Ndatafiles > 2 )
     # this with a reduce(), but this would cause each sub-join to be dependent
     # on a previous one. Instead I rearrange the calls to make the sub-joins
     # independent, and thus parallelizable
-
-    my %all_a = ();
-    my %all_v = ();
-    for my $a(@{$options->{a}})
-    {
-        $all_a{$a} = 1;
-    }
-    for my $v(@{$options->{v}})
-    {
-        $all_v{$v} = 1;
-    }
 
     sub subjoin
     {
@@ -236,22 +260,10 @@ if( $Ndatafiles > 2 )
 
         # deep copy
         my %sub_options = %$options;
-        $sub_options{a} = [];
-        my $has_a = undef;
-        if( ( exists $in0->{i_filename} && $all_a{$in0->{i_filename}+1}) ||
-            (!exists $in0->{i_filename} && $in0->{has_a} ) )
+        if($options->{a})
         {
-            push @{$sub_options{a}}, 1;
-            $has_a = 1;
+            $sub_options{a} = [1,2];
         }
-        if( ( exists $in1->{i_filename} && $all_a{$in1->{i_filename}+1}) ||
-            (!exists $in1->{i_filename} && $in1->{has_a} ) )
-        {
-            push @{$sub_options{a}}, 2;
-            $has_a = 1;
-        }
-
-
 
         my $ARGV_new = reconstruct_substituted_command([], \%sub_options, \@specs);
         my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
@@ -295,8 +307,7 @@ if( $Ndatafiles > 2 )
             die "Subjoin in PID $childpid_subjoin failed!";
         }
 
-        return { fd    => $fd_read,
-                 has_a => $has_a };
+        return { fd => $fd_read };
     }
 
     sub dispatch_subjoins
@@ -328,7 +339,7 @@ if( $Ndatafiles > 2 )
 
 
     dispatch_subjoins( map { {i_filename => $_} } 0..$#$filenames);
-    exit;
+    exit 0;
 }
 
 
