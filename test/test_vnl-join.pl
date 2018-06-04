@@ -102,6 +102,22 @@ check( <<'EOF', qw(-1 b -2 b -o), '0,1.a,2.e', qw( --vnl-prefix1 aaa --vnl-suffi
 32b 5a 9
 EOF
 
+check( 'ERROR', qw(-1 b -2 b --vnl-autoprefix --vnl-prefix1 aaa --vnl-suffix2 bbb), '$data1', '$data22' );
+
+check( <<'EOF', qw(-1 b -2 b --vnl-autoprefix), '$data1', '$data22' );
+# b 1_a 1_e 22_c 22_d 22_e
+22b 1a 9 1c 5d 8
+32b 5a 10 5c 6d 9
+EOF
+
+check( <<'EOF', qw(-1 b -2 b --vnl-autosuffix), '$data1', '$data22' );
+# b a_1 e_1 c_22 d_22 e_22
+22b 1a 9 1c 5d 8
+32b 5a 10 5c 6d 9
+EOF
+
+check( 'ERROR', qw(-1 b -2 b --vnl-autosuffix), '$data1', '-$data22' );
+
 check( <<'EOF', qw(-1b -2b), '$data1', '$data22' );
 # b a e c d e
 22b 1a 9 1c 5d 8

@@ -129,13 +129,24 @@ if( defined $options->{'vnl-autoprefix'} &&
 if( defined $options->{'vnl-autoprefix'} ||
     defined $options->{'vnl-autosuffix'} )
 {
-    for my $i(1..$Ndatafiles)
+    for my $i(0..$#$filenames)
     {
-        if(defined $options->{"vnl-prefix$i"} ||
-           defined $options->{"vnl-suffix$i"} )
+        my $i1 = $i+1;
+
+        if(defined $options->{"vnl-prefix$i1"} ||
+           defined $options->{"vnl-suffix$i1"} )
         {
             die
               "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
+        }
+
+        if($filenames->[$i] =~
+           m{/dev/fd/  # pipe
+              |        # or
+              ^-$      # STDIN
+            }x)
+        {
+            die "autoprefix/suffix can't work when data is piped in"
         }
     }
 
@@ -162,20 +173,12 @@ if( defined $options->{'vnl-autoprefix'} ||
 
     for my $i(0..$#$filenames)
     {
-        if($filenames->[$i] eq '-')
-        {
-            take('STDIN', $i);
-        }
-        else
-        {
-            take(substr($filenames->[$i],
-                        length($prefix),
-                        length($filenames->[$i]) -
-                          length($prefix)        -
-                          length($suffix)
-                       ),
-                 $i);
-        }
+        take(substr($filenames->[$i],
+                    length($prefix),
+                    length($filenames->[$i]) -
+                    (length($prefix) + length($suffix))
+                   ),
+             $i);
     }
 }
 else
