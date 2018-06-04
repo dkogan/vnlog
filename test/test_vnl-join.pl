@@ -96,6 +96,12 @@ check( <<'EOF', qw(-1 b -2 b --vnl-prefix1 aaa --vnl-suffix2 bbb), '$data1', '$d
 32b 5a 10 5c 6d 9
 EOF
 
+check( <<'EOF', qw(-1 b -2 b -o), '0,1.a,2.e', qw( --vnl-prefix1 aaa --vnl-suffix2 bbb), '$data1', '$data2' );
+# b aaaa ebbb
+22b 1a 8
+32b 5a 9
+EOF
+
 check( <<'EOF', qw(-1b -2b), '$data1', '$data2' );
 # b a e c d e
 22b 1a 9 1c 5d 8
