@@ -88,15 +88,18 @@ sub check
     my $out = '';
     my $err = '';
     $in //= '';
+    my @cmd = ("perl", "$Bin/../$tool", @args);
     my $result =
-      run( ["perl",
-            "$Bin/../$tool", @args], \$in, \$out, \$err );
+      run( \@cmd, \$in, \$out, \$err );
 
     if($expected ne 'ERROR')
     {
         if( !$result )
         {
-            cluck "Test failed. Expected success, but got failure";
+            cluck
+              "Test failed. Expected success, but got failure.\n" .
+              "Ran '@cmd'.\n" .
+              "STDERR: '$err'";
             $$Nfailed_ref++;
         }
         else
@@ -104,7 +107,10 @@ sub check
             my $diff = diff(\$expected, \$out);
             if ( length $diff )
             {
-                cluck "Test failed. diff: '$diff'";
+                cluck
+                  "Test failed: diff mismatch.\n" .
+                  "Ran '@cmd'.\n" .
+                  "Diff: '$diff'";
                 $$Nfailed_ref++;
             }
         }
@@ -113,7 +119,11 @@ sub check
     {
         if( $result )
         {
-            cluck "Test failed. Expected failure, but got success";
+            cluck
+              "Test failed. Expected failure, but got success.\n".
+              "Ran '@cmd'.\n" .
+              "STDERR: '$err'\n" .
+              "STDOUT: '$err'";
             $$Nfailed_ref++;
         }
     }
