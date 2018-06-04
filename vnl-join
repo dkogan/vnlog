@@ -246,16 +246,6 @@ if( $Ndatafiles > 2 )
 
     sub subjoin
     {
-        # my $pid = fork;
-        # if( $pid )
-        # {
-        #     # parent
-        # }
-        # else
-        # {
-        #     # child
-        # }
-
         # inputs $in0 and $in1 are a hashref describing the input
         my ($in0, $in1, $to_stdout) = @_;
 
