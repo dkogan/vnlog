@@ -13,7 +13,7 @@ use List::MoreUtils 'all';
 use POSIX;
 use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 
-use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index);
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring);
 
 
 
@@ -40,6 +40,8 @@ my @specs = ( # options with no args
           "vnl-suffix3=s",
           "vnl-prefix4=s",
           "vnl-suffix4=s",
+          "vnl-autoprefix",
+          "vnl-autosuffix",
 
           "vnl-sort=s");
 
@@ -96,6 +98,8 @@ There're also a few vnlog-specific options
 
   --vnl-autoprefix
          xxx
+  --vnl-autosuffix
+         xxx
 
   --vnl-sort -|[dfgiMhnRrV]+]
          Pre-sort both input files lexicographically (join assumes this sort
@@ -103,6 +107,93 @@ There're also a few vnlog-specific options
          using the given sort order. This is both for convenience and to work
          around the hard-coded sort order that join assumes.
 EOF
+
+
+my $Ndatafiles = scalar(@$filenames);
+my @prefixes   = ('') x $Ndatafiles;
+my @suffixes   = ('') x $Ndatafiles;
+
+my $Nstdin = scalar grep {$_ eq '-'} @$filenames;
+if($Nstdin > 1)
+{
+    die "At most 1 '-' inputs are allowed";
+}
+
+if( defined $options->{'vnl-autoprefix'} &&
+    defined $options->{'vnl-autosuffix'} )
+{
+    die "Either --vnl-autoprefix or --vnl-autosuffix should be passed, not both";
+}
+
+
+if( defined $options->{'vnl-autoprefix'} ||
+    defined $options->{'vnl-autosuffix'} )
+{
+    for my $i(1..$Ndatafiles)
+    {
+        if(defined $options->{"vnl-prefix$i"} ||
+           defined $options->{"vnl-suffix$i"} )
+        {
+            die
+              "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
+        }
+    }
+
+
+
+
+    sub take
+    {
+        my ($s,$i) = @_;
+        if($options->{'vnl-autoprefix'})
+        {
+            $prefixes[$i] = "${s}_";
+        }
+        else
+        {
+            $suffixes[$i] = "_${s}";
+        }
+    }
+
+
+
+    my ($prefix,$suffix) =
+      longest_leading_trailing_substring( grep { $_ ne '-' } @$filenames );
+
+    for my $i(0..$#$filenames)
+    {
+        if($filenames->[$i] eq '-')
+        {
+            take('STDIN', $i);
+        }
+        else
+        {
+            take(substr($filenames->[$i],
+                        length($prefix),
+                        length($filenames->[$i]) -
+                          length($prefix)        -
+                          length($suffix)
+                       ),
+                 $i);
+        }
+    }
+}
+else
+{
+    for my $i(0..$#$filenames)
+    {
+        my $i1 = $i+1;
+        if(defined $options->{"vnl-prefix$i1"})
+        {
+            $prefixes[$i] = $options->{"vnl-prefix$i1"};
+        }
+        if(defined $options->{"vnl-suffix$i1"})
+        {
+            $suffixes[$i] = $options->{"vnl-suffix$i1"};
+        }
+    }
+}
+
 
 for my $key(keys %$options)
 {
@@ -112,8 +203,6 @@ for my $key(keys %$options)
         die("I don't support $keyname: $options_unsupported{$key}");
     }
 }
-
-my $Ndatafiles = scalar(@$filenames);
 
 if( $Ndatafiles < 2 )
 {
@@ -223,18 +312,6 @@ if ($Ndatafiles != 2 && defined $options->{o} and $options->{o} ne 'auto')
       "When given more than 2 data files, I don't (yet) support -o.\n" .
       "Instead, post-process with vnl-filter";
 }
-
-
-
-$options->{'vnl-prefix1'} //= '';
-$options->{'vnl-suffix1'} //= '';
-$options->{'vnl-prefix2'} //= '';
-$options->{'vnl-suffix2'} //= '';
-$options->{'vnl-prefix3'} //= '';
-$options->{'vnl-suffix3'} //= '';
-$options->{'vnl-prefix4'} //= '';
-$options->{'vnl-suffix4'} //= '';
-
 
 if( $Ndatafiles > 2 )
 {
@@ -486,7 +563,7 @@ sub substitute_field_keys
 
                 my $index = get_key_index($inputs->[$file-1],$field);
                 push @format_out, "$file.$index";
-                push @keys_out, $field;
+                push @keys_out, $prefixes[$file-1] . $field . $suffixes[$file-1];
             }
         }
 
@@ -500,8 +577,8 @@ sub substitute_field_keys
         #   all non-join fields from file2, in order
         push @keys_out, $join_field_name;
 
-        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $options->{'vnl-prefix1'}, $options->{'vnl-suffix1'});
-        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $options->{'vnl-prefix2'}, $options->{'vnl-suffix2'});
+        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $prefixes[0], $suffixes[0]);
+        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $prefixes[1], $suffixes[1]);
     }
 
     return \@keys_out;

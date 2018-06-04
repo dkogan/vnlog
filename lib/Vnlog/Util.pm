@@ -6,7 +6,7 @@ use feature ':5.10';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index longest_leading_trailing_substring);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -378,6 +378,34 @@ sub reconstruct_substituted_command
     return \@argv;
 }
 
+sub longest_leading_trailing_substring
+{
+    # I start out with the full first input string. At best this whole string is
+    # the answer. I look through each string in the input, and wittle down the
+    # leading/trailing matches
+    my $match_leading           = shift;
+    my $match_trailing_reversed = scalar reverse $match_leading;
+
+    my @all = @_;
+    for my $s (@all)
+    {
+        # xor difference string. '\0' bytes means "exact match"
+        my $diff;
+
+        $diff = $match_leading ^ $s;
+        $diff =~ /^\0*/;
+        my $NleadingMatches = $+[0];
+
+        $diff = $match_trailing_reversed ^ (scalar reverse $s);
+        $diff =~ /^\0*/;
+        my $NtrailingMatches = $+[0];
+
+        # I cut down the matching string to keep ONLY the matched bytes
+        substr($match_leading,           $NleadingMatches ) = '';
+        substr($match_trailing_reversed, $NtrailingMatches) = '';
+    }
+    return ($match_leading, scalar reverse $match_trailing_reversed);
+}
 
 1;
 
