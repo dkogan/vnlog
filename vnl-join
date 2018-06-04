@@ -213,6 +213,19 @@ for my $av (qw(a v))
     }
 }
 
+
+# I don't support -o either for now. It's also non-trivial and non-obvious if
+# anybody needs it. post-processing with vnl-filter is generally equivalent,
+# (but slower)
+if ($Ndatafiles != 2 && defined $options->{o} and $options->{o} ne 'auto')
+{
+    die
+      "When given more than 2 data files, I don't (yet) support -o.\n" .
+      "Instead, post-process with vnl-filter";
+}
+
+
+
 $options->{'vnl-prefix1'} //= '';
 $options->{'vnl-suffix1'} //= '';
 $options->{'vnl-prefix2'} //= '';
@@ -310,35 +323,30 @@ if( $Ndatafiles > 2 )
         return { fd => $fd_read };
     }
 
-    sub dispatch_subjoins
+
+
+    my @inputs = map { {i_filename => $_} } 0..$#$filenames;
+    while (1)
     {
-        my @inputs = @_;
+        my $N = scalar @inputs;
 
-        while(1)
+        # First index of each pairwise subjoin. If we have an odd number of
+        # inputs, we use the last one directly
+        my @i0 = map {2*$_} 0..int($N/2)-1;
+
+        if ($N == 2)
         {
-            my $N = scalar @inputs;
-
-            # First index of each pairwise subjoin. If we have an odd number of
-            # inputs, we use the last one directly
-            my @i0 = map {2*$_} 0..int($N/2)-1;
-
-            if($N == 2)
-            {
-                # run the subjoin, and write out to stdout
-                subjoin(@inputs, 1);
-                return;
-            }
-
-            # This map() should run in parallel
-            my @outputs = map { subjoin(@inputs[$_, $_+1]) } @i0;
-            push @outputs, $inputs[$N-1] if ($N % 2)==1;
-
-            @inputs = @outputs;
+            # run the subjoin, and write out to stdout
+            subjoin(@inputs, 1);
+            last;
         }
+
+        # This map() should run in parallel
+        my @outputs = map { subjoin(@inputs[$_, $_+1]) } @i0;
+        push @outputs, $inputs[$N-1] if ($N % 2)==1;
+
+        @inputs = @outputs;
     }
-
-
-    dispatch_subjoins( map { {i_filename => $_} } 0..$#$filenames);
     exit 0;
 }
 

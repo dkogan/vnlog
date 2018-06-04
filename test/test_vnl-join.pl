@@ -272,6 +272,14 @@ check( <<'EOF', qw(-jb -a-), '$data3', '$data2', '$data1');
 62b 11 - - - - -
 EOF
 
+# 3-way -o. Generally unsupported
+check( 'ERROR', '-jb', '-o', '1.a,0,3.f,2.c,3.b,1.b,1.e,2.e', '$data1', '$data2', '$data3');
+check( <<'EOF', qw(-jb -o auto), '$data1', '$data2', '$data3');
+# b a e c d e f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
+
 
 
 
