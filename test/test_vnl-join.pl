@@ -148,6 +148,14 @@ check( <<'EOF', qw(-jb -a2 -a1), '$data1', '$data2' );
 52b - - 6c 7d 10
 EOF
 
+check( <<'EOF', qw(-jb -a-), '$data1', '$data2' );
+# b a e c d e
+22b 1a 9 1c 5d 8
+32b 5a 10 5c 6d 9
+42b 6a 11 - - -
+52b - - 6c 7d 10
+EOF
+
 check( <<'EOF', qw(-jb -a1 -a2), '$data1', '$data2' );
 # b a e c d e
 22b 1a 9 1c 5d 8
@@ -167,6 +175,12 @@ check( <<'EOF', qw(-jb -v2), '-$data1', '$data2' );
 EOF
 
 check( <<'EOF', qw(-jb -v1 -v2), '$data1', '$data2' );
+# b a e c d e
+42b 6a 11 - - -
+52b - - 6c 7d 10
+EOF
+
+check( <<'EOF', qw(-jb -v-), '$data1', '$data2' );
 # b a e c d e
 42b 6a 11 - - -
 52b - - 6c 7d 10
