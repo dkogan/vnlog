@@ -197,6 +197,10 @@ else
     }
 }
 
+# At this point I can ignore --vnl-autoprefix/suffix and --vnl-prefix/suffix:
+# they have been reduced to @prefixes and @suffixes
+
+
 
 for my $key(keys %$options)
 {
@@ -341,6 +345,10 @@ if( $Ndatafiles > 2 )
             return "/dev/fd/$fd";
         }
 
+        # I construct the inner commandlines. Some options are copied directly,
+        # while some need to be adopted for the specific inner command I'm
+        # looking at
+
         # deep copy
         my %sub_options = %$options;
         if($options->{a})
@@ -349,6 +357,26 @@ if( $Ndatafiles > 2 )
         }
 
         my $ARGV_new = reconstruct_substituted_command([], \%sub_options, \@specs);
+
+        # $ARGV_new now has all the arguments except the --vnl-... options
+        if( defined $in0->{i_filename} )
+        {
+            my $i = $in0->{i_filename};
+            push @$ARGV_new, "--vnl-prefix1", $prefixes[$i]
+              if length($prefixes[$i] );
+            push @$ARGV_new, "--vnl-suffix1", $suffixes[$i]
+              if length($suffixes[$i] );
+        }
+        if( defined $in1->{i_filename} )
+        {
+            my $i = $in1->{i_filename};
+            push @$ARGV_new, "--vnl-prefix2", $prefixes[$i]
+              if length($prefixes[$i] );
+            push @$ARGV_new, "--vnl-suffix2", $suffixes[$i]
+              if length($suffixes[$i] );
+        }
+
+
         my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
 
         my ($fd_read, $fd_write);

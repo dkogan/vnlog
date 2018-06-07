@@ -316,6 +316,24 @@ check( <<'EOF', qw(-jb -o auto), '$data1', '$data22', '$data3');
 32b 5a 10 5c 6d 9 29
 EOF
 
+# 3-way prefix/suffix
+check( <<'EOF', qw(-jb --vnl-prefix1 a_ --vnl-suffix3 _c), '$data1', '$data22', '$data3');
+# b a_a a_e c d e f_c
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
+check( <<'EOF', qw(-jb --vnl-autoprefix), '$data1', '$data22', '$data3');
+# b 1_a 1_e 22_c 22_d 22_e 3_f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
+check( <<'EOF', qw(-jb --vnl-autosuffix), '$data1', '$data22', '$data3');
+# b a_1 e_1 c_22 d_22 e_22 f_3
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
+
+
 
 
 
