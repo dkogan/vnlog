@@ -7,7 +7,7 @@ use Carp 'confess';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index longest_leading_trailing_substring);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index longest_leading_trailing_substring fork_and_filter);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -46,8 +46,6 @@ sub get_unbuffered_line
 sub open_file_as_pipe
 {
     my ($filename, $input_filter) = @_;
-
-    my $fh;
 
     if ($filename eq '-')
     {
@@ -109,20 +107,28 @@ sub open_file_as_pipe
 EOF
 
     my $pipe_cmd = $input_filter // ['mawk', $mawk_strip_comments];
-    my $pipe_pid = open($fh, "-|") // die "Can't fork: $!";
+    return fork_and_filter(@$pipe_cmd, $filename);
+}
 
-    if(!$pipe_pid)
+sub fork_and_filter
+{
+    my @cmd = @_;
+
+    my $fh;
+    my $pipe_pid = open($fh, "-|") // confess "Can't fork: $!";
+
+    if (!$pipe_pid)
     {
         # child
-        exec @$pipe_cmd, $filename or confess "can't exec program: $!";
+        exec @cmd or confess "can't exec program: $!";
     }
 
     # parent
 
-    # I'm explicitly passing these to an exec, so FD_CLOEXEC must be off
+    # I'm going to be explicitly passing these to an exec, so FD_CLOEXEC
+    # must be off
     my $flags = fcntl $fh, F_GETFD, 0;
     fcntl $fh, F_SETFD, ($flags & ~FD_CLOEXEC);
-
     return $fh;
 }
 sub pull_key
