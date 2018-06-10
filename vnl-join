@@ -497,8 +497,11 @@ sub post_sort
         # Child. This is the re-sorting end. In this side of the fork vnl-sort reads
         # data from the join
         POSIX::close($fdwrite);
-        POSIX::close(0);
-        POSIX::dup2($fdread, 0);
+        if( $fdread != 0)
+        {
+            POSIX::close(0);
+            POSIX::dup2($fdread, 0);
+        }
 
         my $order = $options->{'vnl-sort'};
         exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
@@ -509,8 +512,11 @@ sub post_sort
     {
         # Child. This is the 'join' end. join will write to the pipe, not to stdout.
         POSIX::close($fdread);
-        POSIX::close(1);
-        POSIX::dup2($fdwrite, 1);
+        if( $fdwrite != 1 )
+        {
+            POSIX::close(1);
+            POSIX::dup2($fdwrite, 1);
+        }
 
         POSIX::write(1, $legend, length($legend));
 
