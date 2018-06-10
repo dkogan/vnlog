@@ -13,7 +13,7 @@ use List::MoreUtils 'all';
 use POSIX;
 use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 
-use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring);
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring fork_and_filter);
 
 
 
@@ -338,7 +338,24 @@ if( $Ndatafiles > 2 )
             my ($in) = @_;
             if( exists $in->{i_filename} )
             {
-                return $filenames->[ $in->{i_filename} ];
+                my $filename = $filenames->[ $in->{i_filename} ];
+
+                # I handle the --vnl-sort pre-filter here. If we have to do any
+                # pre-filtering, I'll generate that pipeline here. Note that we WILL
+                # pre-sort any data that comes from files, but any of the
+                # intermediate sub-joins will already be sortsed, and I won't be
+                # re-sorting it here.
+                my $input_filter = get_sort_prefilter($options);
+                if (!defined $input_filter)
+                {
+                    return $filename;
+                }
+
+                # We need to pre-sort the data. I fork off that process, and
+                # convert this input to a fd one
+                $in->{fh} = fork_and_filter(@$input_filter, $filename);
+                $in->{fd} = fileno $in->{fh};
+                delete $in->{i_filename};
             }
 
             my $fd = $in->{fd};
@@ -358,7 +375,9 @@ if( $Ndatafiles > 2 )
 
         my $ARGV_new = reconstruct_substituted_command([], \%sub_options, \@specs);
 
-        # $ARGV_new now has all the arguments except the --vnl-... options
+        # $ARGV_new now has all the arguments except the --vnl-... options The
+        # suffix/prefix options have already been parsed into @prefixes and
+        # @suffixes, and I apply those
         if( defined $in0->{i_filename} )
         {
             my $i = $in0->{i_filename};
@@ -393,7 +412,16 @@ if( $Ndatafiles > 2 )
         {
             POSIX::close(0);
 
-            if( !$final_subjoin )
+            if( $final_subjoin )
+            {
+                # If I need to post-sort the output, I do that here
+                if(defined $options->{'vnl-sort'} && $options->{'vnl-sort'} ne '-')
+                {
+                    post_sort(undef, $options->{j}, @run_opts);
+                    # this does not return
+                }
+            }
+            else
             {
                 POSIX::close($fd_read);
                 POSIX::close(1);
