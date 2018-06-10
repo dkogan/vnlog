@@ -331,7 +331,7 @@ if( $Ndatafiles > 2 )
     sub subjoin
     {
         # inputs $in0 and $in1 are a hashref describing the input
-        my ($in0, $in1, $to_stdout) = @_;
+        my ($in0, $in1, $final_subjoin) = @_;
 
         sub infile
         {
@@ -380,7 +380,7 @@ if( $Ndatafiles > 2 )
         my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
 
         my ($fd_read, $fd_write);
-        if( !$to_stdout)
+        if( !$final_subjoin)
         {
 #            $^F=255;
             ($fd_read, $fd_write) = POSIX::pipe();
@@ -393,7 +393,7 @@ if( $Ndatafiles > 2 )
         {
             POSIX::close(0);
 
-            if( !$to_stdout)
+            if( !$final_subjoin )
             {
                 POSIX::close($fd_read);
                 POSIX::close(1);
