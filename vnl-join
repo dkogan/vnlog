@@ -485,6 +485,48 @@ if(defined $options->{'vnl-sort'})
     }
 }
 
+sub post_sort
+{
+    my ($legend, $join_key, @cmd) = @_;
+
+    my ($fdread,$fdwrite) = POSIX::pipe();
+
+    my $childpid_sort = fork();
+    if ( $childpid_sort == 0 )
+    {
+        # Child. This is the re-sorting end. In this side of the fork vnl-sort reads
+        # data from the join
+        POSIX::close($fdwrite);
+        POSIX::close(0);
+        POSIX::dup2($fdread, 0);
+
+        my $order = $options->{'vnl-sort'};
+        exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
+    }
+
+    my $childpid_join = fork();
+    if ( $childpid_join == 0 )
+    {
+        # Child. This is the 'join' end. join will write to the pipe, not to stdout.
+        POSIX::close($fdread);
+        POSIX::close(1);
+        POSIX::dup2($fdwrite, 1);
+
+        POSIX::write(1, $legend, length($legend));
+
+        exec @cmd;
+    }
+
+    POSIX::close($fdread);
+    POSIX::close($fdwrite);
+
+    # parent of both. All it does is wait for both to finish so that whoever called
+    # vnl-join knows when the whole thing is done.
+    waitpid $childpid_join, 0;
+    waitpid $childpid_sort, 0;
+
+    exit 0;
+}
 
 my $inputs = read_and_preparse_input($filenames, $input_filter);
 my $keys_output = substitute_field_keys($options, $inputs);
@@ -503,43 +545,8 @@ if(!defined $options->{'vnl-sort'} || $options->{'vnl-sort'} eq '-')
 
 # Complicated case. We're post-filtering our output. I set up the pipes, fork
 # and exec
-my ($fdread,$fdwrite) = POSIX::pipe();
+post_sort($legend, $join_key, 'join', @$ARGV_new);
 
-my $childpid_sort = fork();
-if ( $childpid_sort == 0 )
-{
-    # Child. This is the re-sorting end. In this side of the fork vnl-sort reads
-    # data from the join
-    POSIX::close($fdwrite);
-    POSIX::close(0);
-    POSIX::dup2($fdread, 0);
-
-    my $order = $options->{'vnl-sort'};
-    exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
-}
-
-my $childpid_join = fork();
-if ( $childpid_join == 0 )
-{
-    # Child. This is the 'join' end. join will write to the pipe, not to stdout.
-    POSIX::close($fdread);
-    POSIX::close(1);
-    POSIX::dup2($fdwrite, 1);
-
-    POSIX::write(1, $legend, length($legend));
-
-    exec 'join', @$ARGV_new;
-}
-
-POSIX::close($fdread);
-POSIX::close($fdwrite);
-
-# parent of both. All it does is wait for both to finish so that whoever called
-# vnl-join knows when the whole thing is done.
-waitpid $childpid_join, 0;
-waitpid $childpid_sort, 0;
-
-exit 0;
 
 
 
