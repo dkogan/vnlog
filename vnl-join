@@ -426,8 +426,8 @@ if( $Ndatafiles > 2 )
                 POSIX::close($fd_read);
                 POSIX::close(1);
                 POSIX::dup2($fd_write, 1);
+                POSIX::close($fd_write);
             }
-
             exec @run_opts;
         }
         waitpid $childpid_subjoin, 0;
@@ -439,8 +439,10 @@ if( $Ndatafiles > 2 )
 
         POSIX::close($fd_write) if defined($fd_write);
 
-        if( exists $in0->{fd}) { POSIX::close($in0->{fd}); }
-        if( exists $in1->{fd}) { POSIX::close($in1->{fd}); }
+        if(    exists $in0->{fh}) { close($in0->{fh}); }
+        elsif( exists $in0->{fd}) { POSIX::close($in0->{fd}); }
+        if(    exists $in1->{fh}) { close($in1->{fh}); }
+        elsif( exists $in1->{fd}) { POSIX::close($in1->{fd}); }
         if($result != 0)
         {
             die "Subjoin in PID $childpid_subjoin failed!";
