@@ -401,10 +401,7 @@ if( $Ndatafiles > 2 )
         my ($fd_read, $fd_write);
         if( !$final_subjoin)
         {
-#            $^F=255;
             ($fd_read, $fd_write) = POSIX::pipe();
-            # my $flags = POSIX::fcntl($fd_read, F_GETFD, 0);
-            # POSIX::fcntl($fd_read, F_SETFD, ($flags & ~FD_CLOEXEC));
         }
 
         my $childpid_subjoin = fork();
