@@ -520,7 +520,8 @@ sub post_sort
             POSIX::close($fdwrite);
         }
 
-        POSIX::write(1, $legend, length($legend));
+        POSIX::write(1, $legend, length($legend))
+            if defined $legend;
 
         exec @cmd;
     }
