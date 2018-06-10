@@ -3,6 +3,7 @@ package Vnlog::Util;
 use strict;
 use warnings;
 use feature ':5.10';
+use Carp 'confess';
 
 our $VERSION = 1.00;
 use base 'Exporter';
@@ -56,7 +57,7 @@ sub open_file_as_pipe
     {
         if ( ! -r $filename )
         {
-            die "'$filename' is not readable";
+            confess "'$filename' is not readable";
         }
     }
 
@@ -113,7 +114,7 @@ EOF
     if(!$pipe_pid)
     {
         # child
-        exec @$pipe_cmd, $filename or die "can't exec program: $!";
+        exec @$pipe_cmd, $filename or confess "can't exec program: $!";
     }
 
     # parent
@@ -137,7 +138,7 @@ sub pull_key
     {
         if ( !$parser->parse($_) )
         {
-            die "Reading '$filename': Error parsing vnlog line '$_': " . $parser->error();
+            confess "Reading '$filename': Error parsing vnlog line '$_': " . $parser->error();
         }
 
         $keys = $parser->getKeys();
@@ -147,7 +148,7 @@ sub pull_key
         }
     }
 
-    die "Error reading '$filename': no legend found!";
+    confess "Error reading '$filename': no legend found!";
 }
 sub parse_options
 {
@@ -175,11 +176,11 @@ sub parse_options
 
     if ( $@  )
     {
-        die "Error parsing options: '$@'";
+        confess "Error parsing options: '$@'";
     }
     if ( !$result  )
     {
-        die "Error parsing options";
+        confess "Error parsing options";
     }
 
     if ($options{help})
@@ -226,7 +227,7 @@ sub ensure_all_legends_equivalent
     {
         if (!legends_match($inputs->[0 ]{keys},
                            $inputs->[$i]{keys})) {
-            die("All input legends must match! Instead files '$inputs->[0 ]{filename}' and '$inputs->[$i]{filename}' have keys " .
+            confess("All input legends must match! Instead files '$inputs->[0 ]{filename}' and '$inputs->[$i]{filename}' have keys " .
                 "'@{$inputs->[0 ]{keys}}' and '@{$inputs->[$i]{keys}}' respectively");
         }
     }
@@ -276,14 +277,14 @@ sub get_key_index
 
         if (defined $index)
         {
-            die "File '$input->{filename}' contains key '$key' more than once!";
+            confess "File '$input->{filename}' contains key '$key' more than once!";
         }
         $index = $i + 1;        # keys are indexed from 1
     }
 
     if (!defined $index)
     {
-        die "File '$input->{filename}' does not contain key '$key'!";
+        confess "File '$input->{filename}' does not contain key '$key'!";
     }
 
     return $index;
@@ -315,7 +316,7 @@ sub reconstruct_substituted_command
 
         if( scalar(@specs_noarg) + scalar(@specs_yesarg) + scalar(@specs_maybearg) != 1)
         {
-            die "Couldn't uniquely figure out where '$option' came from. This is a bug. Specs: '@$specs'";
+            confess "Couldn't uniquely figure out where '$option' came from. This is a bug. Specs: '@$specs'";
         }
 
         my $dashoption = length($option) == 1 ? "-$option" : "--$option";
