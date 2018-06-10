@@ -501,6 +501,7 @@ sub post_sort
         {
             POSIX::close(0);
             POSIX::dup2($fdread, 0);
+            POSIX::close($fdread);
         }
 
         my $order = $options->{'vnl-sort'};
@@ -516,6 +517,7 @@ sub post_sort
         {
             POSIX::close(1);
             POSIX::dup2($fdwrite, 1);
+            POSIX::close($fdwrite);
         }
 
         POSIX::write(1, $legend, length($legend));
