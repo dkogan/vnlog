@@ -299,7 +299,7 @@ for my $av (qw(a v))
                   "It COULD be done, but nobody has done it. Talk to Dima if you need this.";
             }
 
-            if( !($N == 1 && $options->{$av}[0] == '-'))
+            if( !($N == 1 && $options->{$av}[0] eq '-'))
             {
                 die
                   "When given more than 2 data files, I only support \"-${av}-\".\n" .
