@@ -467,10 +467,13 @@ if( !defined $options->{o} )
 my $join_key = $options->{j};
 
 
-my $input_filter = undef;
-if(defined $options->{'vnl-sort'})
+sub get_sort_prefilter
 {
-    if($options->{'vnl-sort'} !~ /^(?: [dfgiMhnRrV]+ | -)$/x)
+    my ($options) = @_;
+
+    return undef if !defined $options->{'vnl-sort'};
+
+    if ($options->{'vnl-sort'} !~ /^(?: [dfgiMhnRrV]+ | -)$/x)
     {
         die("--vnl-sort must be followed by '-' or one or more of the ordering options that 'sort' takes: dfgiMhnRrV");
     }
@@ -478,11 +481,12 @@ if(defined $options->{'vnl-sort'})
     # We sort with the default order (lexicographical) since that's what join
     # wants. We'll re-sort the output by the desired order again
     my $key = $options->{j};
-    $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
-    if($options->{'ignore-case'})
+    my $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
+    if ($options->{'ignore-case'})
     {
         push @$input_filter, '-f';
     }
+    return $input_filter;
 }
 
 sub post_sort
@@ -537,7 +541,8 @@ sub post_sort
     exit 0;
 }
 
-my $inputs = read_and_preparse_input($filenames, $input_filter);
+my $inputs = read_and_preparse_input($filenames,
+                                     get_sort_prefilter($options));
 my $keys_output = substitute_field_keys($options, $inputs);
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
