@@ -1,3 +1,14 @@
+vnlog (1.9)
+
+  * vnl-join updates:
+    - N-way joins are supported rather than just 2-way
+    - -a- available as a shorthand for -a1 -a2 -a3 -a4 ...
+    - -v- available as a shorthand for -v1 -v2 -v3 -v4 ...
+    - --vnl-autoprefix/--vnl-autosuffix available to infer
+      the prefix/suffix from the filenames
+
+ -- Dima Kogan <dkogan@debian.org>  Tue, 12 Jun 2018 23:17:10 -0700
+
 vnlog (1.8)
 
   * vnl-filter: bug-fix for compatibility with older perls (5.16 works
