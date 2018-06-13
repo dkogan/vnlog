@@ -36,14 +36,12 @@ my @specs = ( # options with no args
           "vnl-suffix1=s",
           "vnl-prefix2=s",
           "vnl-suffix2=s",
-          "vnl-prefix3=s",
-          "vnl-suffix3=s",
-          "vnl-prefix4=s",
-          "vnl-suffix4=s",
+          "vnl-prefix=s",
+          "vnl-suffix=s",
           "vnl-autoprefix",
           "vnl-autosuffix",
-
           "vnl-sort=s");
+
 
 my %options_unsupported = ( 't' => <<'EOF',
 vnlog is built on assuming a particular field separator
@@ -77,10 +75,12 @@ The most common options are (from the GNU sort manpage)
 
   -a FILENUM
          also print unpairable lines from file FILENUM, where FILENUM
-         is 1 or 2, corresponding to FILE1 or FILE2
+         is 1 or 2, corresponding to FILE1 or FILE2. -a- is a shorthand
+         for -a1 -a2
 
   -v FILENUM
-         like -a FILENUM, but suppress joined output lines
+         like -a FILENUM, but suppress joined output lines. -v- is a
+         shorthand for -v1 -v2
 
 There're also a few vnlog-specific options
 
@@ -88,18 +88,15 @@ There're also a few vnlog-specific options
   --vnl-suffix1 xxx
   --vnl-prefix2 xxx
   --vnl-suffix2 xxx
-  --vnl-prefix3 xxx
-  --vnl-suffix3 xxx
-  --vnl-prefix4 xxx
-  --vnl-suffix4 xxx
+  --vnl-prefix  xxx,yyy,zzz
+  --vnl-suffix  xxx,yyy,zzz
+  --vnl-autoprefix
+  --vnl-autosuffix
          Add a suffix/prefix to the output column labels of the nth data
          file. Very useful if we're joining datasets with identically-named
-         fields
-
-  --vnl-autoprefix
-         xxx
-  --vnl-autosuffix
-         xxx
+         fields. These can be specified for files 1 and 2 explicitly, or as
+         comma-separated lists for files 1-N, or these can be inferred from the
+         filenames
 
   --vnl-sort -|[dfgiMhnRrV]+]
          Pre-sort both input files lexicographically (join assumes this sort
@@ -125,21 +122,17 @@ if( defined $options->{'vnl-autoprefix'} &&
     die "Either --vnl-autoprefix or --vnl-autosuffix should be passed, not both";
 }
 
-
 if( defined $options->{'vnl-autoprefix'} ||
     defined $options->{'vnl-autosuffix'} )
 {
+    if( grep /vnl-(prefix|suffix)/, keys %$options )
+    {
+        die
+          "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
+    }
+
     for my $i(0..$#$filenames)
     {
-        my $i1 = $i+1;
-
-        if(defined $options->{"vnl-prefix$i1"} ||
-           defined $options->{"vnl-suffix$i1"} )
-        {
-            die
-              "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
-        }
-
         if($filenames->[$i] =~
            m{/dev/fd/  # pipe
               |        # or
@@ -151,7 +144,7 @@ if( defined $options->{'vnl-autoprefix'} ||
     }
 
 
-
+    # OK. autoprefix/autosuffix are valid, so I process them
 
     sub take
     {
@@ -183,22 +176,60 @@ if( defined $options->{'vnl-autoprefix'} ||
 }
 else
 {
-    for my $i(0..$#$filenames)
+    # no --vnl-autoprefix or --vnl-autosuffix
+
+
+    if( (defined $options->{'vnl-prefix1'} ||
+         defined $options->{'vnl-prefix2'}) &&
+        defined $options->{'vnl-prefix'} )
     {
-        my $i1 = $i+1;
-        if(defined $options->{"vnl-prefix$i1"})
+        die "--vnl-prefix1/2 are mutually exclusive with --vnl-prefix";
+    }
+    if( (defined $options->{'vnl-suffix1'} ||
+         defined $options->{'vnl-suffix2'}) &&
+        defined $options->{'vnl-suffix'} )
+    {
+        die "--vnl-suffix1/2 are mutually exclusive with --vnl-suffix";
+    }
+
+    if(defined $options->{'vnl-prefix'})
+    {
+        @prefixes = split(',', $options->{'vnl-prefix'});
+        if(@prefixes > $Ndatafiles)
         {
-            $prefixes[$i] = $options->{"vnl-prefix$i1"};
+            die "too many items in --vnl-prefix";
         }
-        if(defined $options->{"vnl-suffix$i1"})
+    }
+    else
+    {
+        @prefixes = ($options->{"vnl-prefix1"} // '',
+                     $options->{"vnl-prefix2"} // '');
+    }
+    if (@prefixes < $Ndatafiles)
+    {
+        push @prefixes, ('') x ($Ndatafiles - @prefixes)
+    }
+
+    if(defined $options->{'vnl-suffix'})
+    {
+        @suffixes = split(',', $options->{'vnl-suffix'});
+        if(@suffixes > $Ndatafiles)
         {
-            $suffixes[$i] = $options->{"vnl-suffix$i1"};
+            die "too many items in --vnl-suffix";
         }
+    }
+    else
+    {
+        @suffixes = ($options->{"vnl-suffix1"} // '',
+                     $options->{"vnl-suffix2"} // '');
+    }
+    if (@suffixes < $Ndatafiles)
+    {
+        push @suffixes, ('') x ($Ndatafiles - @suffixes)
     }
 }
 
-# At this point I can ignore --vnl-autoprefix/suffix and --vnl-prefix/suffix:
-# they have been reduced to @prefixes and @suffixes
+# At this point I reduced all the prefix/suffix stuff to @prefixes and @suffixes
 
 
 
@@ -257,7 +288,7 @@ for my $av (qw(a v))
             # "normal" mode. Joining exactly two data items
 
             # -a- is -a1 -a2 and -v- is -v1 -v2
-            if( $N == 1 && $options->{$av}[0] == '-')
+            if( $N == 1 && $options->{$av}[0] eq '-')
             {
                 $N = 2;
                 $options->{$av}[0] = 1;
@@ -739,7 +770,10 @@ vnl-join - joins two log files on a particular field
 
   Usage: vnl-join [join options]
                   [--vnl-sort -|[dfgiMhnRrV]+]
-                  [--vnl-[pre|suf]fix[1|2] xxx]
+                  [ --vnl-[pre|suf]fix[1|2] xxx    |
+                    --vnl-[pre|suf]fix xxx,yyy,zzz |
+                    --vnl-autoprefix               |
+                    --vnl-autosuffix ]
                   logfile1 logfile2
 
 This tool joins two vnlog files on a given field. C<vnl-join> is a
@@ -773,8 +807,25 @@ to be different. So pass C<-j> instead, it makes more sense in this context.
 
 =item *
 
+C<-a-> is available as a shorthand for C<-a1 -a2>: this is a full outer join,
+printing unmatched records from both of the inputs. Similarly, C<-v-> is
+available as a shorthand for C<-v1 -v2>: this will output I<only> the unique
+records in both of the inputs.
+
+=item *
+
 C<vnl-join>-specific options are available to adjust the field-naming in the
-output: C<--vnl-prefix1>, C<--vnl-prefix2>, C<--vnl-suffix1>, C<--vnl-suffix2>.
+output:
+
+  C<--vnl-prefix1>
+  C<--vnl-suffix1>
+  C<--vnl-prefix2>
+  C<--vnl-suffix2>
+  C<--vnl-prefix>
+  C<--vnl-suffix>
+  C<--vnl-autoprefix>
+  C<--vnl-autosuffix>
+
 See below for details.
 
 =item *
@@ -805,6 +856,11 @@ C<-t> is not supported because vnlog assumes whitespace-separated fields
 C<--zero-terminated> is not supported because vnlog assumes newline-separated
 records
 
+=item *
+
+Rather than only 2-way joins, this tool supports N-way joins for any N > 2. See
+below for details.
+
 =back
 
 Past that, everything C<join> does is supported, so see that man page for
@@ -829,13 +885,27 @@ Joining this on C<time> will produce a vnlog with a legend
 
 which is confusing, and I<not> what you want. Instead, we invoke C<vnl-join> as
 
- vnl-join --vnl-suffix1 _bugged --vnl-suffix2 _fixed -j time bugged.vnl fixed.vnl
+ vnl-join --vnl-suffix1 _buggy --vnl-suffix2 _fixed -j time buggy.vnl fixed.vnl
 
 And in the output we get a legend
 
- # time x_bugged y_bugged x_fixed y_fixed
+ # time x_buggy y_buggy x_fixed y_fixed
 
 Much better.
+
+Note that C<vnl-join> provides several ways of specifying this. The above works
+I<only> for 2-way joins. An alternate syntax is available for N-way joins, a
+comma-separated list. The same could be expressed like this:
+
+ vnl-join -a- --vnl-suffix _buggy,_fixed -j time buggy.vnl fixed.vnl
+
+Finally, if passing in structured filenames, C<vnl-join> can infer the desired
+syntax from the filenames. The same as above could be expressed even simpler:
+
+ vnl-join --vnl-autosuffix -j time buggy.vnl fixed.vnl
+
+This works by looking at the set of passed in filenames, and stripping out the
+common leading and trailing strings.
 
 =head2 Sorting of input and output
 
@@ -900,6 +970,38 @@ palatable:
  # time a b
  9 b d
  10 c e
+
+=head2 N-way joins
+
+The GNU coreutils C<join> tool is inherently designed to join I<exactly> two
+files. C<vnl-join> extends this capability by chaining together a number of
+C<join> invocations to produce a generic N-way join. This works exactly how you
+would expect with the following caveats:
+
+=over
+
+=item *
+
+Full outer joins are supported by passing C<-a->, but no other C<-a> option is
+supported. This is possible, but wasn't obviously worth the trouble.
+
+=item *
+
+C<-v> is not supported. Again, this is possible, but wasn't obviously worth the
+trouble.
+
+=item *
+
+Full outer joins are supported by passing C<-a->, but no other C<-a> option is
+supported. This is possible, but wasn't obviously worth the trouble.
+
+=item *
+
+Similarly, C<-o> is not supported. This is possible, but wasn't obviously worth
+the trouble, especially since the desired behavior can be obtained by
+post-processing with C<vnl-filter>.
+
+=back
 
 =head1 BUGS
 

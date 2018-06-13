@@ -317,8 +317,8 @@ check( <<'EOF', qw(-jb -o auto), '$data1', '$data22', '$data3');
 EOF
 
 # 3-way prefix/suffix
-check( <<'EOF', qw(-jb --vnl-prefix1 a_ --vnl-suffix3 _c), '$data1', '$data22', '$data3');
-# b a_a a_e c d e f_c
+check( <<'EOF', qw(-jb --vnl-prefix1 a_ --vnl-suffix2 _c), '$data1', '$data22', '$data3');
+# b a_a a_e c_c d_c e_c f
 22b 1a 9 1c 5d 8 18
 32b 5a 10 5c 6d 9 29
 EOF
@@ -332,6 +332,18 @@ check( <<'EOF', qw(-jb --vnl-autosuffix), '$data1', '$data22', '$data3');
 22b 1a 9 1c 5d 8 18
 32b 5a 10 5c 6d 9 29
 EOF
+check( <<'EOF', qw(-jb --vnl-prefix a_ --vnl-suffix), ',,_c', '$data1', '$data22', '$data3');
+# b a_a a_e c d e f_c
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
+check( <<'EOF', qw(-jb --vnl-prefix), 'a_,,c_', '$data1', '$data22', '$data3');
+# b a_a a_e c d e c_f
+22b 1a 9 1c 5d 8 18
+32b 5a 10 5c 6d 9 29
+EOF
+check( 'ERROR', qw(-jb --vnl-prefix), 'a_,,c_', qw(--vnl-prefix1 f), '$data1', '$data22', '$data3');
+check( 'ERROR', qw(-jb --vnl-prefix), 'a_,,c_', qw(--vnl-autoprefix f), '$data1', '$data22', '$data3');
 
 # 3-way pre-sorting/post-sorting
 # Again, I check ALL the orderings of passed-in data
