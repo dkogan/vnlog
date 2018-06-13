@@ -959,7 +959,10 @@ SYNOPSIS
 DESCRIPTION
       Usage: vnl-join [join options]
                       [--vnl-sort -|[dfgiMhnRrV]+]
-                      [--vnl-[pre|suf]fix[1|2] xxx]
+                      [ --vnl-[pre|suf]fix[1|2] xxx    |
+                        --vnl-[pre|suf]fix xxx,yyy,zzz |
+                        --vnl-autoprefix               |
+                        --vnl-autosuffix ]
                       logfile1 logfile2
 
     This tool joins two vnlog files on a given field. "vnl-join" is a
@@ -986,9 +989,24 @@ DESCRIPTION
         -2 to be different. So pass "-j" instead, it makes more sense in
         this context.
 
+    *   "-a-" is available as a shorthand for "-a1 -a2": this is a full
+        outer join, printing unmatched records from both of the inputs.
+        Similarly, "-v-" is available as a shorthand for "-v1 -v2": this
+        will output *only* the unique records in both of the inputs.
+
     *   "vnl-join"-specific options are available to adjust the field-naming
-        in the output: "--vnl-prefix1", "--vnl-prefix2", "--vnl-suffix1",
-        "--vnl-suffix2". See below for details.
+        in the output:
+
+          C<--vnl-prefix1>
+          C<--vnl-suffix1>
+          C<--vnl-prefix2>
+          C<--vnl-suffix2>
+          C<--vnl-prefix>
+          C<--vnl-suffix>
+          C<--vnl-autoprefix>
+          C<--vnl-autosuffix>
+
+        See below for details.
 
     *   A "vnl-join"-specific option "--vnl-sort" is available to sort the
         input and/or output. See below for details.
@@ -1008,6 +1026,9 @@ DESCRIPTION
 
     *   "--zero-terminated" is not supported because vnlog assumes
         newline-separated records
+
+    *   Rather than only 2-way joins, this tool supports N-way joins for any
+        N > 2. See below for details.
 
     Past that, everything "join" does is supported, so see that man page for
     detailed documentation. Note that all non-legend comments are stripped
@@ -1032,13 +1053,28 @@ DESCRIPTION
     which is confusing, and *not* what you want. Instead, we invoke
     "vnl-join" as
 
-     vnl-join --vnl-suffix1 _bugged --vnl-suffix2 _fixed -j time bugged.vnl fixed.vnl
+     vnl-join --vnl-suffix1 _buggy --vnl-suffix2 _fixed -j time buggy.vnl fixed.vnl
 
     And in the output we get a legend
 
-     # time x_bugged y_bugged x_fixed y_fixed
+     # time x_buggy y_buggy x_fixed y_fixed
 
     Much better.
+
+    Note that "vnl-join" provides several ways of specifying this. The above
+    works *only* for 2-way joins. An alternate syntax is available for N-way
+    joins, a comma-separated list. The same could be expressed like this:
+
+     vnl-join -a- --vnl-suffix _buggy,_fixed -j time buggy.vnl fixed.vnl
+
+    Finally, if passing in structured filenames, "vnl-join" can infer the
+    desired syntax from the filenames. The same as above could be expressed
+    even simpler:
+
+     vnl-join --vnl-autosuffix -j time buggy.vnl fixed.vnl
+
+    This works by looking at the set of passed in filenames, and stripping
+    out the common leading and trailing strings.
 
   Sorting of input and output
     The GNU coreutils "join" tool expects sorted columns because it can then
@@ -1103,6 +1139,27 @@ DESCRIPTION
      # time a b
      9 b d
      10 c e
+
+  N-way joins
+    The GNU coreutils "join" tool is inherently designed to join *exactly*
+    two files. "vnl-join" extends this capability by chaining together a
+    number of "join" invocations to produce a generic N-way join. This works
+    exactly how you would expect with the following caveats:
+
+    *   Full outer joins are supported by passing "-a-", but no other "-a"
+        option is supported. This is possible, but wasn't obviously worth
+        the trouble.
+
+    *   "-v" is not supported. Again, this is possible, but wasn't obviously
+        worth the trouble.
+
+    *   Full outer joins are supported by passing "-a-", but no other "-a"
+        option is supported. This is possible, but wasn't obviously worth
+        the trouble.
+
+    *   Similarly, "-o" is not supported. This is possible, but wasn't
+        obviously worth the trouble, especially since the desired behavior
+        can be obtained by post-processing with "vnl-filter".
 
 BUGS
     This and the other "vnl-xxx" tools that wrap coreutils are written
