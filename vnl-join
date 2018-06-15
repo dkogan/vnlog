@@ -359,6 +359,8 @@ if( $Ndatafiles > 2 )
     # on a previous one. Instead I rearrange the calls to make the sub-joins
     # independent, and thus parallelizable
 
+    my @child_pids;
+
     sub subjoin
     {
         # inputs $in0 and $in1 are a hashref describing the input
@@ -458,9 +460,7 @@ if( $Ndatafiles > 2 )
             }
             exec @run_opts;
         }
-        waitpid $childpid_subjoin, 0;
-        my $result = $?;
-
+        push @child_pids, $childpid_subjoin;
 
 
 
@@ -471,10 +471,6 @@ if( $Ndatafiles > 2 )
         elsif( exists $in0->{fd}) { POSIX::close($in0->{fd}); }
         if(    exists $in1->{fh}) { close($in1->{fh}); }
         elsif( exists $in1->{fd}) { POSIX::close($in1->{fd}); }
-        if($result != 0)
-        {
-            die "Subjoin in PID $childpid_subjoin failed!";
-        }
 
         return { fd => $fd_read };
     }
@@ -497,12 +493,24 @@ if( $Ndatafiles > 2 )
             last;
         }
 
-        # This map() should run in parallel
         my @outputs = map { subjoin(@inputs[$_, $_+1]) } @i0;
         push @outputs, $inputs[$N-1] if ($N % 2)==1;
 
         @inputs = @outputs;
     }
+
+    # I spawned off all the child processes. They'll run in parallel, as
+    # dictated by the OS
+    for my $childpid (@child_pids)
+    {
+        waitpid $childpid, 0;
+        my $result = $?;
+        if($result != 0)
+        {
+            die "Subjoin in PID $childpid failed!";
+        }
+    }
+
     exit 0;
 }
 
