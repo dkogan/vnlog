@@ -10,4 +10,8 @@ complete -W '                   \
   --vnl-prefix2                 \
   --vnl-suffix1                 \
   --vnl-suffix2                 \
+  --vnl-prefix                  \
+  --vnl-suffix                  \
+  --vnl-autoprefix              \
+  --vnl-autosuffix              \
   --vnl-sort' vnl-join

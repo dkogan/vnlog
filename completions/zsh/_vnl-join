@@ -23,10 +23,10 @@
 # modifications.
 
 _arguments -S                                                                                \
-  '*-a+[print unpairable lines from specified file]:file number:(1 2)'                       \
+  '*-a+[print unpairable lines from specified file]:file number:(1 2 -)'                     \
   "(-1 -2)-j+[join on specified field for both files]:key"                                   \
   '-o+[use specified output format]:format string'                                           \
-  '*-v+[like -a, but suppress joined output lines]:file number:(1 2)'                        \
+  '*-v+[like -a, but suppress joined output lines]:file number:(1 2 -)'                      \
   '(-i --ignore-case)'{-i,--ignore-case}'[ignore differences in case when comparing fields]' \
   '(-)--help[display help information]'                                                      \
   '(--check-order --nocheck-order)'{--check-order,--nocheck-order}                           \
@@ -34,5 +34,9 @@ _arguments -S                                                                   
   '--vnl-prefix2[prefix to add to output field labels from the second datafile]:prefix1:'    \
   '--vnl-suffix1[suffix to add to output field labels from the first datafile]:prefix1:'     \
   '--vnl-suffix2[suffix to add to output field labels from the second datafile]:prefix1:'    \
+  '--vnl-prefix[prefix to add to output field labels; comma-separated list for all datafiles]:prefix:'   \
+  '--vnl-suffix[suffix to add to output field labels; comma-separated list for all datafiles]:suffix:'   \
+  '--vnl-autoprefix[automatically determine the prefix to add to output field labels for all datafiles]' \
+  '--vnl-autoxuffix[automatically determine the xuffix to add to output field labels for all datafiles]' \
   '--vnl-sort[Presort the input and maybe post-sort the output]:ordering; should match -|[dfgiMhnRrV]+:' \
   '1:file:_files' '2:file:_files'
