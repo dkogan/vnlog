@@ -359,6 +359,16 @@ if( $Ndatafiles > 2 )
 
     my @child_pids;
 
+    # I need an arbitrary place to store references the file handles (these are
+    # full perl file handles, not just bare file descriptors). If I don't have
+    # these then the language wants to garbage-collect these. THAT calls the
+    # destructor, which closes the file handles. And THAT in turn calls wait()
+    # on the subprocess. And since the subprocesses aren't yet done, the wait()
+    # blocks, and the whole chain then deadlocks.
+    #
+    # So I simply store the file handles and void this whole business
+    my @fh_cache;
+
     sub subjoin
     {
         # inputs $in0 and $in1 are a hashref describing the input
@@ -384,8 +394,9 @@ if( $Ndatafiles > 2 )
 
                 # We need to pre-sort the data. I fork off that process, and
                 # convert this input to a fd one
-                $in->{fh} = fork_and_filter(@$input_filter, $filename);
-                $in->{fd} = fileno $in->{fh};
+                my $fh = fork_and_filter(@$input_filter, $filename);
+                push @fh_cache, $fh; # see comment for @fh_cache above
+                $in->{fd} = fileno $fh;
                 delete $in->{i_filename};
             }
 
@@ -451,10 +462,10 @@ if( $Ndatafiles > 2 )
             }
             else
             {
-                POSIX::close($fd_read);
                 POSIX::close(1);
                 POSIX::dup2($fd_write, 1);
                 POSIX::close($fd_write);
+                POSIX::close($fd_read);
             }
             exec @run_opts;
         }
@@ -463,12 +474,11 @@ if( $Ndatafiles > 2 )
 
 
 
+        # I'm done with the writer (child uses it) so I close it
         POSIX::close($fd_write) if defined($fd_write);
 
-        if(    exists $in0->{fh}) { close($in0->{fh}); }
-        elsif( exists $in0->{fd}) { POSIX::close($in0->{fd}); }
-        if(    exists $in1->{fh}) { close($in1->{fh}); }
-        elsif( exists $in1->{fd}) { POSIX::close($in1->{fd}); }
+        # I'm however NOT done with the readers. All the various sub-joins use
+        # them in some arbitrary order, so I close none of them
 
         return { fd => $fd_read };
     }
