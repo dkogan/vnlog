@@ -9,9 +9,7 @@ use lib "$Bin/lib";
 
 # Non-ancient perls have this in List::Util, but I want to support ancient ones too
 use List::MoreUtils 'all';
-
 use POSIX;
-use Fcntl qw(F_GETFD F_SETFD FD_CLOEXEC);
 
 use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring fork_and_filter);
 
