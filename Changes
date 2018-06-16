@@ -1,3 +1,12 @@
+vnlog (1.10)
+
+  * vnl-join updates:
+    - N-way vnl-join now invoke the sub-joins in parallel
+    - Updated tab completion with new vnl-join arguments
+    - 'make clean' leaves the README.org alone
+
+ -- Dima Kogan <dkogan@debian.org>  Fri, 15 Jun 2018 15:00:49 -0700
+
 vnlog (1.9)
 
   * vnl-join updates:
