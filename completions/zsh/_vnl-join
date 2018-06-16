@@ -37,6 +37,6 @@ _arguments -S                                                                   
   '--vnl-prefix[prefix to add to output field labels; comma-separated list for all datafiles]:prefix:'   \
   '--vnl-suffix[suffix to add to output field labels; comma-separated list for all datafiles]:suffix:'   \
   '--vnl-autoprefix[automatically determine the prefix to add to output field labels for all datafiles]' \
-  '--vnl-autoxuffix[automatically determine the xuffix to add to output field labels for all datafiles]' \
+  '--vnl-autosuffix[automatically determine the suffix to add to output field labels for all datafiles]' \
   '--vnl-sort[Presort the input and maybe post-sort the output]:ordering; should match -|[dfgiMhnRrV]+:' \
   '1:file:_files' '2:file:_files'
