@@ -1,3 +1,9 @@
+vnlog (1.11)
+
+  * N-way vnl-join: fixed deadlock with large files
+
+ -- Dima Kogan <dkogan@debian.org>  Fri, 15 Jun 2018 19:33:57 -0700
+
 vnlog (1.10)
 
   * vnl-join updates:
