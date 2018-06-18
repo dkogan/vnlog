@@ -78,6 +78,8 @@ test check:					\
 %.RUN: %
 	$<
 test/test_c_api.sh.RUN: test/test1
+EXTRA_CLEAN += test/testdata_*
+
 
 DIST_INCLUDE      := vnlog.h
 DIST_BIN          := $(TOOLS)

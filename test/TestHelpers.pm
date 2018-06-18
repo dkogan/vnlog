@@ -16,6 +16,7 @@ our @EXPORT_OK = qw(check test_init);
 
 my $tool;
 my $Nfailed_ref;
+my $testdata_dir;
 
 sub test_init
 {
@@ -24,9 +25,12 @@ sub test_init
 
     my %data = @_;
 
+    $testdata_dir = "$Bin/testdata_$tool";
+    mkdir $testdata_dir if ! -d $testdata_dir;
+
     for my $key (keys %data)
     {
-        my $filename = $key =~ s/^\$//r;
+        my $filename = "${testdata_dir}/" . $key =~ s/^\$//r;
         open FD, '>', $filename
           or die "Couldn't open '$filename' for writing";
         print FD $data{$key};
@@ -53,7 +57,8 @@ sub check
     {
         if($args[$iarg] =~ /^\$/)
         {
-            $args[$iarg] = substr($args[$iarg], 1);
+            my $datafile = "${testdata_dir}/" . substr($args[$iarg], 1);
+            $args[$iarg] = $datafile;
         }
         elsif($args[$iarg] =~ /^-\$/)
         {
@@ -62,7 +67,8 @@ sub check
             {
                 die "A test passed in more than one chunk of data on stdin";
             }
-            $in = substr($args[$iarg], 2);
+            my $datafile = "${testdata_dir}/" . substr($args[$iarg], 2);
+            $in = $datafile;
             $args[$iarg] = '-';
         }
         elsif($args[$iarg] =~ /^--\$/)
@@ -72,7 +78,8 @@ sub check
             {
                 die "A test passed in more than one chunk of data on stdin";
             }
-            $in = substr($args[$iarg], 3);
+            my $datafile = "${testdata_dir}/" . substr($args[$iarg], 3);
+            $in = $datafile;
             $args[$iarg] = undef; # mark the arg for removal
         }
     }
