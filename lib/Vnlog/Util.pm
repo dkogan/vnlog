@@ -74,7 +74,9 @@ sub open_file_as_pipe
 
 
 
-    # mawk script to strip away comments. This is the pre-filter to the data
+    # mawk script to strip away comments and trailing whitespace (GNU coreutils
+    # join treats trailing whitespace as empty-field data). This is the
+    # pre-filter to the data
     my $mawk_strip_comments = <<'EOF';
     {
         if (havelegend)
@@ -82,6 +84,7 @@ sub open_file_as_pipe
             sub("[\t ]*#.*","");     # have legend. Strip all comments
             if (match($0,"[^\t ]"))  # If any non-whitespace remains, print
             {
+                sub("[\t ]+$","");
                 print
             }
         }
