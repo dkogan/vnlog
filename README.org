@@ -695,7 +695,7 @@ CAVEATS
         them more readable anyway.
 
     *   Strings passed to "-p" are split on "," *except* if the "," is
-        inside balanced <()>. This makes it possible to say things like
+        inside balanced "()". This makes it possible to say things like
         "vnl-filter --function 'f(a,b) { ... }' -p 'c=f(a,b)'". This is
         probably the right behavior, although some questionable looking
         field names become potentially impossible: "f(a" and "b)" *could*

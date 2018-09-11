@@ -1333,7 +1333,7 @@ anyway.
 =item *
 
 Strings passed to C<-p> are split on C<,> I<except> if the C<,> is inside
-balanced <()>. This makes it possible to say things like C<vnl-filter --function
+balanced C<()>. This makes it possible to say things like C<vnl-filter --function
 'f(a,b) { ... }' -p 'c=f(a,b)'>. This is probably the right behavior, although
 some questionable looking field names become potentially impossible: C<f(a> and
 C<b)> I<could> otherwise be legal field names, but you're probably asking for
