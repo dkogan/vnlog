@@ -1234,8 +1234,8 @@ SEE ALSO
 * Installation
 
 ** On Debian-based boxes
-At this time vnlog is a part of Debian/sid, and will migrate to the latest
-Ubuntu release in the near future. On those boxes you can simply
+At this time vnlog is a part of Debian/sid and Ubuntu/cosmic. It will be
+included in Debian/buster when that is released. On those boxes you can simply
 
 #+BEGIN_EXAMPLE
 $ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
