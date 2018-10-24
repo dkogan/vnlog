@@ -721,7 +721,6 @@ vnl-join - joins two log files on a particular field
 
 =head1 SYNOPSIS
 
-
  $ cat a.vnl
  # a b
  AA 11
@@ -1005,11 +1004,6 @@ supported. This is possible, but wasn't obviously worth the trouble.
 
 C<-v> is not supported. Again, this is possible, but wasn't obviously worth the
 trouble.
-
-=item *
-
-Full outer joins are supported by passing C<-a->, but no other C<-a> option is
-supported. This is possible, but wasn't obviously worth the trouble.
 
 =item *
 

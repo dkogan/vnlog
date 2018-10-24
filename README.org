@@ -219,7 +219,7 @@ vnl-filter -p col1,col2,colx=col3+col4 'col5 > 10' --has col6
 #+END_EXAMPLE
   will read the input, and produce a vnlog with 3 columns: =col1= and =col2=
   from the input and a column =colx= that's the sum of =col3= and =col4= in the
-  input. Only those rows for which the =col5 > 10= is true will be output.
+  input. Only those rows for which =col5 > 10= is true will be output.
   Finally, only those rows that have a non-null value for =col6= will be
   selected. A null entry is signified by a single =-= character.
 
@@ -1153,10 +1153,6 @@ DESCRIPTION
     *   "-v" is not supported. Again, this is possible, but wasn't obviously
         worth the trouble.
 
-    *   Full outer joins are supported by passing "-a-", but no other "-a"
-        option is supported. This is possible, but wasn't obviously worth
-        the trouble.
-
     *   Similarly, "-o" is not supported. This is possible, but wasn't
         obviously worth the trouble, especially since the desired behavior
         can be obtained by post-processing with "vnl-filter".
@@ -1234,8 +1230,8 @@ SEE ALSO
 * Installation
 
 ** On Debian-based boxes
-At this time vnlog is a part of Debian/sid and Ubuntu/cosmic. It will be
-included in Debian/buster when that is released. On those boxes you can simply
+At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
+later. On those boxes you can simply
 
 #+BEGIN_EXAMPLE
 $ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
