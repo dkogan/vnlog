@@ -187,8 +187,8 @@ $ vnl-join -j time /tmp/temperature.vnl /tmp/cpu.vnl |
 
 * Description
 
-As stated before, vnlog tools are designed to be very simple and light. There
-exist other tools that are similar. For instance:
+Vnlog tools are designed to be very simple and light. There exist a number of
+other tools that are similar. For instance:
 
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
@@ -199,13 +199,18 @@ exist other tools that are similar. For instance:
 - https://github.com/BurntSushi/xsv
 - https://github.com/dbohdan/sqawk
 
-
 These all provide facilities to run various analyses, and are neither simple nor
 light. Vnlog by contrast doesn't analyze anything, but makes it easy to write
 simple bits of awk or perl to process stuff to your heart's content. The main
 envisioned use case is one-liners, and the tools are geared for that purpose.
 The above mentioned tools are much more powerful than vnlog, so they could be a
-better fit for some use cases.
+better fit for some use cases. I claim that
+
+- 90% of the time you want to do simple things, and vnlog is a great fit for the
+  task
+- If you really do need to do something complex, you really shouldn't be in the
+  shell writing oneliners anymore, and a fully-fledged analysis system (numpy,
+  etc) is more appropriate
 
 In the spirit of doing as little as possible, the provided tools are wrappers
 around tools you already have and are familiar with. The provided tools are:
