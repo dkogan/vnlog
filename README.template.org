@@ -26,164 +26,304 @@ the toolkit relies /heavily/ on existing (and familiar!) tools and workflows.
 And a result of /that/ is that the toolkit is very small and light, and has a
 /very/ friendly learning curve.
 
+
 * Synopsis
 
-In one terminal, sample the CPU temperature over time, and write the data to a
-file as it comes in, at 1Hz:
+I have two sets of historical stock data, from the start of 2018 until now
+(2018/11):
 
 #+BEGIN_EXAMPLE
-$ ( echo '# time temp1 temp2 temp3';
-    while true; do echo -n "`date +%s` "; < /proc/acpi/ibm/thermal awk '{print $2,$3,$4; fflush()}';
-    sleep 1; done )
-    > /tmp/temperature.vnl
+$ < dji.vnl head -n 4
+# Date Open High Low Close AdjClose Volume
+2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
+2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
+2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
+
+$ < tsla.vnl head -n 4
+# Date Open High Low Close AdjClose Volume
+2018-11-15 342.33 348.58 339.04 348.44 348.44 4486339
+2018-11-14 342.70 347.11 337.15 344.00 344.00 5036300
+2018-11-13 333.16 344.70 332.20 338.73 338.73 5448600
 #+END_EXAMPLE
 
-In another terminal, I sample the consumption of CPU resources, and log /that/
-to a file:
+I can pull out the closing prices:
 
 #+BEGIN_EXAMPLE
-$ (echo "# user system nice idle waiting hardware_interrupt software_interrupt stolen";
-   top -b -d1 | awk '/%Cpu/ {print $2,$4,$6,$8,$10,$12,$14,$16; fflush()}')
-   > /tmp/cpu.vnl
+$ < dji.vnl vnl-filter -p Close | head -n4
+# Close
+25289.27
+25080.50
+25286.49
 #+END_EXAMPLE
 
-These logs are now accumulating, and I can do stuff with them. The legend and
-the last few measurements:
+And I can plot them:
 
 #+BEGIN_EXAMPLE
-$ vnl-tail /tmp/temperature.vnl
-# time temp1 temp2 temp3
-1517986631 44 38 34
-1517986632 44 38 34
-1517986633 44 38 34
-1517986634 44 38 35
-1517986635 44 38 35
-1517986636 44 38 35
-1517986637 44 38 35
-1517986638 44 38 35
-1517986639 44 38 35
-1517986640 44 38 34
+$ < dji.vnl vnl-filter -p Close |
+    feedgnuplot --lines --terminal 'dumb 80,30' --unset grid
+
+  27000 +-------------------------------------------------------------------+
+        |        *    +            +             +            +             |
+        |        * *                                                        |
+        |        ***                                            *           |
+  26500 |-+     * ***                                           *         +-|
+        |       * * *                                           *           |
+        | *     *   **                                         * *          |
+  26000 |-*     *   *** *                                      * **       +-|
+        | *     *    ****                                      *  *         |
+        | *    **       **                                     *  *         |
+        | *   ***        ** *                              *   *   *        |
+  25500 |*+*  ***         *** *                            *   *   *      +-|
+        |* * ****         ** **       **                * **   *   *        |
+        |* *** *          ** * **     **                * ***  *    *       |
+        |*  ** *          *    **     * *               * ***  *    *       |
+  25000 |-+ **                 ***   *  *  *           ** ***  *    *     +-|
+        |   **                   **  *  * ***    *     ****** *      *      |
+        |   **                   **  *  ** **    *    **  *  **             |
+        |   **                    * **  **   *   *    **  *  **             |
+  24500 |-+ *                     * **   *   *  * **  *      **           +-|
+        |                         ***    *   **** *** *      **             |
+        |                         **          *** *****      **             |
+  24000 |-+                                   ***  ****       *           +-|
+        |                                     *    ****       *             |
+        |                                           ***                     |
+        |             +            +             +  **        +             |
+  23500 +-------------------------------------------------------------------+
+        0             50          100           150          200           250
 #+END_EXAMPLE
 
-I grab just the first temperature sensor, and align the columns
+For this documentation I'm plotting in ascii ("dumb" terminal). Normally you'd
+use the default terminal, and get interactive, graphical plots. Here I kept
+/only/ the closing price column, so the x-axis is just the row index. The data
+was in reverse chronological order, so this plot is also in reverse
+chronological order. Let's fix that:
 
 #+BEGIN_EXAMPLE
-$ < /tmp/temperature.vnl vnl-tail |
-    vnl-filter -p time,temp=temp1 |
-    vnl-align
-#  time    temp
-1517986746 45
-1517986747 45
-1517986748 46
-1517986749 46
-1517986750 46
-1517986751 46
-1517986752 46
-1517986753 45
-1517986754 45
-1517986755 45
+$ < dji.vnl vnl-sort -k Date |
+    vnl-filter -p Close |
+    feedgnuplot --lines --terminal 'dumb 80,30' --unset grid
+
+  27000 +-------------------------------------------------------------------+
+        |             +            +             +          * +             |
+        |                                                 * *               |
+        |    *                                            * *               |
+  26500 |-+  *                                            ** *            +-|
+        |    *                                            ** *              |
+        |   ***                                         **   *     *        |
+  26000 |-+** *                                      *****    *    **     +-|
+        |  *  *                                      ****     *    **       |
+        |  *   *                                    **        **   **       |
+        |  *   *   *                             *  **        **   **       |
+  25500 |-*    *   *                           * ***          **  * *     +-|
+        | *    *  ** *                **       *****          *** * *       |
+        |**    * *** *                **      *** **          * * * **      |
+        |*     * *** *                ***    ***   *          * * * *       |
+  25000 |*+    * *** **            *  * *   ***                 ***       +-|
+        |*     * ******     *    * * *  *   *                   **          |
+        |      * * ** **    **   ** **  *   *                   **          |
+        |      **  **  *    **  *   **   *  *                   **          |
+  24500 |-+    **      *  ****  *   **   * *                     *        +-|
+        |      **       * ***** *   *    ***                                |
+        |       *       * ** ****         **                                |
+  24000 |-+     *       ***  ***                                          +-|
+        |       *       ***    *                                            |
+        |               **                                                  |
+        |             + **         +             +            +             |
+  23500 +-------------------------------------------------------------------+
+        0             50          100           150          200           250
 #+END_EXAMPLE
 
-I do the same, but read the log data in realtime, and feed it to a plotting tool
-to get a live reporting of the cpu temperature. This plot updates as data comes
-in. I then spin a CPU core (=while true; do true; done=), and see the
-temperature climb. Here I'm making an ASCII plot that's pasteable into the docs.
+This is in the correct order, but it'd be nice to see the actual dates on the
+x-axis:
 
 #+BEGIN_EXAMPLE
-$ < /tmp/temperature.vnl vnl-tail -f           |
-    vnl-filter --unbuffered -p time,temp=temp1 |
-     feedgnuplot --stream --domain
-       --lines --timefmt '%s' --set 'format x "%M:%S"' --ymin 40
-       --unset grid --terminal 'dumb 80,40'
+$ < dji.vnl vnl-filter -p Date,Close | head -n4
+# Date Close
+2018-11-15 25289.27
+2018-11-14 25080.50
+2018-11-13 25286.49
 
-  70 +----------------------------------------------------------------------+
-     |      +      +      +      +       +      +      +      +      +      |
-     |                                                                      |
-     |                                                                      |
-     |                                                                      |
-     |                      **                                              |
-  65 |-+                   ***                                            +-|
-     |                    ** *                                              |
-     |                    *  *                                              |
-     |                    *  *                                              |
-     |                   *   *                                              |
-     |                  **   **                                             |
-  60 |-+                *     *                                           +-|
-     |                 *      *                                             |
-     |                 *      *                                             |
-     |                 *      *                                             |
-     |                **      *                                             |
-     |                *       *                                             |
-  55 |-+              *       *                                           +-|
-     |                *       *                                             |
-     |                *       **                                            |
-     |                *        *                                            |
-     |               **        *                                            |
-     |               *         **                                           |
-  50 |-+             *          **                                        +-|
-     |               *           **                                         |
-     |               *            ***                                       |
-     |               *              *                                       |
-     |               *              ****                                    |
-     |               *                 *****                                |
-  45 |-+             *                     ***********                    +-|
-     |    ************                               ********************** |
-     |          * **                                                        |
-     |                                                                      |
-     |                                                                      |
-     |      +      +      +      +       +      +      +      +      +      |
-  40 +----------------------------------------------------------------------+
-   21:00  22:00  23:00  24:00  25:00   26:00  27:00  28:00  29:00  30:00  31:00
+$ < dji.vnl vnl-sort -k Date |
+    vnl-filter -p Date,Close |
+    feedgnuplot --lines --unset grid --terminal 'dumb 80,30'
+                --timefmt %Y-%m-%d --domain
+
+  27000 +-------------------------------------------------------------------+
+        |     +     +     +      +     +     +     +     +      *     +     |
+        |                                                    *  *           |
+        |    *                                               ****           |
+  26500 |-+  **                                              *****        +-|
+        |    **                                              **  *          |
+        |   ***                                             **   *     *    |
+  26000 |-+** *                                         *** **   *     *  +-|
+        |  *  *                                         ****     *     *    |
+        | **  *                                        **        **    *    |
+        | *   *    *                                * * *        ***   **   |
+  25500 |-*   *    **                             *****          ***   ** +-|
+        | *   *    ** *                  *        ** **          **** ***   |
+        |*    *  * ** *                 **      ** * **          ** * * **  |
+        |*    *  **** *                 ***     **    *          *  * * *   |
+  25000 |-+   *  *******            *   * *    * *                  * *   +-|
+        |      **** ** *      *   **** *  *    *                    **      |
+        |      ***  ** **     *   ******  **  **                    **      |
+        |      ***  *   *    **   *  ***   *  *                     **      |
+  24500 |-+    ***      *  *****  *   *    ** *                      *    +-|
+        |      **       *  *** ****   *     ***                             |
+        |       *       ** **  ***          **                              |
+  24000 |-+     *       *****  ***                                        +-|
+        |       *       ****     *                                          |
+        |               * *                                                 |
+        |     +     +   * *      +     +     +     +     +      +     +     |
+  23500 +-------------------------------------------------------------------+
+      01/01 02/01 03/01 04/01  05/01 06/01 07/01 08/01 09/01  10/01 11/01 12/01
 #+END_EXAMPLE
 
-Cool. I can then join the logs, pull out simultaneous CPU consumption and
-temperature numbers, and plot the path in the temperature-cpu space:
+What was the highest value of the Dow-Jones index, and when did it happen?
 
 #+BEGIN_EXAMPLE
-$ vnl-join -j time /tmp/temperature.vnl /tmp/cpu.vnl |
-  vnl-filter -p temp1,user                           |
-  feedgnuplot --domain --lines
-    --unset grid --terminal 'dumb 80,40'
+$ < dji.vnl vnl-sort -rk Close |
+  head -n2 |
+  vnl-align
 
-  45 +----------------------------------------------------------------------+
-     |           +           +           +          +           +           |
-     |                                       *                              |
-     |                                       *                              |
-  40 |-+                                    **                            +-|
-     |                                      **                              |
-     |                                     * *                              |
-     |                                     * *      *    *    *             |
-  35 |-+               ****      *********** **** * **** ***  ******      +-|
-     |        *********   ********       *   *  *****  *** * ** *  *        |
-     |        *    *                            * * *  * * ** * *  *        |
-     |        *    *                                   *   *  *    *        |
-  30 |-+      *                                                    *      +-|
-     |        *                                                    *        |
-     |        *                                                    *        |
-     |        *                                                    *        |
-  25 |-+      *                                                    *      +-|
-     |        *                                                    *        |
-     |        *                                                    *        |
-     |        *                                                    *        |
-  20 |-+      *                                                    *      +-|
-     |        *                                                    *        |
-     |        *                                                    *        |
-     |      * *                                                    *        |
-  15 |-+    * *  *                                                 *      +-|
-     |      * *  *                                                 *        |
-     |      ***  *                                                 *        |
-     |      ***  *                                                 *        |
-  10 |-+    ***  *                                                 *      +-|
-     |      ***  *                                                 *        |
-     |      ***  *                                                 *        |
-     |      ***  *                                                 *        |
-   5 |-+    ***  *                                                 *      +-|
-     |      ***  *                                                 *        |
-     |      * *  * *                                               *        |
-     |      **** * ** *****  *********** +       *******       *****        |
-   0 +----------------------------------------------------------------------+
-     40          45          50          55         60          65          70
+#  Date      Open     High      Low     Close  AdjClose   Volume
+2018-10-03 26833.47 26951.81 26789.08 26828.39 26828.39 280130000
 #+END_EXAMPLE
+
+Alrighty. Looks like the high was in October. Let's zoom in on that month:
+
+#+BEGIN_EXAMPLE
+$ < dji.vnl vnl-sort -k Date |
+    vnl-filter 'Date ~ /2018-10/' -p Date,Close |
+    feedgnuplot --lines --unset grid --terminal 'dumb 80,30'
+                --timefmt %Y-%m-%d --domain
+
+  27000 +-------------------------------------------------------------------+
+        |          ** +            +             +            +             |
+        |        **  *                                                      |
+        |       *     *                                                     |
+  26500 |-+            *   ****                                           +-|
+        |               ***    *                                            |
+        |                      *                                            |
+        |                       *                                           |
+        |                       *                                           |
+  26000 |-+                     *                                         +-|
+        |                       *            **                             |
+        |                        *           * *                            |
+        |                        *          *   *                           |
+  25500 |-+                      *          *   * ******                  +-|
+        |                         *  *******     *      *                   |
+        |                         * *      *             **                 |
+        |                          **                      *              * |
+  25000 |-+                        *                       *  *          *+-|
+        |                                                  *  **        *   |
+        |                                                   ** *        *   |
+        |                                                   **  *****  *    |
+        |                                                   *        * *    |
+  24500 |-+                                                           *   +-|
+        |                                                                   |
+        |                                                                   |
+        |             +            +             +            +             |
+  24000 +-------------------------------------------------------------------+
+      09/27         10/04        10/11         10/18        10/25         11/01
+#+END_EXAMPLE
+
+OK. Is this thing volatile? What was the largest single-day gain?
+
+#+BEGIN_EXAMPLE
+$ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
+    head -n4 |
+    vnl-align 
+
+#  Date      Open     High      Low     Close  AdjClose   Volume     d   
+2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840    0   
+2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000 -208.77
+2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000  205.99
+
+
+$ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
+  vnl-sort -rk d |
+  head -n2 |
+  vnl-align
+
+#  Date      Open     High      Low     Close  AdjClose   Volume     d   
+2018-02-02 26061.79 26061.79 25490.66 25520.96 25520.96 522880000 1175.21
+#+END_EXAMPLE
+
+Whoa. So the best single-gain day was 2018-02-02: the dow gained 1175.21 points
+between closing on Feb 1 and Feb 2. But it actually lost ground that day! What
+if I looked at the difference between the opening and closing in a single day?
+
+#+BEGIN_EXAMPLE
+< dji.vnl | vnl-filter -p '.,d=Close-Open' |
+  vnl-sort -rgk d |
+  head -n2 |
+  vnl-align
+
+#  Date      Open     High      Low     Close  AdjClose   Volume    d  
+2018-02-06 24085.17 24946.23 23778.74 24912.77 24912.77 823940000 827.6
+#+END_EXAMPLE
+
+I guess by that metric 2018-02-06 was better. Let's join the Dow-jones index
+data and the TSLA data, and let's look at them together:
+
+#+BEGIN_EXAMPLE
+$ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
+  head -n4 |
+  vnl-align
+
+#  Date    Open_dji High_dji  Low_dji Close_dji AdjClose_dji Volume_dji Open_tsla High_tsla Low_tsla Close_tsla AdjClose_tsla Volume_tsla
+2018-11-15 25061.48 25354.56 24787.79 25289.27  25289.27     383292840  342.33    348.58    339.04   348.44     348.44        4486339    
+2018-11-14 25388.08 25501.29 24935.82 25080.50  25080.50     384240000  342.70    347.11    337.15   344.00     344.00        5036300    
+2018-11-13 25321.21 25511.03 25193.78 25286.49  25286.49     339690000  333.16    344.70    332.20   338.73     338.73        5448600    
+
+
+$ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
+  vnl-filter -p '^Close' |
+  head -n4 |
+  vnl-align
+
+# Close_dji Close_tsla
+25289.27    348.44    
+25080.50    344.00    
+25286.49    338.73    
+
+
+$ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
+  vnl-filter -p '^Close' |
+  feedgnuplot --domain --points --unset grid --terminal 'dumb 80,30'
+
+  380 +---------------------------------------------------------------------+
+      |         +         +         +         +         +         +         |
+      |                             A           A                           |
+      |                      A                                              |
+  360 |-+                             A A         A                       +-|
+      |                       A           A A A         A  AA               |
+      |             A    A        AA    AAAA A           AA AA   A          |
+  340 |-+         A  AA             AAA A A AAA  A  A   A           A     +-|
+      |               A  A A       A  AAA AA   A    A           A           |
+      |              A A    A A AAA     A A A                               |
+      |                      A A AA     A  A                                |
+  320 |-+                     A A AAAAAA         A AA    A                +-|
+      |      A              A A   A AAA  AA                                 |
+      |        A   AA  A A     A     A      A      A     A      AA   A      |
+      |             A  AA AA   A     A         A A      A A                 |
+  300 |A+     AA  A A  A     A  AA       A AAA         A        A AA A A  +-|
+      |            A AA   AA A A  A     A                A A             A  |
+      |         A    A   A  A  AA         A            AA  A                |
+      |        AA A   AAAA    A     A                A AA    A       A      |
+  280 |-+    A                AAAAA                 A  A                  +-|
+      |                                           A                         |
+      |          AA                                              A          |
+  260 |-+                                AA AA        A          A        +-|
+      |      A                             A    A                           |
+      |  A                           A                            A         |
+      |         +         +         +         +         +         +         |
+  240 +---------------------------------------------------------------------+
+    23500     24000     24500     25000     25500     26000     26500     27000
+#+END_EXAMPLE
+
+Huh. Apparently there's no obvious, strong correlation between TSLA and
+Dow-Jones closing prices.
 
 * Description
 
