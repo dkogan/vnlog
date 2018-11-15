@@ -26,7 +26,6 @@ the toolkit relies /heavily/ on existing (and familiar!) tools and workflows.
 And a result of /that/ is that the toolkit is very small and light, and has a
 /very/ friendly learning curve.
 
-
 * Synopsis
 
 I have two sets of historical stock data, from the start of 2018 until now
@@ -328,7 +327,7 @@ Dow-Jones closing prices.
 * Description
 
 Vnlog tools are designed to be very simple and light. There exist a number of
-other tools that are similar. For instance:
+other tools that manipulate data on the commandline. Some of these:
 
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
