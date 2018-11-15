@@ -17,7 +17,14 @@ TOOLS :=					\
 
 
 # I construct the README.org from the template. The only thing I do is to insert
-# the manpages
+# the manpages. Note that this is more complicated than it looks:
+#
+# 1. The tools are written in perl and contain POD documentation
+# 2. This documentation is stripped out here with pod2text, and included in the
+#    README. This README is an org-mode file, and the README.template.org
+#    container included the manpage text inside a #+BEGIN_EXAMPLE/#+END_EXAMPLE.
+#    So the manpages are treated as a verbatim, unformatted text blob
+# 3. Further down, the same POD is converted to a manpage via pod2man
 define MAKE_README =
 BEGIN									\
 {									\
