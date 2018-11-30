@@ -53,7 +53,7 @@ man1/%.1: % | man1/
 	pod2man -r '' --section 1 --center "vnlog" $< $@
 man3/Vnlog$(coloncolon)%.3pm: lib/Vnlog/%.pm | man3/
 	pod2man -r '' --section 3pm --center "vnlog" $< $@
-EXTRA_CLEAN += man1 man3 README.org
+EXTRA_CLEAN += man1 man3
 
 CFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
 
@@ -78,6 +78,8 @@ test check:					\
 %.RUN: %
 	$<
 test/test_c_api.sh.RUN: test/test1
+EXTRA_CLEAN += test/testdata_*
+
 
 DIST_INCLUDE      := vnlog.h
 DIST_BIN          := $(TOOLS)

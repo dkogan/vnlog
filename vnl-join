@@ -9,8 +9,9 @@ use lib "$Bin/lib";
 
 # Non-ancient perls have this in List::Util, but I want to support ancient ones too
 use List::MoreUtils 'all';
+use POSIX;
 
-use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index);
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring fork_and_filter);
 
 
 
@@ -33,8 +34,12 @@ my @specs = ( # options with no args
           "vnl-suffix1=s",
           "vnl-prefix2=s",
           "vnl-suffix2=s",
-
+          "vnl-prefix=s",
+          "vnl-suffix=s",
+          "vnl-autoprefix",
+          "vnl-autosuffix",
           "vnl-sort=s");
+
 
 my %options_unsupported = ( 't' => <<'EOF',
 vnlog is built on assuming a particular field separator
@@ -68,10 +73,12 @@ The most common options are (from the GNU sort manpage)
 
   -a FILENUM
          also print unpairable lines from file FILENUM, where FILENUM
-         is 1 or 2, corresponding to FILE1 or FILE2
+         is 1 or 2, corresponding to FILE1 or FILE2. -a- is a shorthand
+         for -a1 -a2
 
   -v FILENUM
-         like -a FILENUM, but suppress joined output lines
+         like -a FILENUM, but suppress joined output lines. -v- is a
+         shorthand for -v1 -v2
 
 There're also a few vnlog-specific options
 
@@ -79,9 +86,15 @@ There're also a few vnlog-specific options
   --vnl-suffix1 xxx
   --vnl-prefix2 xxx
   --vnl-suffix2 xxx
-         Add a suffix/prefix to the output column labels of the 1st/2nd data
+  --vnl-prefix  xxx,yyy,zzz
+  --vnl-suffix  xxx,yyy,zzz
+  --vnl-autoprefix
+  --vnl-autosuffix
+         Add a suffix/prefix to the output column labels of the nth data
          file. Very useful if we're joining datasets with identically-named
-         fields
+         fields. These can be specified for files 1 and 2 explicitly, or as
+         comma-separated lists for files 1-N, or these can be inferred from the
+         filenames
 
   --vnl-sort -|[dfgiMhnRrV]+]
          Pre-sort both input files lexicographically (join assumes this sort
@@ -89,6 +102,134 @@ There're also a few vnlog-specific options
          using the given sort order. This is both for convenience and to work
          around the hard-coded sort order that join assumes.
 EOF
+
+
+my $Ndatafiles = scalar(@$filenames);
+my @prefixes   = ('') x $Ndatafiles;
+my @suffixes   = ('') x $Ndatafiles;
+
+my $Nstdin = scalar grep {$_ eq '-'} @$filenames;
+if($Nstdin > 1)
+{
+    die "At most 1 '-' inputs are allowed";
+}
+
+if( defined $options->{'vnl-autoprefix'} &&
+    defined $options->{'vnl-autosuffix'} )
+{
+    die "Either --vnl-autoprefix or --vnl-autosuffix should be passed, not both";
+}
+
+if( defined $options->{'vnl-autoprefix'} ||
+    defined $options->{'vnl-autosuffix'} )
+{
+    if( grep /vnl-(prefix|suffix)/, keys %$options )
+    {
+        die
+          "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
+    }
+
+    for my $i(0..$#$filenames)
+    {
+        if($filenames->[$i] =~
+           m{/dev/fd/  # pipe
+              |        # or
+              ^-$      # STDIN
+            }x)
+        {
+            die "autoprefix/suffix can't work when data is piped in"
+        }
+    }
+
+
+    # OK. autoprefix/autosuffix are valid, so I process them
+
+    sub take
+    {
+        my ($s,$i) = @_;
+        if($options->{'vnl-autoprefix'})
+        {
+            $prefixes[$i] = "${s}_";
+        }
+        else
+        {
+            $suffixes[$i] = "_${s}";
+        }
+    }
+
+
+
+    my ($prefix,$suffix) =
+      longest_leading_trailing_substring( grep { $_ ne '-' } @$filenames );
+
+    for my $i(0..$#$filenames)
+    {
+        take(substr($filenames->[$i],
+                    length($prefix),
+                    length($filenames->[$i]) -
+                    (length($prefix) + length($suffix))
+                   ),
+             $i);
+    }
+}
+else
+{
+    # no --vnl-autoprefix or --vnl-autosuffix
+
+
+    if( (defined $options->{'vnl-prefix1'} ||
+         defined $options->{'vnl-prefix2'}) &&
+        defined $options->{'vnl-prefix'} )
+    {
+        die "--vnl-prefix1/2 are mutually exclusive with --vnl-prefix";
+    }
+    if( (defined $options->{'vnl-suffix1'} ||
+         defined $options->{'vnl-suffix2'}) &&
+        defined $options->{'vnl-suffix'} )
+    {
+        die "--vnl-suffix1/2 are mutually exclusive with --vnl-suffix";
+    }
+
+    if(defined $options->{'vnl-prefix'})
+    {
+        @prefixes = split(',', $options->{'vnl-prefix'});
+        if(@prefixes > $Ndatafiles)
+        {
+            die "too many items in --vnl-prefix";
+        }
+    }
+    else
+    {
+        @prefixes = ($options->{"vnl-prefix1"} // '',
+                     $options->{"vnl-prefix2"} // '');
+    }
+    if (@prefixes < $Ndatafiles)
+    {
+        push @prefixes, ('') x ($Ndatafiles - @prefixes)
+    }
+
+    if(defined $options->{'vnl-suffix'})
+    {
+        @suffixes = split(',', $options->{'vnl-suffix'});
+        if(@suffixes > $Ndatafiles)
+        {
+            die "too many items in --vnl-suffix";
+        }
+    }
+    else
+    {
+        @suffixes = ($options->{"vnl-suffix1"} // '',
+                     $options->{"vnl-suffix2"} // '');
+    }
+    if (@suffixes < $Ndatafiles)
+    {
+        push @suffixes, ('') x ($Ndatafiles - @suffixes)
+    }
+}
+
+# At this point I reduced all the prefix/suffix stuff to @prefixes and @suffixes
+
+
 
 for my $key(keys %$options)
 {
@@ -99,9 +240,9 @@ for my $key(keys %$options)
     }
 }
 
-if( scalar(@$filenames) != 2 )
+if( $Ndatafiles < 2 )
 {
-    die "Exactly two inputs should have been given";
+    die "At least two inputs should have been given";
 }
 if(defined $options->{j} &&
    (defined $options->{1} || defined $options->{2}))
@@ -115,6 +256,11 @@ if(( defined $options->{1} && !defined $options->{2}) ||
 }
 if( defined $options->{1})
 {
+    if( $Ndatafiles != 2 )
+    {
+        die "If passing -1/-2 we must be joining EXACTLY two data files";
+    }
+
     if($options->{1} ne $options->{2})
     {
         die "-1 and -2 should refer to the same field. Using -j is recommended";
@@ -130,32 +276,257 @@ if( !defined $options->{j} )
     die "Either (both -1 and -2) or -j MUST be given, but not both. -j is recommended";
 }
 
-if( defined $options->{a} )
+for my $av (qw(a v))
 {
-    my $N = scalar @{$options->{a}};
-    if( $N < 1 || $N > 2 )
+    if ( defined $options->{$av} )
     {
-        die "-a should have been passed at most 2 times";
-    }
+        my $N = scalar @{$options->{$av}};
+        if ($Ndatafiles == 2)
+        {
+            # "normal" mode. Joining exactly two data items
 
-    if( !all {/^[12]$/} @{$options->{a}} )
-    {
-        die "-a MUST be given either 1 or 2";
+            # -a- is -a1 -a2 and -v- is -v1 -v2
+            if( $N == 1 && $options->{$av}[0] eq '-')
+            {
+                $N = 2;
+                $options->{$av}[0] = 1;
+                $options->{$av}[1] = 2;
+            }
+            else
+            {
+                if ( !($N == 1 || $N == 2) )
+                {
+                    die "-$av should have been passed at most 2 times";
+                }
+
+                if ( !all {$_ == 1 || $_ == 2} @{$options->{$av}} )
+                {
+                    die "-$av MUST be an integer in [1 .. 2]";
+                }
+            }
+        }
+        else
+        {
+            # "cascaded" mode: N-way join made of a set of 2-way joins.
+            #
+            # I only support -a applied to ALL the datafiles. Finer-grained
+            # support is probably possible, but the implementation is
+            # non-obvious and I'm claiming it's not worth the effort.
+            #
+            # "-a-" means "full outer join": I print ALL the unmatched rows for
+            # ALL the data files. This conceptually means -a1 -a2 -a3 ... -aN,
+            # but I don't support that: you MUST say "-a-" to take ALL the
+            # datafiles.
+            #
+            # The implementation of -v is un-obvious even for -v-. It's also not
+            # obvious that this is a feature anybody cares about, so I leave it
+            # un-implemented for now.
+            if($av eq 'v')
+            {
+                die
+                  "When given more than 2 data files, -v is not implemented.\n" .
+                  "It COULD be done, but nobody has done it. Talk to Dima if you need this.";
+            }
+
+            if( !($N == 1 && $options->{$av}[0] eq '-'))
+            {
+                die
+                  "When given more than 2 data files, I only support \"-${av}-\".\n" .
+                  "Finer-grained support is possible. Talk to Dima if you need this.";
+            }
+        }
     }
 }
-if( defined $options->{v} )
+
+
+# I don't support -o either for now. It's also non-trivial and non-obvious if
+# anybody needs it. post-processing with vnl-filter is generally equivalent,
+# (but slower)
+if ($Ndatafiles != 2 && defined $options->{o} and $options->{o} ne 'auto')
 {
-    my $N = scalar @{$options->{v}};
-    if( $N < 1 || $N > 2 )
+    die
+      "When given more than 2 data files, I don't (yet) support -o.\n" .
+      "Instead, post-process with vnl-filter";
+}
+
+if( $Ndatafiles > 2 )
+{
+    # I have more than two datafiles, but the coreutils join only supports 2 at
+    # a time. I thus subdivide my problem into a set of pairwise ones. I can do
+    # this with a reduce(), but this would cause each sub-join to be dependent
+    # on a previous one. Instead I rearrange the calls to make the sub-joins
+    # independent, and thus parallelizable
+
+    my @child_pids;
+
+    # I need an arbitrary place to store references the file handles (these are
+    # full perl file handles, not just bare file descriptors). If I don't have
+    # these then the language wants to garbage-collect these. THAT calls the
+    # destructor, which closes the file handles. And THAT in turn calls wait()
+    # on the subprocess. And since the subprocesses aren't yet done, the wait()
+    # blocks, and the whole chain then deadlocks.
+    #
+    # So I simply store the file handles and void this whole business
+    my @fh_cache;
+
+    sub subjoin
     {
-        die "-v should have been passed at most 2 times";
+        # inputs $in0 and $in1 are a hashref describing the input
+        my ($in0, $in1, $final_subjoin) = @_;
+
+        sub infile
+        {
+            my ($in) = @_;
+            if( exists $in->{i_filename} )
+            {
+                my $filename = $filenames->[ $in->{i_filename} ];
+
+                # I handle the --vnl-sort pre-filter here. If we have to do any
+                # pre-filtering, I'll generate that pipeline here. Note that we WILL
+                # pre-sort any data that comes from files, but any of the
+                # intermediate sub-joins will already be sortsed, and I won't be
+                # re-sorting it here.
+                my $input_filter = get_sort_prefilter($options);
+                if (!defined $input_filter)
+                {
+                    return $filename;
+                }
+
+                # We need to pre-sort the data. I fork off that process, and
+                # convert this input to a fd one
+                my $fh = fork_and_filter(@$input_filter, $filename);
+                push @fh_cache, $fh; # see comment for @fh_cache above
+                $in->{fd} = fileno $fh;
+                delete $in->{i_filename};
+            }
+
+            my $fd = $in->{fd};
+            return "/dev/fd/$fd";
+        }
+
+        # I construct the inner commandlines. Some options are copied directly,
+        # while some need to be adopted for the specific inner command I'm
+        # looking at
+
+        # deep copy
+        my %sub_options = %$options;
+        if($options->{a})
+        {
+            $sub_options{a} = [1,2];
+        }
+
+        my $ARGV_new = reconstruct_substituted_command([], \%sub_options, \@specs);
+
+        # $ARGV_new now has all the arguments except the --vnl-... options The
+        # suffix/prefix options have already been parsed into @prefixes and
+        # @suffixes, and I apply those
+        if( defined $in0->{i_filename} )
+        {
+            my $i = $in0->{i_filename};
+            push @$ARGV_new, "--vnl-prefix1", $prefixes[$i]
+              if length($prefixes[$i] );
+            push @$ARGV_new, "--vnl-suffix1", $suffixes[$i]
+              if length($suffixes[$i] );
+        }
+        if( defined $in1->{i_filename} )
+        {
+            my $i = $in1->{i_filename};
+            push @$ARGV_new, "--vnl-prefix2", $prefixes[$i]
+              if length($prefixes[$i] );
+            push @$ARGV_new, "--vnl-suffix2", $suffixes[$i]
+              if length($suffixes[$i] );
+        }
+
+
+        my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
+
+        my ($fd_read, $fd_write);
+        if( !$final_subjoin)
+        {
+            ($fd_read, $fd_write) = POSIX::pipe();
+        }
+
+        my $childpid_subjoin = fork();
+        if ( $childpid_subjoin == 0 )
+        {
+            POSIX::close(0);
+
+            if( $final_subjoin )
+            {
+                # If I need to post-sort the output, I do that here
+                if(defined $options->{'vnl-sort'} && $options->{'vnl-sort'} ne '-')
+                {
+                    post_sort(undef, $options->{j}, @run_opts);
+                    # this does not return
+                }
+            }
+            else
+            {
+                POSIX::close(1);
+                POSIX::dup2($fd_write, 1);
+                POSIX::close($fd_write);
+                POSIX::close($fd_read);
+            }
+            exec @run_opts;
+        }
+        push @child_pids, $childpid_subjoin;
+
+
+
+
+        # I'm done with the writer (child uses it) so I close it
+        POSIX::close($fd_write) if defined($fd_write);
+
+        # I'm however NOT done with the readers. All the various sub-joins use
+        # them in some arbitrary order, so I close none of them
+
+        return { fd => $fd_read };
     }
 
-    if( !all {/^[12]$/} @{$options->{v}} )
+
+
+    my @inputs = map { {i_filename => $_} } 0..$#$filenames;
+    while (1)
     {
-        die "-v MUST be given either 1 or 2";
+        my $N = scalar @inputs;
+
+        # First index of each pairwise subjoin. If we have an odd number of
+        # inputs, we use the last one directly
+        my @i0 = map {2*$_} 0..int($N/2)-1;
+
+        if ($N == 2)
+        {
+            # run the subjoin, and write out to stdout
+            subjoin(@inputs, 1);
+            last;
+        }
+
+        my @outputs = map { subjoin(@inputs[$_, $_+1]) } @i0;
+        push @outputs, $inputs[$N-1] if ($N % 2)==1;
+
+        @inputs = @outputs;
     }
+
+    # I spawned off all the child processes. They'll run in parallel, as
+    # dictated by the OS
+    for my $childpid (@child_pids)
+    {
+        waitpid $childpid, 0;
+        my $result = $?;
+        if($result != 0)
+        {
+            die "Subjoin in PID $childpid failed!";
+        }
+    }
+
+    exit 0;
 }
+
+
+
+
+
+
 
 
 # vnlog uses - to represent empty fields
@@ -167,18 +538,16 @@ if( !defined $options->{o} )
     $options->{o} = 'auto';
 }
 
-$options->{'vnl-prefix1'} //= '';
-$options->{'vnl-suffix1'} //= '';
-$options->{'vnl-prefix2'} //= '';
-$options->{'vnl-suffix2'} //= '';
-
 my $join_key = $options->{j};
 
 
-my $input_filter = undef;
-if(defined $options->{'vnl-sort'})
+sub get_sort_prefilter
 {
-    if($options->{'vnl-sort'} !~ /^(?: [dfgiMhnRrV]+ | -)$/x)
+    my ($options) = @_;
+
+    return undef if !defined $options->{'vnl-sort'};
+
+    if ($options->{'vnl-sort'} !~ /^(?: [dfgiMhnRrV]+ | -)$/x)
     {
         die("--vnl-sort must be followed by '-' or one or more of the ordering options that 'sort' takes: dfgiMhnRrV");
     }
@@ -186,15 +555,68 @@ if(defined $options->{'vnl-sort'})
     # We sort with the default order (lexicographical) since that's what join
     # wants. We'll re-sort the output by the desired order again
     my $key = $options->{j};
-    $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
-    if($options->{'ignore-case'})
+    my $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
+    if ($options->{'ignore-case'})
     {
         push @$input_filter, '-f';
     }
+    return $input_filter;
 }
 
+sub post_sort
+{
+    my ($legend, $join_key, @cmd) = @_;
 
-my $inputs = read_and_preparse_input($filenames, $input_filter);
+    my ($fdread,$fdwrite) = POSIX::pipe();
+
+    my $childpid_sort = fork();
+    if ( $childpid_sort == 0 )
+    {
+        # Child. This is the re-sorting end. In this side of the fork vnl-sort reads
+        # data from the join
+        POSIX::close($fdwrite);
+        if( $fdread != 0)
+        {
+            POSIX::close(0);
+            POSIX::dup2($fdread, 0);
+            POSIX::close($fdread);
+        }
+
+        my $order = $options->{'vnl-sort'};
+        exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
+    }
+
+    my $childpid_join = fork();
+    if ( $childpid_join == 0 )
+    {
+        # Child. This is the 'join' end. join will write to the pipe, not to stdout.
+        POSIX::close($fdread);
+        if( $fdwrite != 1 )
+        {
+            POSIX::close(1);
+            POSIX::dup2($fdwrite, 1);
+            POSIX::close($fdwrite);
+        }
+
+        POSIX::write(1, $legend, length($legend))
+            if defined $legend;
+
+        exec @cmd;
+    }
+
+    POSIX::close($fdread);
+    POSIX::close($fdwrite);
+
+    # parent of both. All it does is wait for both to finish so that whoever called
+    # vnl-join knows when the whole thing is done.
+    waitpid $childpid_join, 0;
+    waitpid $childpid_sort, 0;
+
+    exit 0;
+}
+
+my $inputs = read_and_preparse_input($filenames,
+                                     get_sort_prefilter($options));
 my $keys_output = substitute_field_keys($options, $inputs);
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
 
@@ -211,42 +633,7 @@ if(!defined $options->{'vnl-sort'} || $options->{'vnl-sort'} eq '-')
 
 # Complicated case. We're post-filtering our output. I set up the pipes, fork
 # and exec
-use POSIX;
-my ($fdread,$fdwrite) = POSIX::pipe();
-
-my $childpid_sort = fork();
-if ( $childpid_sort == 0 )
-{
-    # Child. This is the re-sorting end. In this side of the fork vnl-sort reads
-    # data from the join
-    POSIX::close($fdwrite);
-    POSIX::close(0);
-    POSIX::dup2($fdread, 0);
-
-    my $order = $options->{'vnl-sort'};
-    exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
-}
-
-my $childpid_join = fork();
-if ( $childpid_join == 0 )
-{
-    # Child. This is the 'join' end. join will write to the pipe, not to stdout.
-    POSIX::close($fdread);
-    POSIX::close(1);
-    POSIX::dup2($fdwrite, 1);
-
-    POSIX::write(1, $legend, length($legend));
-
-    exec 'join', @$ARGV_new;
-}
-
-POSIX::close($fdread);
-POSIX::close($fdwrite);
-
-# parent of both. All it does is wait for both to finish so that whoever called
-# vnl-join knows when the whole thing is done.
-waitpid $childpid_join, 0;
-waitpid $childpid_sort, 0;
+post_sort($legend, $join_key, 'join', @$ARGV_new);
 
 
 
@@ -302,7 +689,7 @@ sub substitute_field_keys
 
                 my $index = get_key_index($inputs->[$file-1],$field);
                 push @format_out, "$file.$index";
-                push @keys_out, $field;
+                push @keys_out, $prefixes[$file-1] . $field . $suffixes[$file-1];
             }
         }
 
@@ -316,8 +703,8 @@ sub substitute_field_keys
         #   all non-join fields from file2, in order
         push @keys_out, $join_field_name;
 
-        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $options->{'vnl-prefix1'}, $options->{'vnl-suffix1'});
-        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $options->{'vnl-prefix2'}, $options->{'vnl-suffix2'});
+        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $prefixes[0], $suffixes[0]);
+        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $prefixes[1], $suffixes[1]);
     }
 
     return \@keys_out;
@@ -399,7 +786,10 @@ vnl-join - joins two log files on a particular field
 
   Usage: vnl-join [join options]
                   [--vnl-sort -|[dfgiMhnRrV]+]
-                  [--vnl-[pre|suf]fix[1|2] xxx]
+                  [ --vnl-[pre|suf]fix[1|2] xxx    |
+                    --vnl-[pre|suf]fix xxx,yyy,zzz |
+                    --vnl-autoprefix               |
+                    --vnl-autosuffix ]
                   logfile1 logfile2
 
 This tool joins two vnlog files on a given field. C<vnl-join> is a
@@ -433,8 +823,25 @@ to be different. So pass C<-j> instead, it makes more sense in this context.
 
 =item *
 
+C<-a-> is available as a shorthand for C<-a1 -a2>: this is a full outer join,
+printing unmatched records from both of the inputs. Similarly, C<-v-> is
+available as a shorthand for C<-v1 -v2>: this will output I<only> the unique
+records in both of the inputs.
+
+=item *
+
 C<vnl-join>-specific options are available to adjust the field-naming in the
-output: C<--vnl-prefix1>, C<--vnl-prefix2>, C<--vnl-suffix1>, C<--vnl-suffix2>.
+output:
+
+  C<--vnl-prefix1>
+  C<--vnl-suffix1>
+  C<--vnl-prefix2>
+  C<--vnl-suffix2>
+  C<--vnl-prefix>
+  C<--vnl-suffix>
+  C<--vnl-autoprefix>
+  C<--vnl-autosuffix>
+
 See below for details.
 
 =item *
@@ -465,6 +872,11 @@ C<-t> is not supported because vnlog assumes whitespace-separated fields
 C<--zero-terminated> is not supported because vnlog assumes newline-separated
 records
 
+=item *
+
+Rather than only 2-way joins, this tool supports N-way joins for any N > 2. See
+below for details.
+
 =back
 
 Past that, everything C<join> does is supported, so see that man page for
@@ -489,13 +901,27 @@ Joining this on C<time> will produce a vnlog with a legend
 
 which is confusing, and I<not> what you want. Instead, we invoke C<vnl-join> as
 
- vnl-join --vnl-suffix1 _bugged --vnl-suffix2 _fixed -j time bugged.vnl fixed.vnl
+ vnl-join --vnl-suffix1 _buggy --vnl-suffix2 _fixed -j time buggy.vnl fixed.vnl
 
 And in the output we get a legend
 
- # time x_bugged y_bugged x_fixed y_fixed
+ # time x_buggy y_buggy x_fixed y_fixed
 
 Much better.
+
+Note that C<vnl-join> provides several ways of specifying this. The above works
+I<only> for 2-way joins. An alternate syntax is available for N-way joins, a
+comma-separated list. The same could be expressed like this:
+
+ vnl-join -a- --vnl-suffix _buggy,_fixed -j time buggy.vnl fixed.vnl
+
+Finally, if passing in structured filenames, C<vnl-join> can infer the desired
+syntax from the filenames. The same as above could be expressed even simpler:
+
+ vnl-join --vnl-autosuffix -j time buggy.vnl fixed.vnl
+
+This works by looking at the set of passed in filenames, and stripping out the
+common leading and trailing strings.
 
 =head2 Sorting of input and output
 
@@ -560,6 +986,38 @@ palatable:
  # time a b
  9 b d
  10 c e
+
+=head2 N-way joins
+
+The GNU coreutils C<join> tool is inherently designed to join I<exactly> two
+files. C<vnl-join> extends this capability by chaining together a number of
+C<join> invocations to produce a generic N-way join. This works exactly how you
+would expect with the following caveats:
+
+=over
+
+=item *
+
+Full outer joins are supported by passing C<-a->, but no other C<-a> option is
+supported. This is possible, but wasn't obviously worth the trouble.
+
+=item *
+
+C<-v> is not supported. Again, this is possible, but wasn't obviously worth the
+trouble.
+
+=item *
+
+Full outer joins are supported by passing C<-a->, but no other C<-a> option is
+supported. This is possible, but wasn't obviously worth the trouble.
+
+=item *
+
+Similarly, C<-o> is not supported. This is possible, but wasn't obviously worth
+the trouble, especially since the desired behavior can be obtained by
+post-processing with C<vnl-filter>.
+
+=back
 
 =head1 BUGS
 

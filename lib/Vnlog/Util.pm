@@ -3,10 +3,11 @@ package Vnlog::Util;
 use strict;
 use warnings;
 use feature ':5.10';
+use Carp 'confess';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index longest_leading_trailing_substring fork_and_filter);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -46,8 +47,6 @@ sub open_file_as_pipe
 {
     my ($filename, $input_filter) = @_;
 
-    my $fh;
-
     if ($filename eq '-')
     {
         $filename = '/dev/stdin';
@@ -56,7 +55,7 @@ sub open_file_as_pipe
     {
         if ( ! -r $filename )
         {
-            die "'$filename' is not readable";
+            confess "'$filename' is not readable";
         }
     }
 
@@ -108,20 +107,28 @@ sub open_file_as_pipe
 EOF
 
     my $pipe_cmd = $input_filter // ['mawk', $mawk_strip_comments];
-    my $pipe_pid = open($fh, "-|") // die "Can't fork: $!";
+    return fork_and_filter(@$pipe_cmd, $filename);
+}
 
-    if(!$pipe_pid)
+sub fork_and_filter
+{
+    my @cmd = @_;
+
+    my $fh;
+    my $pipe_pid = open($fh, "-|") // confess "Can't fork: $!";
+
+    if (!$pipe_pid)
     {
         # child
-        exec @$pipe_cmd, $filename or die "can't exec program: $!";
+        exec @cmd or confess "can't exec program: $!";
     }
 
     # parent
 
-    # I'm explicitly passing these to an exec, so FD_CLOSEXEC must be off
+    # I'm going to be explicitly passing these to an exec, so FD_CLOEXEC
+    # must be off
     my $flags = fcntl $fh, F_GETFD, 0;
     fcntl $fh, F_SETFD, ($flags & ~FD_CLOEXEC);
-
     return $fh;
 }
 sub pull_key
@@ -137,7 +144,7 @@ sub pull_key
     {
         if ( !$parser->parse($_) )
         {
-            die "Reading '$filename': Error parsing vnlog line '$_': " . $parser->error();
+            confess "Reading '$filename': Error parsing vnlog line '$_': " . $parser->error();
         }
 
         $keys = $parser->getKeys();
@@ -147,7 +154,7 @@ sub pull_key
         }
     }
 
-    die "Error reading '$filename': no legend found!";
+    confess "Error reading '$filename': no legend found!";
 }
 sub parse_options
 {
@@ -175,11 +182,11 @@ sub parse_options
 
     if ( $@  )
     {
-        die "Error parsing options: '$@'";
+        confess "Error parsing options: '$@'";
     }
     if ( !$result  )
     {
-        die "Error parsing options";
+        confess "Error parsing options";
     }
 
     if ($options{help})
@@ -226,7 +233,7 @@ sub ensure_all_legends_equivalent
     {
         if (!legends_match($inputs->[0 ]{keys},
                            $inputs->[$i]{keys})) {
-            die("All input legends must match! Instead files '$inputs->[0 ]{filename}' and '$inputs->[$i]{filename}' have keys " .
+            confess("All input legends must match! Instead files '$inputs->[0 ]{filename}' and '$inputs->[$i]{filename}' have keys " .
                 "'@{$inputs->[0 ]{keys}}' and '@{$inputs->[$i]{keys}}' respectively");
         }
     }
@@ -276,14 +283,14 @@ sub get_key_index
 
         if (defined $index)
         {
-            die "File '$input->{filename}' contains key '$key' more than once!";
+            confess "File '$input->{filename}' contains key '$key' more than once!";
         }
         $index = $i + 1;        # keys are indexed from 1
     }
 
     if (!defined $index)
     {
-        die "File '$input->{filename}' does not contain key '$key'!";
+        confess "File '$input->{filename}' does not contain key '$key'!";
     }
 
     return $index;
@@ -315,7 +322,7 @@ sub reconstruct_substituted_command
 
         if( scalar(@specs_noarg) + scalar(@specs_yesarg) + scalar(@specs_maybearg) != 1)
         {
-            die "Couldn't uniquely figure out where '$option' came from. This is a bug. Specs: '@$specs'";
+            confess "Couldn't uniquely figure out where '$option' came from. This is a bug. Specs: '@$specs'";
         }
 
         my $dashoption = length($option) == 1 ? "-$option" : "--$option";
@@ -378,6 +385,34 @@ sub reconstruct_substituted_command
     return \@argv;
 }
 
+sub longest_leading_trailing_substring
+{
+    # I start out with the full first input string. At best this whole string is
+    # the answer. I look through each string in the input, and wittle down the
+    # leading/trailing matches
+    my $match_leading           = shift;
+    my $match_trailing_reversed = scalar reverse $match_leading;
+
+    my @all = @_;
+    for my $s (@all)
+    {
+        # xor difference string. '\0' bytes means "exact match"
+        my $diff;
+
+        $diff = $match_leading ^ $s;
+        $diff =~ /^\0*/;
+        my $NleadingMatches = $+[0];
+
+        $diff = $match_trailing_reversed ^ (scalar reverse $s);
+        $diff =~ /^\0*/;
+        my $NtrailingMatches = $+[0];
+
+        # I cut down the matching string to keep ONLY the matched bytes
+        substr($match_leading,           $NleadingMatches ) = '';
+        substr($match_trailing_reversed, $NtrailingMatches) = '';
+    }
+    return ($match_leading, scalar reverse $match_trailing_reversed);
+}
 
 1;
 

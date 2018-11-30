@@ -16,14 +16,26 @@ our @EXPORT_OK = qw(check test_init);
 
 my $tool;
 my $Nfailed_ref;
-my %data;
+my $testdata_dir;
 
 sub test_init
 {
     $tool        = shift;
     $Nfailed_ref = shift;
 
-    %data = @_;
+    my %data = @_;
+
+    $testdata_dir = "$Bin/testdata_$tool";
+    mkdir $testdata_dir if ! -d $testdata_dir;
+
+    for my $key (keys %data)
+    {
+        my $filename = "${testdata_dir}/" . $key =~ s/^\$//r;
+        open FD, '>', $filename
+          or die "Couldn't open '$filename' for writing";
+        print FD $data{$key};
+        close FD;
+    }
 }
 
 sub check
@@ -40,25 +52,13 @@ sub check
 
     my @pipes;
 
-    my $in = undef;
+    my $in;
     for my $iarg(0..$#args)
     {
         if($args[$iarg] =~ /^\$/)
         {
-            # I'm passing it data. Make a pipe, stuff the data into one end, and
-            # give the other end to the child
-            my ($fhread, $fhwrite);
-            pipe $fhread, $fhwrite;
-            print $fhwrite $data{$args[$iarg]};
-            close $fhwrite;
-            $args[$iarg] = "/dev/fd/" . fileno($fhread);
-
-            # The read handle must be inherited by the child, so I make sure it
-            # survives the exec
-            my $flags = fcntl $fhread, F_GETFD, 0;
-            fcntl $fhread, F_SETFD, ($flags & ~FD_CLOEXEC);
-
-            push @pipes, $fhread;
+            my $datafile = "${testdata_dir}/" . substr($args[$iarg], 1);
+            $args[$iarg] = $datafile;
         }
         elsif($args[$iarg] =~ /^-\$/)
         {
@@ -67,7 +67,8 @@ sub check
             {
                 die "A test passed in more than one chunk of data on stdin";
             }
-            $in = $data{substr($args[$iarg], 1)};
+            my $datafile = "${testdata_dir}/" . substr($args[$iarg], 2);
+            $in = $datafile;
             $args[$iarg] = '-';
         }
         elsif($args[$iarg] =~ /^--\$/)
@@ -77,7 +78,8 @@ sub check
             {
                 die "A test passed in more than one chunk of data on stdin";
             }
-            $in = $data{substr($args[$iarg], 2)};
+            my $datafile = "${testdata_dir}/" . substr($args[$iarg], 3);
+            $in = $datafile;
             $args[$iarg] = undef; # mark the arg for removal
         }
     }
@@ -87,16 +89,20 @@ sub check
 
     my $out = '';
     my $err = '';
-    $in //= '';
+    $in //= \'';
+    my @cmd = ("perl", "$Bin/../$tool", @args);
+
     my $result =
-      run( ["perl",
-            "$Bin/../$tool", @args], \$in, \$out, \$err );
+      run( \@cmd, '<', $in, '>', \$out, '2>', \$err );
 
     if($expected ne 'ERROR')
     {
         if( !$result )
         {
-            cluck "Test failed. Expected success, but got failure";
+            cluck
+              "Test failed. Expected success, but got failure.\n" .
+              "Ran '@cmd'.\n" .
+              "STDERR: '$err'";
             $$Nfailed_ref++;
         }
         else
@@ -104,7 +110,10 @@ sub check
             my $diff = diff(\$expected, \$out);
             if ( length $diff )
             {
-                cluck "Test failed. diff: '$diff'";
+                cluck
+                  "Test failed: diff mismatch.\n" .
+                  "Ran '@cmd'.\n" .
+                  "Diff: '$diff'";
                 $$Nfailed_ref++;
             }
         }
@@ -113,7 +122,11 @@ sub check
     {
         if( $result )
         {
-            cluck "Test failed. Expected failure, but got success";
+            cluck
+              "Test failed. Expected failure, but got success.\n".
+              "Ran '@cmd'.\n" .
+              "STDERR: '$err'\n" .
+              "STDOUT: '$err'";
             $$Nfailed_ref++;
         }
     }
