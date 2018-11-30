@@ -161,8 +161,10 @@ my @langspecific_output_fields;
 # How many rel(),diff() calls we have. I generate code based on this
 my $Nrel  = 0;
 my $Ndiff = 0;
+my $Nsum  = 0;
 my @rel_outer;
 my @diff_outer;
+my @sum_outer;
 
 
 # Loop searching for the legend.
@@ -486,10 +488,15 @@ sub subst_reldiff
         $N          = \$Nrel;
         $outer_list = \@rel_outer;
     }
-    else
+    elsif( $what eq 'diff' )
     {
         $N          = \$Ndiff;
         $outer_list = \@diff_outer;
+    }
+    else
+    {
+        $N          = \$Nsum;
+        $outer_list = \@sum_outer;
     }
 
     my $whatre = qr/\b$what\s*\(/p;
@@ -538,6 +545,12 @@ sub get_reldiff_outer_expr
     {
         my ($i, $paren_expr) = @$e;
         $expr .= $sigil . "__diff$i = diff$i" . subst_reldiff('diff', $paren_expr, 0) . '; ';
+
+    }
+    for my $e (@sum_outer)
+    {
+        my ($i, $paren_expr) = @$e;
+        $expr .= $sigil . "__sum$i = sum$i" . subst_reldiff('sum', $paren_expr, 0) . '; ';
 
     }
     return $expr;
@@ -606,6 +619,7 @@ sub expr_subst_col_names
 
     $out = subst_reldiff ('rel',  $out, 1);
     $out = subst_reldiff ('diff', $out, 1);
+    $out = subst_reldiff ('sum',  $out, 1);
 
     return ($out, $colidx_needed_max_here);
 }
@@ -653,6 +667,15 @@ if( $i < $Ndiff )
     $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ' . $evalstr;
     $i++;
     goto EVAL_DIFF_FUNC;
+}
+
+$i = 0;
+EVAL_SUM_FUNC:
+if( $i < $Nsum )
+{
+    $evalstr = "sub sum$i" . '{ my ($x) = @_; state $state=0; $state += $x; return $state; } ' . $evalstr;
+    $i++;
+    goto EVAL_SUM_FUNC;
 }
 
 
@@ -817,6 +840,10 @@ sub makeAwkProgram
     for my $i (0..$Ndiff-1)
     {
         $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+    }
+    for my $i (0..$Nsum-1)
+    {
+        $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
     }
 
     my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;

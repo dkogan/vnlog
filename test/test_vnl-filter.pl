@@ -271,19 +271,19 @@ check( <<'EOF', qw(--has b --has c -p a) );
 10
 EOF
 
-check( <<'EOF', qw(-p d=rel(a) -p b -p c --noskipempty));
+check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p b -p c --noskipempty));
 #!/bin/xxx
-# d b c
-0 2 3
-3 - 6
-6 9 -
-9 11 12
+# d s b c
+0 1 2 3
+3 5 - 6
+6 12 9 -
+9 22 11 12
 EOF
 
-check( <<'EOF', qw(rel(a)>6 -p . -p d=rel(a)));
+check( <<'EOF', qw(rel(a)>6 -p . -p d=rel(a) -p s=sum(a)));
 #!/bin/xxx
-# a b c d
-10 11 12 9
+# a b c d s
+10 11 12 9 22
 EOF
 
 check( <<'EOF', qw(-p d=rel(a) -p b -p c));
@@ -295,13 +295,13 @@ check( <<'EOF', qw(-p d=rel(a) -p b -p c));
 9 11 12
 EOF
 
-check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p c -p a));
+check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p s=sum(a) -p c -p a));
 #!/bin/xxx
-# r b d c a
-0 2 0 3 1
-3 - 3 6 4
-6 9 3 - 7
-9 11 3 12 10
+# r b d s c a
+0 2 0 1 3 1
+3 - 3 5 6 4
+6 9 3 12 - 7
+9 11 3 22 12 10
 EOF
 
 check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p r)]);
@@ -331,14 +331,14 @@ check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
 3
 EOF
 
-check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x))', {data => $data_cubics});
+check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x)),sd2=sum(diff(diff(x)))', {data => $data_cubics});
 #!/bin/xxx
-# d1 d2
-0 0
-7 7
-19 12
-37 18
-61 24
+# d1 d2 sd2
+0 0 0
+7 7 7
+19 12 19
+37 18 37
+61 24 61
 EOF
 
 check( <<'EOF', qw(--has b -p [ab]) );
