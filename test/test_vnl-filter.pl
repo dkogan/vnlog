@@ -271,13 +271,13 @@ check( <<'EOF', qw(--has b --has c -p a) );
 10
 EOF
 
-check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p b -p c --noskipempty));
+check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c --noskipempty));
 #!/bin/xxx
-# d s b c
-0 1 2 3
-3 5 - 6
-6 12 9 -
-9 22 11 12
+# d s pa b c
+0 1 0 2 3
+3 5 1 - 6
+6 12 4 9 -
+9 22 7 11 12
 EOF
 
 check( <<'EOF', qw(rel(a)>6 -p . -p d=rel(a) -p s=sum(a)));
