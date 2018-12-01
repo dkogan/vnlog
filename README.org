@@ -588,7 +588,7 @@ DESCRIPTION
     requested with the "--perl" option.
 
   Special functions
-    For convenience we support two special functions in any expression
+    For convenience we support several special functions in any expression
     passed on to awk or perl (named expressions, matches expressions,
     "--eval" strings). These are
 
@@ -612,26 +612,35 @@ DESCRIPTION
          2 9
 
     *   diff(x) returns the difference between the current value of "x" and
-        the previous value of "x". Example:
+        the previous value of "x". The first row will always be 0. Example:
 
-         $ cat tst.vnl
+         $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
-         # x
-         1
-         8
-         27
-         64
-         125
+         # x d1 d2
+           1  0  0
+           8  7  7
+          27 19 12
+          64 37 18
+         125 61 24
 
+    *   sum(x) returns the cumulative sum of "x". As diff(x) can be thought
+        of as a derivative, sum(x) can be thought of as an integral. So
+        "diff(sum(x))" would return the same value as "x" (except for the
+        first row; "diff()" always returns 0 for the first row).
 
-         $ <tst.vnl vnl-filter -p 'd1=diff(x),d2=diff(diff(x))'
+        Example:
 
-         # d1 d2
-         0 0
-         7 7
-         19 12
-         37 18
-         61 24
+         $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
+
+         # x  s   ds
+           1   1   0
+           8   9   8
+          27  36  27
+          64 100  64
+         125 225 125
+
+    *   prev(x) returns the previous value of "x". One could construct
+        "sum()" and "rel()" using this, if they weren't already available.
 
 ARGUMENTS
   -p|--print|--pick expr
