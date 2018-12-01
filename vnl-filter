@@ -448,6 +448,18 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
+sub find_outer_specialop
+{
+    # returns the FIRST outer specialop that appears in the given string, or
+    # undef if none are found
+    my ($str) = @_;
+
+    my $re_any = join('|', @all_specialops);
+
+    my $re = qr/^.*?\b($re_any)\s*\(/;
+    $str =~ $re or return undef;
+    return $1;
+}
 sub subst_reldiff
 {
     # This is somewhat convoluted. I want the meaning of rel() and diff() and
@@ -526,8 +538,21 @@ sub get_reldiff_outer_expr
         for my $e (@{$specialops{$what}{outer}})
         {
             my ($i, $paren_expr) = @$e;
-            $expr .= $sigil . "__$what$i = $what$i" . subst_reldiff($what, $paren_expr, 0) . '; ';
 
+            # I keep substituting until I got everything. This is required
+            # because I can have deeply recursive calls
+            my $substituted = $paren_expr;
+            while(1)
+            {
+                my $start = $substituted;
+                for my $what_inner (@all_specialops)
+                {
+                    $substituted = subst_reldiff($what_inner, $substituted, 0);
+                }
+                if($substituted eq $start) { last; }
+            }
+
+            $expr .= $sigil . "__$what$i = $what$i" . $substituted . '; ';
         }
     }
     return $expr;
@@ -594,9 +619,9 @@ sub expr_subst_col_names
         }
     }
 
-    for my $what (@all_specialops)
+    while(my $what = find_outer_specialop($out))
     {
-        $out = subst_reldiff ($what,  $out, 1);
+        $out = subst_reldiff ($what, $out, 1);
     }
     return ($out, $colidx_needed_max_here);
 }
