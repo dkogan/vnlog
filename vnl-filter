@@ -158,16 +158,14 @@ my $colidx_needed_max = -1;
 # column references (such as $1), or more complex expressions
 my @langspecific_output_fields;
 
-# How many rel(),diff() calls we have. I generate code based on this
-my $Nrel  = 0;
-my $Ndiff = 0;
-my $Nsum  = 0;
-my $Nprev = 0;
-my @rel_outer;
-my @diff_outer;
-my @sum_outer;
-my @prev_outer;
-
+# How many rel(),diff(),... calls we have. I generate code based on this
+my @all_specialops = qw(rel diff sum prev);
+my %specialops;
+for my $what (@all_specialops)
+{
+    $specialops{$what} = {N     => 0,
+                          outer => []};
+}
 
 # Loop searching for the legend.
 #
@@ -483,28 +481,8 @@ sub subst_reldiff
 
     my $sigil = $options{perl} ? '$' : '';
 
-    my $N;
-    my $outer_list;
-    if( $what eq 'rel' )
-    {
-        $N          = \$Nrel;
-        $outer_list = \@rel_outer;
-    }
-    elsif( $what eq 'diff' )
-    {
-        $N          = \$Ndiff;
-        $outer_list = \@diff_outer;
-    }
-    elsif( $what eq 'sum' )
-    {
-        $N          = \$Nsum;
-        $outer_list = \@sum_outer;
-    }
-    else
-    {
-        $N          = \$Nprev;
-        $outer_list = \@prev_outer;
-    }
+    my $N          = \$specialops{$what}{N};
+    my $outer_list = $specialops{$what}{outer};
 
     my $whatre = qr/\b$what\s*\(/p;
     while( $expr =~ /$whatre/p )
@@ -542,29 +520,15 @@ sub get_reldiff_outer_expr
     # encountered. I.e. after the last expr_subst_col_names()
     my $sigil = $options{perl} ? '$' : '';
     my $expr = '';
-    for my $e (@rel_outer)
-    {
-        my ($i, $paren_expr) = @$e;
-        $expr .= $sigil . "__rel$i = rel$i" . subst_reldiff('rel', $paren_expr, 0) . '; ';
 
-    }
-    for my $e (@diff_outer)
+    for my $what (@all_specialops)
     {
-        my ($i, $paren_expr) = @$e;
-        $expr .= $sigil . "__diff$i = diff$i" . subst_reldiff('diff', $paren_expr, 0) . '; ';
+        for my $e (@{$specialops{$what}{outer}})
+        {
+            my ($i, $paren_expr) = @$e;
+            $expr .= $sigil . "__$what$i = $what$i" . subst_reldiff($what, $paren_expr, 0) . '; ';
 
-    }
-    for my $e (@sum_outer)
-    {
-        my ($i, $paren_expr) = @$e;
-        $expr .= $sigil . "__sum$i = sum$i" . subst_reldiff('sum', $paren_expr, 0) . '; ';
-
-    }
-    for my $e (@prev_outer)
-    {
-        my ($i, $paren_expr) = @$e;
-        $expr .= $sigil . "__prev$i = prev$i" . subst_reldiff('prev', $paren_expr, 0) . '; ';
-
+        }
     }
     return $expr;
 }
@@ -630,11 +594,10 @@ sub expr_subst_col_names
         }
     }
 
-    $out = subst_reldiff ('rel',  $out, 1);
-    $out = subst_reldiff ('diff', $out, 1);
-    $out = subst_reldiff ('sum',  $out, 1);
-    $out = subst_reldiff ('prev', $out, 1);
-
+    for my $what (@all_specialops)
+    {
+        $out = subst_reldiff ($what,  $out, 1);
+    }
     return ($out, $colidx_needed_max_here);
 }
 
@@ -667,7 +630,7 @@ $evalstr .=
 # an ugly manual loop
 my $i = 0;
 EVAL_REL_FUNC:
-if( $i < $Nrel )
+if( $i < $specialops{rel}{N} )
 {
     $evalstr = "sub rel$i" . '{ my ($x) = @_; state $state=undef; if(!defined $state) { $state=$x; } return $x - $state; } ' . "\n" . $evalstr;
     $i++;
@@ -676,7 +639,7 @@ if( $i < $Nrel )
 
 $i = 0;
 EVAL_DIFF_FUNC:
-if( $i < $Ndiff )
+if( $i < $specialops{diff}{N} )
 {
     $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ' . $evalstr;
     $i++;
@@ -685,7 +648,7 @@ if( $i < $Ndiff )
 
 $i = 0;
 EVAL_SUM_FUNC:
-if( $i < $Nsum )
+if( $i < $specialops{sum}{N} )
 {
     $evalstr = "sub sum$i" . '{ my ($x) = @_; state $state=0; $state += $x; return $state; } ' . $evalstr;
     $i++;
@@ -694,7 +657,7 @@ if( $i < $Nsum )
 
 $i = 0;
 EVAL_PREV_FUNC:
-if( $i < $Nprev )
+if( $i < $specialops{prev}{N} )
 {
     $evalstr = "sub prev$i" . '{ my ($x) = @_; state $state=0; my $prev = $state; $state = $x; return $prev; } ' . $evalstr;
     $i++;
@@ -856,19 +819,19 @@ sub makeAwkProgram
     my $outer_expr = get_reldiff_outer_expr();
 
     my $awkprogram_reldiff = '';
-    for my $i (0..$Nrel-1)
+    for my $i (0..$specialops{rel}{N}-1)
     {
         $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
     }
-    for my $i (0..$Ndiff-1)
+    for my $i (0..$specialops{diff}{N}-1)
     {
         $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
     }
-    for my $i (0..$Nsum-1)
+    for my $i (0..$specialops{sum}{N}-1)
     {
         $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
     }
-    for my $i (0..$Nprev-1)
+    for my $i (0..$specialops{prev}{N}-1)
     {
         $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
     }
