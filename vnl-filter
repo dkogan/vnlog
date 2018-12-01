@@ -450,9 +450,9 @@ if( !$options{perl} )
 
 sub subst_reldiff
 {
-    # This is somewhat convoluted. I want the meaning of rel() and diff() to be
-    # preserved regardless of any early-exit expressions. I.e. this sequence is
-    # broken:
+    # This is somewhat convoluted. I want the meaning of rel() and diff() and
+    # ... to be preserved regardless of any early-exit expressions. I.e. this
+    # sequence is broken:
     #
     # - if(!matches) { continue }
     # - print rel() # update internal state
@@ -516,7 +516,7 @@ sub subst_reldiff
 
 sub get_reldiff_outer_expr
 {
-    # should be called AFTER all the outer rel/diff expressions were
+    # should be called AFTER all the outer rel/diff/... expressions were
     # encountered. I.e. after the last expr_subst_col_names()
     my $sigil = $options{perl} ? '$' : '';
     my $expr = '';
@@ -625,9 +625,9 @@ $evalstr .=
 $evalstr .=
   'sub compute_reldiff { ' . get_reldiff_outer_expr() . '}' . "\n";
 
-# I'm defining the rel()/diff() functions. These should be global, so if I do
-# this inside a for(){}, the functions end up local to that for(). I thus have
-# an ugly manual loop
+# I'm defining the rel()/diff()/... functions. These should be global, so if I
+# do this inside a for(){}, the functions end up local to that for(). I thus
+# have an ugly manual loop
 my $i = 0;
 EVAL_REL_FUNC:
 if( $i < $specialops{rel}{N} )
@@ -789,7 +789,7 @@ sub makeAwkProgram
     else
     {
         # skip empty records if we must. I evaluate the fields just one time to
-        # not affect the state inside rel() and diff()
+        # not affect the state inside rel() and diff() and ...
         if (!$options{skipempty})
         {
             # print selected fields
@@ -805,8 +805,9 @@ sub makeAwkProgram
                    map { "__f$_ = $langspecific_output_fields[$_]; " }
                    0..$#langspecific_output_fields) .
 
-                     # Then I do skipempty. Important to do this after evaluating ALL the
-                     # fields to tick all the rel(), diff() state
+                     # Then I do skipempty. Important to do this after
+                     # evaluating ALL the fields to tick all the rel(), diff(),
+                     # ... state
                      "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
                      ") { next }; " .
 
@@ -1070,8 +1071,9 @@ this can be requested with the C<--perl> option.
 
 =head2 Special functions
 
-For convenience we support two special functions in any expression passed on to
-awk or perl (named expressions, matches expressions, C<--eval> strings). These are
+For convenience we support several special functions in any expression passed on
+to awk or perl (named expressions, matches expressions, C<--eval> strings).
+These are
 
 =over
 
