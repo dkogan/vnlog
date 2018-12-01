@@ -341,6 +341,15 @@ check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x)),sd2=sum(diff(diff(x)))', {dat
 61 24 61
 EOF
 
+check( <<'EOF', '-p', 'sd=sum(diff(a))', '-p', 'ds=diff(sum(a))');
+#!/bin/xxx
+# sd ds
+0 0
+3 4
+6 7
+9 10
+EOF
+
 check( <<'EOF', qw(--has b -p [ab]) );
 #!/bin/xxx
 # a b
