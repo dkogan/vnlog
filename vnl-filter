@@ -1126,26 +1126,39 @@ relative to some absolute beginning. Example:
 =item *
 
 C<diff(x)> returns the difference between the current value of C<x> and the
-previous value of C<x>. Example:
+previous value of C<x>. The first row will always be 0. Example:
 
- $ cat tst.vnl
+ $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
- # x
- 1
- 8
- 27
- 64
- 125
+ # x d1 d2
+   1  0  0
+   8  7  7
+  27 19 12
+  64 37 18
+ 125 61 24
 
+=item *
 
- $ <tst.vnl vnl-filter -p 'd1=diff(x),d2=diff(diff(x))'
+C<sum(x)> returns the cumulative sum of C<x>. As C<diff(x)> can be thought of as
+a derivative, C<sum(x)> can be thought of as an integral. So C<diff(sum(x))>
+would return the same value as C<x> (except for the first row; C<diff()> always
+returns 0 for the first row).
 
- # d1 d2
- 0 0
- 7 7
- 19 12
- 37 18
- 61 24
+Example:
+
+ $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
+
+ # x  s   ds
+   1   1   0
+   8   9   8
+  27  36  27
+  64 100  64
+ 125 225 125
+
+=item *
+
+C<prev(x)> returns the previous value of C<x>. One could construct C<sum()> and
+C<rel()> using this, if they weren't already available.
 
 =back
 
