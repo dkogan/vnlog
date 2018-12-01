@@ -162,9 +162,11 @@ my @langspecific_output_fields;
 my $Nrel  = 0;
 my $Ndiff = 0;
 my $Nsum  = 0;
+my $Nprev = 0;
 my @rel_outer;
 my @diff_outer;
 my @sum_outer;
+my @prev_outer;
 
 
 # Loop searching for the legend.
@@ -493,10 +495,15 @@ sub subst_reldiff
         $N          = \$Ndiff;
         $outer_list = \@diff_outer;
     }
-    else
+    elsif( $what eq 'sum' )
     {
         $N          = \$Nsum;
         $outer_list = \@sum_outer;
+    }
+    else
+    {
+        $N          = \$Nprev;
+        $outer_list = \@prev_outer;
     }
 
     my $whatre = qr/\b$what\s*\(/p;
@@ -551,6 +558,12 @@ sub get_reldiff_outer_expr
     {
         my ($i, $paren_expr) = @$e;
         $expr .= $sigil . "__sum$i = sum$i" . subst_reldiff('sum', $paren_expr, 0) . '; ';
+
+    }
+    for my $e (@prev_outer)
+    {
+        my ($i, $paren_expr) = @$e;
+        $expr .= $sigil . "__prev$i = prev$i" . subst_reldiff('prev', $paren_expr, 0) . '; ';
 
     }
     return $expr;
@@ -620,6 +633,7 @@ sub expr_subst_col_names
     $out = subst_reldiff ('rel',  $out, 1);
     $out = subst_reldiff ('diff', $out, 1);
     $out = subst_reldiff ('sum',  $out, 1);
+    $out = subst_reldiff ('prev', $out, 1);
 
     return ($out, $colidx_needed_max_here);
 }
@@ -676,6 +690,15 @@ if( $i < $Nsum )
     $evalstr = "sub sum$i" . '{ my ($x) = @_; state $state=0; $state += $x; return $state; } ' . $evalstr;
     $i++;
     goto EVAL_SUM_FUNC;
+}
+
+$i = 0;
+EVAL_PREV_FUNC:
+if( $i < $Nprev )
+{
+    $evalstr = "sub prev$i" . '{ my ($x) = @_; state $state=0; my $prev = $state; $state = $x; return $prev; } ' . $evalstr;
+    $i++;
+    goto EVAL_PREV_FUNC;
 }
 
 
@@ -844,6 +867,10 @@ sub makeAwkProgram
     for my $i (0..$Nsum-1)
     {
         $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
+    }
+    for my $i (0..$Nprev-1)
+    {
+        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
     }
 
     my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
