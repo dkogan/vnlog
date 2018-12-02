@@ -363,10 +363,10 @@ around tools you already have and are familiar with. The provided tools are:
 vnl-filter -p col1,col2,colx=col3+col4 'col5 > 10' --has col6
 #+END_EXAMPLE
   will read the input, and produce a vnlog with 3 columns: =col1= and =col2=
-  from the input and a column =colx= that's the sum of =col3= and =col4= in the
-  input. Only those rows for which =col5 > 10= is true will be output.
-  Finally, only those rows that have a non-null value for =col6= will be
-  selected. A null entry is signified by a single =-= character.
+  from the input, and a column =colx= that's the sum of =col3= and =col4= in the
+  input. Only those rows for which =col5 > 10= is true will be output. Finally,
+  only those rows that have a non-null value for =col6= will be selected. A null
+  entry is signified by a single =-= character.
 
 #+BEGIN_EXAMPLE
 vnl-filter --eval '{s += x} END {print s}'
@@ -398,7 +398,8 @@ vnl-filter --eval '{s += x} END {print s}'
 - =libvnlog= is a C library to simplify writing a vnlog. Clearly all you
   /really/ need is =printf()=, but this is useful if we have lots of columns,
   many containing null values in any given row, and/or if we have parallel
-  threads writing to a log
+  threads writing to a log. In my usage I have hundreds of columns, so this is
+  handy
 
 - =vnl-make-matrix= converts a one-point-per-line vnlog to a matrix of data.
   I.e.
@@ -429,8 +430,8 @@ $ cat /tmp/x.matrix
 10 11 12
 #+END_EXAMPLE
 
-All the tools have manpages that contain more detail. And tools will probably be
-added with time.
+All the tools have manpages that contain more detail. And more tools will
+probably be added with time.
 
 * Manpages
 ** vnl-filter
