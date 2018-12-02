@@ -92,10 +92,10 @@ $ < dji.vnl vnl-filter -p Close |
 #+END_EXAMPLE
 
 For this documentation I'm plotting in ascii ("dumb" terminal). Normally you'd
-use the default terminal, and get interactive, graphical plots. Here I kept
-/only/ the closing price column, so the x-axis is just the row index. The data
-was in reverse chronological order, so this plot is also in reverse
-chronological order. Let's fix that:
+use the default terminal (by omitting C<--terminal ...>), and you'd get
+interactive, graphical plots. Here I kept /only/ the closing price column, so
+the x-axis is just the row index. The data was in reverse chronological order,
+so this plot is also in reverse chronological order. Let's fix that:
 
 #+BEGIN_EXAMPLE
 $ < dji.vnl vnl-sort -k Date |
@@ -322,7 +322,8 @@ $ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
 #+END_EXAMPLE
 
 Huh. Apparently there's no obvious, strong correlation between TSLA and
-Dow-Jones closing prices.
+Dow-Jones closing prices; I would have expected a clear trend here, but the data
+doesn't lie.
 
 * Description
 
