@@ -1426,6 +1426,7 @@ $ PREFIX=/usr/local make install
 #+END_EXAMPLE
 
 * C interface
+** Basic usage
 
 For most uses, these logfiles are simple enough to be generated with plain
 prints. But then each print statement has to know which numeric column we're
@@ -1505,10 +1506,13 @@ This is enough for 99% of the use cases. Things get a bit more complex if we
 have have threading or if we have multiple vnlog ouput streams in the same
 program. For both of these we use vnlog /contexts/.
 
-To support reentrant writing into the same vnlog by multiple threads, each
-log-writer should create a context, and use it when talking to vnlog. The
-context functions will make sure that the fields in each context are independent
-and that the output records won't clobber each other:
+** Contexts
+
+To support independent writing into the same vnlog (possibly by multiple
+threads; this is reentrant), each log-writer should create a context, and use it
+when talking to vnlog. The context functions will make sure that the fields in
+each context are independent and that the output records won't clobber each
+other:
 
 #+BEGIN_SRC C
 void child_writer( // the parent context also writes to this vnlog. Pass NULL to
@@ -1525,11 +1529,13 @@ void child_writer( // the parent context also writes to this vnlog. Pass NULL to
         vnlog_set_field_value_ctx__zzz(&ctx, ...);
         vnlog_emit_record_ctx(&ctx);
     }
+
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
 }
 #+END_SRC
 
 If we want to have multiple independent vnlog writers to /different/ streams
-(with different columns andlegends), we do this instead:
+(with different columns and legends), we do this instead:
 
 =file1.c=:
 #+BEGIN_SRC C
@@ -1564,6 +1570,7 @@ void g(void)
     vnlog_set_field_value__a(...);
     vnlog_set_field_value__b(...);
     ...
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
     vnlog_emit_record();
 }
 #+END_SRC
@@ -1576,17 +1583,16 @@ this example), then the different writers /must/ live in different source files.
 The compiler will barf if you try to =#include= two different
 =vnlog_fields_....h= files in the same source.
 
-More APIs are
+** Remaining APIs
 
+- =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
+=printf()= does. This exists primarily for comments.
 
-=vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
-=printf()= does. This exists for comments.
-
-=vnlog_clear_fields_ctx(ctx, do_free_binary)=:
-Clears out the data in a context and makes it ready to be used for the next
-record. It is rare for the user to have to call this manually. The most common
-case is handled automatically (clearing out a context after emitting a record).
-One area where this is useful is when making a copy of a context:
+- =vnlog_clear_fields_ctx(ctx, do_free_binary)= clears out the data in a context
+and makes it ready to be used for the next record. It is rare for the user to
+have to call this manually. The most common case is handled automatically
+(clearing out a context after emitting a record). One area where this is useful
+is when making a copy of a context:
 
 #+BEGIN_SRC C
 struct vnlog_context_t ctx1;
@@ -1599,11 +1605,10 @@ struct vnlog_context_t ctx2 = ctx1;
 vnlog_clear_fields_ctx(&ctx1, false);
 #+END_SRC
 
-=vnlog_free_ctx(ctx)=:
-
-Frees memory for an vnlog context. Do this before throwing the context away.
-Currently this is only needed for context that have binary fields, but this
-should be called in for all contexts, just in case
+- =vnlog_free_ctx(ctx)= frees memory for an vnlog context. Do this before
+throwing the context away. Currently this is only needed for context that have
+binary fields, but this should be called for all contexts anyway, in case this
+changes in a later revision
 
 * numpy interface
 
