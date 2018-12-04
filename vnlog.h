@@ -17,6 +17,7 @@
   #define vnlog_printf_ctx(ctx, ...)     _vnlog_printf        (ctx,      VNLOG_N_FIELDS, ## __VA_ARGS__)
   #define vnlog_flush()                  _vnlog_flush         (NULL,     VNLOG_N_FIELDS)
   #define vnlog_flush_ctx(ctx)           _vnlog_flush         (ctx,      VNLOG_N_FIELDS)
+  #define vnlog_free_ctx(ctx)            _vnlog_free_ctx      (ctx, VNLOG_N_FIELDS)
 
 #else
 

@@ -59,7 +59,6 @@ print $set_field_value_defs;
 say <<EOF;
 #define vnlog_emit_legend_ctx(ctx)  _vnlog_emit_legend(ctx,  \"$legend\\n\", VNLOG_N_FIELDS)
 #define vnlog_emit_legend()         _vnlog_emit_legend(NULL, \"$legend\\n\", VNLOG_N_FIELDS)
-#define vnlog_free_ctx(ctx)         _vnlog_free_ctx(ctx, VNLOG_N_FIELDS)
 
 #define vnlog_clear_fields_ctx(ctx, do_free_binary)  _vnlog_clear_fields_ctx(ctx, VNLOG_N_FIELDS, do_free_binary)
 EOF
