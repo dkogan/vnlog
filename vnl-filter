@@ -23,6 +23,7 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --dumpexprs
       --perl
       --unbuffered
+      --stream
 
     This tool is a nicer 'awk' that reads and write vnlog. As a result, it
     can refer to columns by name, not number, like awk does.
@@ -45,6 +46,8 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
 
     --unbuffered flushes each line after each print. Useful for streaming data.
 
+    --stream is a synonym for "--unbuffered"
+
     For more information, please read the manpage.
 EOF
 
@@ -65,6 +68,7 @@ GetOptions(\%options,
            "dumpexprs!",
            "perl",
            "unbuffered",
+           "stream",
            "help") or die($usage);
 if( defined $options{help} )
 {
@@ -74,6 +78,8 @@ if( defined $options{help} )
 
 $options{has}  //= [];
 $options{pick} //= [];
+
+$options{unbuffered} = $options{unbuffered} || $options{stream};
 
 # anything remaining on the commandline are 'matches' expressions
 $options{matches} = \@ARGV;
@@ -1364,6 +1370,10 @@ what went wrong.
 
 Flushes each line after each print. This makes sure each line is output as soon
 as it is available, which is crucial for realtime output and streaming plots.
+
+=head2 --stream
+
+Synonym for C<--unbuffered>
 
 =head1 CAVEATS
 

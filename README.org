@@ -831,6 +831,9 @@ ARGUMENTS
     as soon as it is available, which is crucial for realtime output and
     streaming plots.
 
+  --stream
+    Synonym for "--unbuffered"
+
 CAVEATS
     This tool is very lax in its input validation (on purpose). As a result,
     columns with names like %CPU and "TIME+" do work (i.e. you can more or
