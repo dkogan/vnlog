@@ -1,0 +1,5 @@
+complete -W '                   \
+  -m                            \
+  -i                            \
+  -s                            \
+  --vnl-field' vnl-ts

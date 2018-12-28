@@ -58,8 +58,8 @@ Description: Toolkit to read/write/manipulate whitespace-separated ASCII logs
  vnl-filter selects a subset of the rows/columns in a vnlog and/or to
  manipulates the contents. This is effectively an awk wrapper.
  .
- vnl-sort, vnl-join and vnl-tail are wrappers around the corresponding GNU
- Coreutils tools
+ vnl-sort, vnl-join, vnl-tail and vnl-ts are wrappers around the corresponding
+ commandline tools
  .
  vnl-align aligns vnlog columns for easy interpretation by humans
  .

@@ -375,17 +375,17 @@ vnl-filter --eval '{s += x} END {print s}'
   you would hope they do: if the input has a column named =x=, this would
   produce the sum of all values in this column.
 
-- =vnl-sort=, =vnl-join=, =vnl-tail= are wrappers around the corresponding GNU
-  Coreutils tools. These work exactly as you would expect also: the columns can
-  be referenced by name, and the legend comment is handled properly. These are
-  wrappers, so all the commandline options those tools have "just work" (except
-  options that don't make sense in the context of vnlog). As an example,
-  =vnl-tail -f= will follow a log: data will be read by =vnl-tail= as it is
-  written into the log (just like =tail -f=, but handling the legend properly).
-  And you already know how to use these tools without even reading the manpages!
-  Note: these were written for and have been tested with the Linux kernel and
-  GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools probably
-  don't (yet) work. Send me patches.
+- =vnl-sort=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around the
+  corresponding commandline tools. These work exactly as you would expect also:
+  the columns can be referenced by name, and the legend comment is handled
+  properly. These are wrappers, so all the commandline options those tools have
+  "just work" (except options that don't make sense in the context of vnlog). As
+  an example, =vnl-tail -f= will follow a log: data will be read by =vnl-tail=
+  as it is written into the log (just like =tail -f=, but handling the legend
+  properly). And you already know how to use these tools without even reading
+  the manpages! Note: these were written for and have been tested with the Linux
+  kernel and GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools
+  probably don't (yet) work. Send me patches.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
@@ -457,6 +457,11 @@ xxx-manpage-vnl-join-xxx
 ** vnl-tail
 #+BEGIN_EXAMPLE
 xxx-manpage-vnl-tail-xxx
+#+END_EXAMPLE
+
+** vnl-ts
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-ts-xxx
 #+END_EXAMPLE
 
 * Installation
@@ -710,12 +715,12 @@ I might do that at some point, but in the meantime, patches are welcome.
 
 * Caveats and bugs
 
-The tools that wrap GNU coreutils (=vnl-sort=, =vnl-join=, =vnl-tail=) are
-written specifically to work with the Linux kernel and the GNU coreutils. None
-of these have been tested with BSD tools or with non-Linux kernels, and I'm sure
-things don't just work. It's probably not too effortful to get that running, but
-somebody needs to at least bug me for that. Or better yet, send me nice
-patches :)
+The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
+=vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
+the GNU coreutils. None of these have been tested with BSD tools or with
+non-Linux kernels, and I'm sure things don't just work. It's probably not too
+effortful to get that running, but somebody needs to at least bug me for that.
+Or better yet, send me nice patches :)
 
 These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for

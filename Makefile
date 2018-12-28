@@ -9,11 +9,12 @@ BIN_SOURCES := test/test1.c
 TOOLS :=					\
   vnl-filter					\
   vnl-gen-header				\
-  vnl-tail					\
   vnl-make-matrix				\
   vnl-align					\
+  vnl-sort					\
   vnl-join					\
-  vnl-sort
+  vnl-tail					\
+  vnl-ts
 
 
 # I construct the README.org from the template. The only thing I do is to insert
@@ -40,7 +41,7 @@ while(<STDIN>)								\
 }
 endef
 
-README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail
+README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail vnl-ts
 	< $(filter README%,$^) perl -e '$(MAKE_README)' $(filter-out README%,$^) > $@
 all: README.org
 

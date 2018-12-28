@@ -375,17 +375,17 @@ vnl-filter --eval '{s += x} END {print s}'
   you would hope they do: if the input has a column named =x=, this would
   produce the sum of all values in this column.
 
-- =vnl-sort=, =vnl-join=, =vnl-tail= are wrappers around the corresponding GNU
-  Coreutils tools. These work exactly as you would expect also: the columns can
-  be referenced by name, and the legend comment is handled properly. These are
-  wrappers, so all the commandline options those tools have "just work" (except
-  options that don't make sense in the context of vnlog). As an example,
-  =vnl-tail -f= will follow a log: data will be read by =vnl-tail= as it is
-  written into the log (just like =tail -f=, but handling the legend properly).
-  And you already know how to use these tools without even reading the manpages!
-  Note: these were written for and have been tested with the Linux kernel and
-  GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools probably
-  don't (yet) work. Send me patches.
+- =vnl-sort=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around the
+  corresponding commandline tools. These work exactly as you would expect also:
+  the columns can be referenced by name, and the legend comment is handled
+  properly. These are wrappers, so all the commandline options those tools have
+  "just work" (except options that don't make sense in the context of vnlog). As
+  an example, =vnl-tail -f= will follow a log: data will be read by =vnl-tail=
+  as it is written into the log (just like =tail -f=, but handling the legend
+  properly). And you already know how to use these tools without even reading
+  the manpages! Note: these were written for and have been tested with the Linux
+  kernel and GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools
+  probably don't (yet) work. Send me patches.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
@@ -1353,11 +1353,11 @@ SYNOPSIS
 DESCRIPTION
       Usage: vnl-tail [options] logfile logfile logfile ... < logfile
 
-    This tool runs tail on given vnlog files in various ways. "vnl-tail" is
-    a wrapper around the GNU coreutils "tail" tool. Since this is a wrapper,
-    most commandline options and behaviors of the "tail" tool are present;
-    consult the tail(1) manpage for detail. The differences from GNU
-    coreutils "tail" are
+    This tool runs "tail" on given vnlog files in various ways. "vnl-tail"
+    is a wrapper around the GNU coreutils "tail" tool. Since this is a
+    wrapper, most commandline options and behaviors of the "tail" tool are
+    present; consult the tail(1) manpage for detail. The differences from
+    GNU coreutils "tail" are
 
     *   The input and output to this tool are vnlog files, complete with a
         legend
@@ -1381,6 +1381,70 @@ BUGS
 
 SEE ALSO
     tail(1)
+
+
+#+END_EXAMPLE
+
+** vnl-ts
+#+BEGIN_EXAMPLE
+NAME
+    vnl-ts - add a timestamp to a vnlog stream
+
+SYNOPSIS
+     $ read_temperature
+     # temperature
+     29.5
+     30.4
+     28.3
+     22.1
+     ... continually produces data at 1Hz
+
+     $ read_temperature | vnl-ts -s %.s
+     # time-rel temperature
+     0.013893 30.2
+     1.048695 28.6
+     2.105592 29.3
+     3.162873 22.0
+     ...
+
+DESCRIPTION
+      Usage: vnl-ts [-i | -s] [-m] [--vnl-field t] format < pipe
+
+    This tool runs "ts" on given vnlog streams. "vnl-ts" is a wrapper around
+    the "ts" tool from Joey Hess's moreutils
+    <https://joeyh.name/code/moreutils/> library. Since this is a wrapper,
+    most commandline options and behaviors of the "ts" tool are present;
+    consult the ts(1) manpage for details. The differences from GNU
+    coreutils "ts" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   The format *must* be passed-in by the user; no default is assumed.
+
+    *   The given format *must* not contain whitespace, so that it fits a
+        single vnlog field.
+
+    *   "-r" is not supported: it assumes input timestamps with whitespace,
+        which is incompatible with vnlog
+
+    *   A "vnl-ts"-specific option "--vnl-field" is available to set the
+        name of the new field. If omitted, a reasonable default will be
+        used.
+
+    Past that, everything "ts" does is supported, so see that man page for
+    detailed documentation.
+
+BUGS
+    This and the other "vnl-xxx" tools that wrap coreutils are written
+    specifically to work with the Linux kernel and the GNU coreutils. None
+    of these have been tested with BSD tools or with non-Linux kernels, and
+    I'm sure things don't just work. It's probably not too effortful to get
+    that running, but somebody needs to at least bug me for that. Or better
+    yet, send me nice patches :)
+
+SEE ALSO
+    ts(1)
 
 
 #+END_EXAMPLE
@@ -1636,12 +1700,12 @@ I might do that at some point, but in the meantime, patches are welcome.
 
 * Caveats and bugs
 
-The tools that wrap GNU coreutils (=vnl-sort=, =vnl-join=, =vnl-tail=) are
-written specifically to work with the Linux kernel and the GNU coreutils. None
-of these have been tested with BSD tools or with non-Linux kernels, and I'm sure
-things don't just work. It's probably not too effortful to get that running, but
-somebody needs to at least bug me for that. Or better yet, send me nice
-patches :)
+The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
+=vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
+the GNU coreutils. None of these have been tested with BSD tools or with
+non-Linux kernels, and I'm sure things don't just work. It's probably not too
+effortful to get that running, but somebody needs to at least bug me for that.
+Or better yet, send me nice patches :)
 
 These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for
