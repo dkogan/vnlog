@@ -49,7 +49,8 @@ Depends: ${misc:Depends},
  libvnlog-perl (= ${binary:Version}), ${perl:Depends},
  mawk,
  libtext-table-perl,
- liblist-moreutils-perl
+ liblist-moreutils-perl,
+ moreutils
 Description: Toolkit to read/write/manipulate whitespace-separated ASCII logs
  Vnlog (pronounced "vanillog") is a trivially-simple log format consisting of an
  ASCII table with comments and labelled fields. This package provides tools to
