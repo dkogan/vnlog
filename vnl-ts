@@ -58,9 +58,7 @@ if( defined $options->{r} )
     exit 1;
 }
 
-my $inputs = read_and_preparse_input($filenames,
-                                     # read all lines, including comments
-                                     ['cat']);
+my $inputs = read_and_preparse_input($filenames, undef, 1);
 ensure_all_legends_equivalent($inputs);
 
 if(!defined $options->{'vnl-field'})

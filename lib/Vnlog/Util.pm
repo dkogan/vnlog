@@ -45,11 +45,23 @@ sub get_unbuffered_line
 
 sub open_file_as_pipe
 {
-    my ($filename, $input_filter) = @_;
+    my ($filename, $input_filter, $unbuffered) = @_;
+
+    if( defined $input_filter && $unbuffered)
+    {
+        die "Currently I refuse a custom input filter while running without a buffer; because the way I implement unbuffered-ness assumes the default filter";
+    }
 
     if ($filename eq '-')
     {
-        $filename = '/dev/stdin';
+        # This is required because Debian currently ships an ancient version of
+        # mawk that has a bug: if an input file is given on the commandline,
+        # -Winteractive is silently ignored. So I explicitly omit the input to
+        # make my mawk work properly
+        if(!$unbuffered)
+        {
+            $filename = '/dev/stdin';
+        }
     }
     else
     {
@@ -75,8 +87,8 @@ sub open_file_as_pipe
 
 
     # mawk script to strip away comments and trailing whitespace (GNU coreutils
-    # join treats trailing whitespace as empty-field data). This is the
-    # pre-filter to the data
+    # join treats trailing whitespace as empty-field data:
+    # https://debbugs.gnu.org/32308). This is the pre-filter to the data
     my $mawk_strip_comments = <<'EOF';
     {
         if (havelegend)
@@ -85,7 +97,7 @@ sub open_file_as_pipe
             if (match($0,"[^\t ]"))  # If any non-whitespace remains, print
             {
                 sub("[\t ]+$","");
-                print
+                print;
             }
         }
         else
@@ -104,12 +116,18 @@ sub open_file_as_pipe
             }
 
             havelegend = 1;          # got a legend. spit it out
-            print
+            print;
         }
     }
 EOF
 
-    my $pipe_cmd = $input_filter // ['mawk', $mawk_strip_comments];
+    my @mawk_cmd = ('mawk');
+    push @mawk_cmd, '-Winteractive' if $unbuffered;
+    push @mawk_cmd, $mawk_strip_comments;
+
+    my $pipe_cmd = $input_filter // \@mawk_cmd;
+    return fork_and_filter(@$pipe_cmd)
+      if ($filename eq '-' && $unbuffered);
     return fork_and_filter(@$pipe_cmd, $filename);
 }
 
@@ -252,12 +270,12 @@ sub ensure_all_legends_equivalent
 }
 sub read_and_preparse_input
 {
-    my ($filenames, $input_filter) = @_;
+    my ($filenames, $input_filter, $unbuffered) = @_;
 
     my @inputs = map { {filename => $_} } @$filenames;
     for my $input (@inputs)
     {
-        $input->{fh}   = open_file_as_pipe($input->{filename}, $input_filter);
+        $input->{fh}   = open_file_as_pipe($input->{filename}, $input_filter, $unbuffered);
         $input->{keys} = pull_key($input);
     }
 
