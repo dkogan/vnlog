@@ -9,6 +9,6 @@ _arguments -S                                                                   
     '(--eval)--skipcomments[Do NOT output non-legend comments]'                                   \
     '--dumpexprs[Report the expressions we would use for processing, and exit]'                   \
     '--perl[Use perl for all the expressions instead of awk]'                                     \
-    '--unbuffered[Flush the output pipe with every record]'                                       \
+    '--stream[Flush the output pipe with every record]'                                           \
     '--help'                                                                                      \
     '*: :_guard "^-*" "Expression that must evaluate to true for a record to be selected for output"'

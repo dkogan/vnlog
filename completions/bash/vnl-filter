@@ -8,4 +8,5 @@ complete -W '         \
     --dumpexprs       \
     --perl            \
     --unbuffered      \
+    --stream          \
     --help' vnl-filter
