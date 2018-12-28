@@ -109,9 +109,9 @@ vnl-ts - add a timestamp to a vnlog stream
 
 This tool runs C<ts> on given vnlog streams. C<vnl-ts> is a wrapper around the
 C<ts> tool from Joey Hess's L<moreutils|https://joeyh.name/code/moreutils/>
-library. Since this is a wrapper, most commandline options and behaviors of the
+toolkit. Since this is a wrapper, most commandline options and behaviors of the
 C<ts> tool are present; consult the L<ts(1)> manpage for details. The
-differences from GNU coreutils C<ts> are
+differences from C<ts> are
 
 =over
 
@@ -125,7 +125,7 @@ The format I<must> be passed-in by the user; no default is assumed.
 
 =item *
 
-The given format I<must> not contain whitespace, so that it fits a single vnlog
+The given format I<must not> contain whitespace, so that it fits a single vnlog
 field.
 
 =item *
@@ -145,11 +145,11 @@ detailed documentation.
 
 =head1 BUGS
 
-This and the other C<vnl-xxx> tools that wrap coreutils are written specifically
-to work with the Linux kernel and the GNU coreutils. None of these have been
-tested with BSD tools or with non-Linux kernels, and I'm sure things don't just
-work. It's probably not too effortful to get that running, but somebody needs to
-at least bug me for that. Or better yet, send me nice patches :)
+This and the other C<vnl-xxx> tools that wrap standard utilities are written
+specifically to work with the Linux kernel. None of these have been tested with
+BSD tools or with non-Linux kernels, and I'm sure things don't just work. It's
+probably not too effortful to get that running, but somebody needs to at least
+bug me for that. Or better yet, send me nice patches :)
 
 =head1 SEE ALSO
 
