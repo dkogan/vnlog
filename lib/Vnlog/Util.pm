@@ -161,7 +161,7 @@ sub pull_key
 }
 sub parse_options
 {
-    my ($ARGV, $specs, $usage) = @_;
+    my ($ARGV, $specs, $num_nondash_options, $usage) = @_;
 
     my %options;
     my @ARGV_copy = @$ARGV;
@@ -213,9 +213,16 @@ EOF
         exit 0;
     }
 
+    if(@ARGV_copy < $num_nondash_options)
+    {
+        confess "Error parsing options: expected at least $num_nondash_options non-dash arguments";
+    }
+
+    my @nondash_options = @ARGV_copy[0..($num_nondash_options-1)];
+    splice @ARGV_copy, 0, $num_nondash_options;
 
     push @ARGV_copy, '-' unless @ARGV_copy;
-    return (\@ARGV_copy, \%options);
+    return (\@ARGV_copy, \%options, \@nondash_options);
 }
 sub legends_match
 {
@@ -304,7 +311,7 @@ sub reconstruct_substituted_command
     # reconstruct the command, invoking the internal GNU tool, but replacing the
     # filenames with the opened-and-read-past-the-legend pipe. The field
     # specifiers have already been replaced with their column indices
-    my ($inputs, $options, $specs, $keep_normal_files) = @_;
+    my ($inputs, $options, $nondash_options, $specs, $keep_normal_files) = @_;
 
     my @argv;
 
@@ -374,6 +381,8 @@ sub reconstruct_substituted_command
             }
         }
     }
+
+    push @argv, @$nondash_options;
 
     # And then I pull in the files
     push @argv,
