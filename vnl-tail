@@ -152,8 +152,8 @@ vnl-tail - tail a log file, preserving the legend
 
   Usage: vnl-tail [options] logfile logfile logfile ... < logfile
 
-This tool runs tail on given vnlog files in various ways. C<vnl-tail> is
-a wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
+This tool runs C<tail> on given vnlog files in various ways. C<vnl-tail> is a
+wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<tail> tool are present; consult the
 L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
 
