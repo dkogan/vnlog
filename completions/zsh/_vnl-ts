@@ -1,8 +1,27 @@
 #compdef vnl-ts
 
+# This uses the generic zsh _date_formats to complete the date formats. It does
+# NOT support the "%.s" form that vnl-ts and ts support.
+
+function _guarded_date_formats ()
+{
+  # This is a combination of _guard and _date_formats. If I use _date_formats by
+  # itself below, it'll complete date formats from "-", which I don't want it to
+
+  local garbage
+
+  zparseopts -K -D -a garbage M: J: V: 1 2 n F: X:
+
+  [[ "$PREFIX$SUFFIX" != $~1 ]] && return 1
+
+  shift
+  _date_formats "$*"
+
+  [[ -n "$PREFIX$SUFFIX" ]]
+}
+
 _arguments -S                                            \
     '(-s)-i[Report time since last record]'              \
     '(-i)-s[Report time from the receipt of the legend]' \
     '-m[Use the monotonic system clock]'                 \
-    '--help'                                             \
-    ':format:_guard "^-*" "strftime-like format for the timestamp"'
+    ':strftime-like format for the timestamp:_guarded_date_formats "^-*"'
