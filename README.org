@@ -28,167 +28,307 @@ And a result of /that/ is that the toolkit is very small and light, and has a
 
 * Synopsis
 
-In one terminal, sample the CPU temperature over time, and write the data to a
-file as it comes in, at 1Hz:
+I have two sets of historical stock data, from the start of 2018 until now
+(2018/11):
 
 #+BEGIN_EXAMPLE
-$ ( echo '# time temp1 temp2 temp3';
-    while true; do echo -n "`date +%s` "; < /proc/acpi/ibm/thermal awk '{print $2,$3,$4; fflush()}';
-    sleep 1; done )
-    > /tmp/temperature.vnl
+$ < dji.vnl head -n 4
+# Date Open High Low Close AdjClose Volume
+2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
+2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
+2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
+
+$ < tsla.vnl head -n 4
+# Date Open High Low Close AdjClose Volume
+2018-11-15 342.33 348.58 339.04 348.44 348.44 4486339
+2018-11-14 342.70 347.11 337.15 344.00 344.00 5036300
+2018-11-13 333.16 344.70 332.20 338.73 338.73 5448600
 #+END_EXAMPLE
 
-In another terminal, I sample the consumption of CPU resources, and log /that/
-to a file:
+I can pull out the closing prices:
 
 #+BEGIN_EXAMPLE
-$ (echo "# user system nice idle waiting hardware_interrupt software_interrupt stolen";
-   top -b -d1 | awk '/%Cpu/ {print $2,$4,$6,$8,$10,$12,$14,$16; fflush()}')
-   > /tmp/cpu.vnl
+$ < dji.vnl vnl-filter -p Close | head -n4
+# Close
+25289.27
+25080.50
+25286.49
 #+END_EXAMPLE
 
-These logs are now accumulating, and I can do stuff with them. The legend and
-the last few measurements:
+And I can plot them:
 
 #+BEGIN_EXAMPLE
-$ vnl-tail /tmp/temperature.vnl
-# time temp1 temp2 temp3
-1517986631 44 38 34
-1517986632 44 38 34
-1517986633 44 38 34
-1517986634 44 38 35
-1517986635 44 38 35
-1517986636 44 38 35
-1517986637 44 38 35
-1517986638 44 38 35
-1517986639 44 38 35
-1517986640 44 38 34
+$ < dji.vnl vnl-filter -p Close |
+    feedgnuplot --lines --terminal 'dumb 80,30' --unset grid
+
+  27000 +-------------------------------------------------------------------+
+        |        *    +            +             +            +             |
+        |        * *                                                        |
+        |        ***                                            *           |
+  26500 |-+     * ***                                           *         +-|
+        |       * * *                                           *           |
+        | *     *   **                                         * *          |
+  26000 |-*     *   *** *                                      * **       +-|
+        | *     *    ****                                      *  *         |
+        | *    **       **                                     *  *         |
+        | *   ***        ** *                              *   *   *        |
+  25500 |*+*  ***         *** *                            *   *   *      +-|
+        |* * ****         ** **       **                * **   *   *        |
+        |* *** *          ** * **     **                * ***  *    *       |
+        |*  ** *          *    **     * *               * ***  *    *       |
+  25000 |-+ **                 ***   *  *  *           ** ***  *    *     +-|
+        |   **                   **  *  * ***    *     ****** *      *      |
+        |   **                   **  *  ** **    *    **  *  **             |
+        |   **                    * **  **   *   *    **  *  **             |
+  24500 |-+ *                     * **   *   *  * **  *      **           +-|
+        |                         ***    *   **** *** *      **             |
+        |                         **          *** *****      **             |
+  24000 |-+                                   ***  ****       *           +-|
+        |                                     *    ****       *             |
+        |                                           ***                     |
+        |             +            +             +  **        +             |
+  23500 +-------------------------------------------------------------------+
+        0             50          100           150          200           250
 #+END_EXAMPLE
 
-I grab just the first temperature sensor, and align the columns
+For this documentation I'm plotting in ascii ("dumb" terminal). Normally you'd
+use the default terminal (by omitting =--terminal ...=), and you'd get
+interactive, graphical plots. Here I kept /only/ the closing price column, so
+the x-axis is just the row index. The data was in reverse chronological order,
+so this plot is also in reverse chronological order. Let's fix that:
 
 #+BEGIN_EXAMPLE
-$ < /tmp/temperature.vnl vnl-tail |
-    vnl-filter -p time,temp=temp1 |
+$ < dji.vnl vnl-sort -k Date |
+    vnl-filter -p Close |
+    feedgnuplot --lines --terminal 'dumb 80,30' --unset grid
+
+  27000 +-------------------------------------------------------------------+
+        |             +            +             +          * +             |
+        |                                                 * *               |
+        |    *                                            * *               |
+  26500 |-+  *                                            ** *            +-|
+        |    *                                            ** *              |
+        |   ***                                         **   *     *        |
+  26000 |-+** *                                      *****    *    **     +-|
+        |  *  *                                      ****     *    **       |
+        |  *   *                                    **        **   **       |
+        |  *   *   *                             *  **        **   **       |
+  25500 |-*    *   *                           * ***          **  * *     +-|
+        | *    *  ** *                **       *****          *** * *       |
+        |**    * *** *                **      *** **          * * * **      |
+        |*     * *** *                ***    ***   *          * * * *       |
+  25000 |*+    * *** **            *  * *   ***                 ***       +-|
+        |*     * ******     *    * * *  *   *                   **          |
+        |      * * ** **    **   ** **  *   *                   **          |
+        |      **  **  *    **  *   **   *  *                   **          |
+  24500 |-+    **      *  ****  *   **   * *                     *        +-|
+        |      **       * ***** *   *    ***                                |
+        |       *       * ** ****         **                                |
+  24000 |-+     *       ***  ***                                          +-|
+        |       *       ***    *                                            |
+        |               **                                                  |
+        |             + **         +             +            +             |
+  23500 +-------------------------------------------------------------------+
+        0             50          100           150          200           250
+#+END_EXAMPLE
+
+This is in the correct order, but it'd be nice to see the actual dates on the
+x-axis:
+
+#+BEGIN_EXAMPLE
+$ < dji.vnl vnl-filter -p Date,Close | head -n4
+# Date Close
+2018-11-15 25289.27
+2018-11-14 25080.50
+2018-11-13 25286.49
+
+$ < dji.vnl vnl-sort -k Date |
+    vnl-filter -p Date,Close |
+    feedgnuplot --lines --unset grid --terminal 'dumb 80,30'
+                --timefmt %Y-%m-%d --domain
+
+  27000 +-------------------------------------------------------------------+
+        |     +     +     +      +     +     +     +     +      *     +     |
+        |                                                    *  *           |
+        |    *                                               ****           |
+  26500 |-+  **                                              *****        +-|
+        |    **                                              **  *          |
+        |   ***                                             **   *     *    |
+  26000 |-+** *                                         *** **   *     *  +-|
+        |  *  *                                         ****     *     *    |
+        | **  *                                        **        **    *    |
+        | *   *    *                                * * *        ***   **   |
+  25500 |-*   *    **                             *****          ***   ** +-|
+        | *   *    ** *                  *        ** **          **** ***   |
+        |*    *  * ** *                 **      ** * **          ** * * **  |
+        |*    *  **** *                 ***     **    *          *  * * *   |
+  25000 |-+   *  *******            *   * *    * *                  * *   +-|
+        |      **** ** *      *   **** *  *    *                    **      |
+        |      ***  ** **     *   ******  **  **                    **      |
+        |      ***  *   *    **   *  ***   *  *                     **      |
+  24500 |-+    ***      *  *****  *   *    ** *                      *    +-|
+        |      **       *  *** ****   *     ***                             |
+        |       *       ** **  ***          **                              |
+  24000 |-+     *       *****  ***                                        +-|
+        |       *       ****     *                                          |
+        |               * *                                                 |
+        |     +     +   * *      +     +     +     +     +      +     +     |
+  23500 +-------------------------------------------------------------------+
+      01/01 02/01 03/01 04/01  05/01 06/01 07/01 08/01 09/01  10/01 11/01 12/01
+#+END_EXAMPLE
+
+What was the highest value of the Dow-Jones index, and when did it happen?
+
+#+BEGIN_EXAMPLE
+$ < dji.vnl vnl-sort -rk Close |
+  head -n2 |
+  vnl-align
+
+#  Date      Open     High      Low     Close  AdjClose   Volume
+2018-10-03 26833.47 26951.81 26789.08 26828.39 26828.39 280130000
+#+END_EXAMPLE
+
+Alrighty. Looks like the high was in October. Let's zoom in on that month:
+
+#+BEGIN_EXAMPLE
+$ < dji.vnl vnl-sort -k Date |
+    vnl-filter 'Date ~ /2018-10/' -p Date,Close |
+    feedgnuplot --lines --unset grid --terminal 'dumb 80,30'
+                --timefmt %Y-%m-%d --domain
+
+  27000 +-------------------------------------------------------------------+
+        |          ** +            +             +            +             |
+        |        **  *                                                      |
+        |       *     *                                                     |
+  26500 |-+            *   ****                                           +-|
+        |               ***    *                                            |
+        |                      *                                            |
+        |                       *                                           |
+        |                       *                                           |
+  26000 |-+                     *                                         +-|
+        |                       *            **                             |
+        |                        *           * *                            |
+        |                        *          *   *                           |
+  25500 |-+                      *          *   * ******                  +-|
+        |                         *  *******     *      *                   |
+        |                         * *      *             **                 |
+        |                          **                      *              * |
+  25000 |-+                        *                       *  *          *+-|
+        |                                                  *  **        *   |
+        |                                                   ** *        *   |
+        |                                                   **  *****  *    |
+        |                                                   *        * *    |
+  24500 |-+                                                           *   +-|
+        |                                                                   |
+        |                                                                   |
+        |             +            +             +            +             |
+  24000 +-------------------------------------------------------------------+
+      09/27         10/04        10/11         10/18        10/25         11/01
+#+END_EXAMPLE
+
+OK. Is this thing volatile? What was the largest single-day gain?
+
+#+BEGIN_EXAMPLE
+$ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
+    head -n4 |
     vnl-align
-#  time    temp
-1517986746 45
-1517986747 45
-1517986748 46
-1517986749 46
-1517986750 46
-1517986751 46
-1517986752 46
-1517986753 45
-1517986754 45
-1517986755 45
+
+#  Date      Open     High      Low     Close  AdjClose   Volume     d
+2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840    0
+2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000 -208.77
+2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000  205.99
+
+
+$ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
+  vnl-sort -rk d |
+  head -n2 |
+  vnl-align
+
+#  Date      Open     High      Low     Close  AdjClose   Volume     d
+2018-02-02 26061.79 26061.79 25490.66 25520.96 25520.96 522880000 1175.21
 #+END_EXAMPLE
 
-I do the same, but read the log data in realtime, and feed it to a plotting tool
-to get a live reporting of the cpu temperature. This plot updates as data comes
-in. I then spin a CPU core (=while true; do true; done=), and see the
-temperature climb. Here I'm making an ASCII plot that's pasteable into the docs.
+Whoa. So the best single-gain day was 2018-02-02: the dow gained 1175.21 points
+between closing on Feb 1 and Feb 2. But it actually lost ground that day! What
+if I looked at the difference between the opening and closing in a single day?
 
 #+BEGIN_EXAMPLE
-$ < /tmp/temperature.vnl vnl-tail -f           |
-    vnl-filter --unbuffered -p time,temp=temp1 |
-     feedgnuplot --stream --domain
-       --lines --timefmt '%s' --set 'format x "%M:%S"' --ymin 40
-       --unset grid --terminal 'dumb 80,40'
+< dji.vnl | vnl-filter -p '.,d=Close-Open' |
+  vnl-sort -rgk d |
+  head -n2 |
+  vnl-align
 
-  70 +----------------------------------------------------------------------+
-     |      +      +      +      +       +      +      +      +      +      |
-     |                                                                      |
-     |                                                                      |
-     |                                                                      |
-     |                      **                                              |
-  65 |-+                   ***                                            +-|
-     |                    ** *                                              |
-     |                    *  *                                              |
-     |                    *  *                                              |
-     |                   *   *                                              |
-     |                  **   **                                             |
-  60 |-+                *     *                                           +-|
-     |                 *      *                                             |
-     |                 *      *                                             |
-     |                 *      *                                             |
-     |                **      *                                             |
-     |                *       *                                             |
-  55 |-+              *       *                                           +-|
-     |                *       *                                             |
-     |                *       **                                            |
-     |                *        *                                            |
-     |               **        *                                            |
-     |               *         **                                           |
-  50 |-+             *          **                                        +-|
-     |               *           **                                         |
-     |               *            ***                                       |
-     |               *              *                                       |
-     |               *              ****                                    |
-     |               *                 *****                                |
-  45 |-+             *                     ***********                    +-|
-     |    ************                               ********************** |
-     |          * **                                                        |
-     |                                                                      |
-     |                                                                      |
-     |      +      +      +      +       +      +      +      +      +      |
-  40 +----------------------------------------------------------------------+
-   21:00  22:00  23:00  24:00  25:00   26:00  27:00  28:00  29:00  30:00  31:00
+#  Date      Open     High      Low     Close  AdjClose   Volume    d
+2018-02-06 24085.17 24946.23 23778.74 24912.77 24912.77 823940000 827.6
 #+END_EXAMPLE
 
-Cool. I can then join the logs, pull out simultaneous CPU consumption and
-temperature numbers, and plot the path in the temperature-cpu space:
+I guess by that metric 2018-02-06 was better. Let's join the Dow-jones index
+data and the TSLA data, and let's look at them together:
 
 #+BEGIN_EXAMPLE
-$ vnl-join -j time /tmp/temperature.vnl /tmp/cpu.vnl |
-  vnl-filter -p temp1,user                           |
-  feedgnuplot --domain --lines
-    --unset grid --terminal 'dumb 80,40'
+$ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
+  head -n4 |
+  vnl-align
 
-  45 +----------------------------------------------------------------------+
-     |           +           +           +          +           +           |
-     |                                       *                              |
-     |                                       *                              |
-  40 |-+                                    **                            +-|
-     |                                      **                              |
-     |                                     * *                              |
-     |                                     * *      *    *    *             |
-  35 |-+               ****      *********** **** * **** ***  ******      +-|
-     |        *********   ********       *   *  *****  *** * ** *  *        |
-     |        *    *                            * * *  * * ** * *  *        |
-     |        *    *                                   *   *  *    *        |
-  30 |-+      *                                                    *      +-|
-     |        *                                                    *        |
-     |        *                                                    *        |
-     |        *                                                    *        |
-  25 |-+      *                                                    *      +-|
-     |        *                                                    *        |
-     |        *                                                    *        |
-     |        *                                                    *        |
-  20 |-+      *                                                    *      +-|
-     |        *                                                    *        |
-     |        *                                                    *        |
-     |      * *                                                    *        |
-  15 |-+    * *  *                                                 *      +-|
-     |      * *  *                                                 *        |
-     |      ***  *                                                 *        |
-     |      ***  *                                                 *        |
-  10 |-+    ***  *                                                 *      +-|
-     |      ***  *                                                 *        |
-     |      ***  *                                                 *        |
-     |      ***  *                                                 *        |
-   5 |-+    ***  *                                                 *      +-|
-     |      ***  *                                                 *        |
-     |      * *  * *                                               *        |
-     |      **** * ** *****  *********** +       *******       *****        |
-   0 +----------------------------------------------------------------------+
-     40          45          50          55         60          65          70
+#  Date    Open_dji High_dji  Low_dji Close_dji AdjClose_dji Volume_dji Open_tsla High_tsla Low_tsla Close_tsla AdjClose_tsla Volume_tsla
+2018-11-15 25061.48 25354.56 24787.79 25289.27  25289.27     383292840  342.33    348.58    339.04   348.44     348.44        4486339
+2018-11-14 25388.08 25501.29 24935.82 25080.50  25080.50     384240000  342.70    347.11    337.15   344.00     344.00        5036300
+2018-11-13 25321.21 25511.03 25193.78 25286.49  25286.49     339690000  333.16    344.70    332.20   338.73     338.73        5448600
+
+
+$ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
+  vnl-filter -p '^Close' |
+  head -n4 |
+  vnl-align
+
+# Close_dji Close_tsla
+25289.27    348.44
+25080.50    344.00
+25286.49    338.73
+
+
+$ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
+  vnl-filter -p '^Close' |
+  feedgnuplot --domain --points --unset grid --terminal 'dumb 80,30'
+
+  380 +---------------------------------------------------------------------+
+      |         +         +         +         +         +         +         |
+      |                             A           A                           |
+      |                      A                                              |
+  360 |-+                             A A         A                       +-|
+      |                       A           A A A         A  AA               |
+      |             A    A        AA    AAAA A           AA AA   A          |
+  340 |-+         A  AA             AAA A A AAA  A  A   A           A     +-|
+      |               A  A A       A  AAA AA   A    A           A           |
+      |              A A    A A AAA     A A A                               |
+      |                      A A AA     A  A                                |
+  320 |-+                     A A AAAAAA         A AA    A                +-|
+      |      A              A A   A AAA  AA                                 |
+      |        A   AA  A A     A     A      A      A     A      AA   A      |
+      |             A  AA AA   A     A         A A      A A                 |
+  300 |A+     AA  A A  A     A  AA       A AAA         A        A AA A A  +-|
+      |            A AA   AA A A  A     A                A A             A  |
+      |         A    A   A  A  AA         A            AA  A                |
+      |        AA A   AAAA    A     A                A AA    A       A      |
+  280 |-+    A                AAAAA                 A  A                  +-|
+      |                                           A                         |
+      |          AA                                              A          |
+  260 |-+                                AA AA        A          A        +-|
+      |      A                             A    A                           |
+      |  A                           A                            A         |
+      |         +         +         +         +         +         +         |
+  240 +---------------------------------------------------------------------+
+    23500     24000     24500     25000     25500     26000     26500     27000
 #+END_EXAMPLE
+
+Huh. Apparently there's no obvious, strong correlation between TSLA and
+Dow-Jones closing prices; I would have expected a clear trend here, but the data
+doesn't lie.
 
 * Description
 
-As stated before, vnlog tools are designed to be very simple and light. There
-exist other tools that are similar. For instance:
+Vnlog tools are designed to be very simple and light. There exist a number of
+other tools that manipulate data on the commandline. Some of these:
 
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
@@ -199,13 +339,18 @@ exist other tools that are similar. For instance:
 - https://github.com/BurntSushi/xsv
 - https://github.com/dbohdan/sqawk
 
-
 These all provide facilities to run various analyses, and are neither simple nor
 light. Vnlog by contrast doesn't analyze anything, but makes it easy to write
 simple bits of awk or perl to process stuff to your heart's content. The main
 envisioned use case is one-liners, and the tools are geared for that purpose.
 The above mentioned tools are much more powerful than vnlog, so they could be a
-better fit for some use cases.
+better fit for some use cases. I claim that
+
+- 90% of the time you want to do simple things, and vnlog is a great fit for the
+  task
+- If you really do need to do something complex, you really shouldn't be in the
+  shell writing oneliners anymore, and a fully-fledged analysis system (numpy,
+  etc) is more appropriate
 
 In the spirit of doing as little as possible, the provided tools are wrappers
 around tools you already have and are familiar with. The provided tools are:
@@ -218,10 +363,10 @@ around tools you already have and are familiar with. The provided tools are:
 vnl-filter -p col1,col2,colx=col3+col4 'col5 > 10' --has col6
 #+END_EXAMPLE
   will read the input, and produce a vnlog with 3 columns: =col1= and =col2=
-  from the input and a column =colx= that's the sum of =col3= and =col4= in the
-  input. Only those rows for which the =col5 > 10= is true will be output.
-  Finally, only those rows that have a non-null value for =col6= will be
-  selected. A null entry is signified by a single =-= character.
+  from the input, and a column =colx= that's the sum of =col3= and =col4= in the
+  input. Only those rows for which =col5 > 10= is true will be output. Finally,
+  only those rows that have a non-null value for =col6= will be selected. A null
+  entry is signified by a single =-= character.
 
 #+BEGIN_EXAMPLE
 vnl-filter --eval '{s += x} END {print s}'
@@ -230,17 +375,17 @@ vnl-filter --eval '{s += x} END {print s}'
   you would hope they do: if the input has a column named =x=, this would
   produce the sum of all values in this column.
 
-- =vnl-sort=, =vnl-join=, =vnl-tail= are wrappers around the corresponding GNU
-  Coreutils tools. These work exactly as you would expect also: the columns can
-  be referenced by name, and the legend comment is handled properly. These are
-  wrappers, so all the commandline options those tools have "just work" (except
-  options that don't make sense in the context of vnlog). As an example,
-  =vnl-tail -f= will follow a log: data will be read by =vnl-tail= as it is
-  written into the log (just like =tail -f=, but handling the legend properly).
-  And you already know how to use these tools without even reading the manpages!
-  Note: these were written for and have been tested with the Linux kernel and
-  GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools probably
-  don't (yet) work. Send me patches.
+- =vnl-sort=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around the
+  corresponding commandline tools. These work exactly as you would expect also:
+  the columns can be referenced by name, and the legend comment is handled
+  properly. These are wrappers, so all the commandline options those tools have
+  "just work" (except options that don't make sense in the context of vnlog). As
+  an example, =vnl-tail -f= will follow a log: data will be read by =vnl-tail=
+  as it is written into the log (just like =tail -f=, but handling the legend
+  properly). And you already know how to use these tools without even reading
+  the manpages! Note: these were written for and have been tested with the Linux
+  kernel and GNU Coreutils =sort=, =join= and =tail=. Other kernels and tools
+  probably don't (yet) work. Send me patches.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
@@ -253,7 +398,8 @@ vnl-filter --eval '{s += x} END {print s}'
 - =libvnlog= is a C library to simplify writing a vnlog. Clearly all you
   /really/ need is =printf()=, but this is useful if we have lots of columns,
   many containing null values in any given row, and/or if we have parallel
-  threads writing to a log
+  threads writing to a log. In my usage I have hundreds of columns, so this is
+  handy
 
 - =vnl-make-matrix= converts a one-point-per-line vnlog to a matrix of data.
   I.e.
@@ -284,8 +430,8 @@ $ cat /tmp/x.matrix
 10 11 12
 #+END_EXAMPLE
 
-All the tools have manpages that contain more detail. And tools will probably be
-added with time.
+All the tools have manpages that contain more detail. And more tools will
+probably be added with time.
 
 * Manpages
 ** vnl-filter
@@ -444,7 +590,7 @@ DESCRIPTION
     requested with the "--perl" option.
 
   Special functions
-    For convenience we support two special functions in any expression
+    For convenience we support several special functions in any expression
     passed on to awk or perl (named expressions, matches expressions,
     "--eval" strings). These are
 
@@ -468,26 +614,35 @@ DESCRIPTION
          2 9
 
     *   diff(x) returns the difference between the current value of "x" and
-        the previous value of "x". Example:
+        the previous value of "x". The first row will always be 0. Example:
 
-         $ cat tst.vnl
+         $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
-         # x
-         1
-         8
-         27
-         64
-         125
+         # x d1 d2
+           1  0  0
+           8  7  7
+          27 19 12
+          64 37 18
+         125 61 24
 
+    *   sum(x) returns the cumulative sum of "x". As diff(x) can be thought
+        of as a derivative, sum(x) can be thought of as an integral. So
+        "diff(sum(x))" would return the same value as "x" (except for the
+        first row; "diff()" always returns 0 for the first row).
 
-         $ <tst.vnl vnl-filter -p 'd1=diff(x),d2=diff(diff(x))'
+        Example:
 
-         # d1 d2
-         0 0
-         7 7
-         19 12
-         37 18
-         61 24
+         $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
+
+         # x  s   ds
+           1   1   0
+           8   9   8
+          27  36  27
+          64 100  64
+         125 225 125
+
+    *   prev(x) returns the previous value of "x". One could construct
+        "sum()" and "rel()" using this, if they weren't already available.
 
 ARGUMENTS
   -p|--print|--pick expr
@@ -676,6 +831,9 @@ ARGUMENTS
     as soon as it is available, which is crucial for realtime output and
     streaming plots.
 
+  --stream
+    Synonym for "--unbuffered"
+
 CAVEATS
     This tool is very lax in its input validation (on purpose). As a result,
     columns with names like %CPU and "TIME+" do work (i.e. you can more or
@@ -695,7 +853,7 @@ CAVEATS
         them more readable anyway.
 
     *   Strings passed to "-p" are split on "," *except* if the "," is
-        inside balanced <()>. This makes it possible to say things like
+        inside balanced "()". This makes it possible to say things like
         "vnl-filter --function 'f(a,b) { ... }' -p 'c=f(a,b)'". This is
         probably the right behavior, although some questionable looking
         field names become potentially impossible: "f(a" and "b)" *could*
@@ -1153,10 +1311,6 @@ DESCRIPTION
     *   "-v" is not supported. Again, this is possible, but wasn't obviously
         worth the trouble.
 
-    *   Full outer joins are supported by passing "-a-", but no other "-a"
-        option is supported. This is possible, but wasn't obviously worth
-        the trouble.
-
     *   Similarly, "-o" is not supported. This is possible, but wasn't
         obviously worth the trouble, especially since the desired behavior
         can be obtained by post-processing with "vnl-filter".
@@ -1199,11 +1353,11 @@ SYNOPSIS
 DESCRIPTION
       Usage: vnl-tail [options] logfile logfile logfile ... < logfile
 
-    This tool runs tail on given vnlog files in various ways. "vnl-tail" is
-    a wrapper around the GNU coreutils "tail" tool. Since this is a wrapper,
-    most commandline options and behaviors of the "tail" tool are present;
-    consult the tail(1) manpage for detail. The differences from GNU
-    coreutils "tail" are
+    This tool runs "tail" on given vnlog files in various ways. "vnl-tail"
+    is a wrapper around the GNU coreutils "tail" tool. Since this is a
+    wrapper, most commandline options and behaviors of the "tail" tool are
+    present; consult the tail(1) manpage for detail. The differences from
+    GNU coreutils "tail" are
 
     *   The input and output to this tool are vnlog files, complete with a
         legend
@@ -1231,11 +1385,74 @@ SEE ALSO
 
 #+END_EXAMPLE
 
+** vnl-ts
+#+BEGIN_EXAMPLE
+NAME
+    vnl-ts - add a timestamp to a vnlog stream
+
+SYNOPSIS
+     $ read_temperature
+     # temperature
+     29.5
+     30.4
+     28.3
+     22.1
+     ... continually produces data at 1Hz
+
+     $ read_temperature | vnl-ts -s %.s
+     # time-rel temperature
+     0.013893 30.2
+     1.048695 28.6
+     2.105592 29.3
+     3.162873 22.0
+     ...
+
+DESCRIPTION
+      Usage: vnl-ts [-i | -s] [-m] [--vnl-field t] format < pipe
+
+    This tool runs "ts" on given vnlog streams. "vnl-ts" is a wrapper around
+    the "ts" tool from Joey Hess's moreutils
+    <https://joeyh.name/code/moreutils/> toolkit. Since this is a wrapper,
+    most commandline options and behaviors of the "ts" tool are present;
+    consult the ts(1) manpage for details. The differences from "ts" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   The format *must* be passed-in by the user; no default is assumed.
+
+    *   The given format *must not* contain whitespace, so that it fits a
+        single vnlog field.
+
+    *   "-r" is not supported: it assumes input timestamps with whitespace,
+        which is incompatible with vnlog
+
+    *   A "vnl-ts"-specific option "--vnl-field" is available to set the
+        name of the new field. If omitted, a reasonable default will be
+        used.
+
+    Past that, everything "ts" does is supported, so see that man page for
+    detailed documentation.
+
+BUGS
+    This and the other "vnl-xxx" tools that wrap standard utilities are
+    written specifically to work with the Linux kernel. None of these have
+    been tested with BSD tools or with non-Linux kernels, and I'm sure
+    things don't just work. It's probably not too effortful to get that
+    running, but somebody needs to at least bug me for that. Or better yet,
+    send me nice patches :)
+
+SEE ALSO
+    ts(1)
+
+
+#+END_EXAMPLE
+
 * Installation
 
 ** On Debian-based boxes
-At this time vnlog is a part of Debian/sid, and will migrate to the latest
-Ubuntu release in the near future. On those boxes you can simply
+At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
+later. On those boxes you can simply
 
 #+BEGIN_EXAMPLE
 $ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
@@ -1275,6 +1492,7 @@ $ PREFIX=/usr/local make install
 #+END_EXAMPLE
 
 * C interface
+** Basic usage
 
 For most uses, these logfiles are simple enough to be generated with plain
 prints. But then each print statement has to know which numeric column we're
@@ -1354,10 +1572,13 @@ This is enough for 99% of the use cases. Things get a bit more complex if we
 have have threading or if we have multiple vnlog ouput streams in the same
 program. For both of these we use vnlog /contexts/.
 
-To support reentrant writing into the same vnlog by multiple threads, each
-log-writer should create a context, and use it when talking to vnlog. The
-context functions will make sure that the fields in each context are independent
-and that the output records won't clobber each other:
+** Contexts
+
+To support independent writing into the same vnlog (possibly by multiple
+threads; this is reentrant), each log-writer should create a context, and use it
+when talking to vnlog. The context functions will make sure that the fields in
+each context are independent and that the output records won't clobber each
+other:
 
 #+BEGIN_SRC C
 void child_writer( // the parent context also writes to this vnlog. Pass NULL to
@@ -1374,11 +1595,13 @@ void child_writer( // the parent context also writes to this vnlog. Pass NULL to
         vnlog_set_field_value_ctx__zzz(&ctx, ...);
         vnlog_emit_record_ctx(&ctx);
     }
+
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
 }
 #+END_SRC
 
 If we want to have multiple independent vnlog writers to /different/ streams
-(with different columns andlegends), we do this instead:
+(with different columns and legends), we do this instead:
 
 =file1.c=:
 #+BEGIN_SRC C
@@ -1413,6 +1636,7 @@ void g(void)
     vnlog_set_field_value__a(...);
     vnlog_set_field_value__b(...);
     ...
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
     vnlog_emit_record();
 }
 #+END_SRC
@@ -1425,17 +1649,16 @@ this example), then the different writers /must/ live in different source files.
 The compiler will barf if you try to =#include= two different
 =vnlog_fields_....h= files in the same source.
 
-More APIs are
+** Remaining APIs
 
+- =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
+=printf()= does. This exists primarily for comments.
 
-=vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
-=printf()= does. This exists for comments.
-
-=vnlog_clear_fields_ctx(ctx, do_free_binary)=:
-Clears out the data in a context and makes it ready to be used for the next
-record. It is rare for the user to have to call this manually. The most common
-case is handled automatically (clearing out a context after emitting a record).
-One area where this is useful is when making a copy of a context:
+- =vnlog_clear_fields_ctx(ctx, do_free_binary)= clears out the data in a context
+and makes it ready to be used for the next record. It is rare for the user to
+have to call this manually. The most common case is handled automatically
+(clearing out a context after emitting a record). One area where this is useful
+is when making a copy of a context:
 
 #+BEGIN_SRC C
 struct vnlog_context_t ctx1;
@@ -1448,11 +1671,10 @@ struct vnlog_context_t ctx2 = ctx1;
 vnlog_clear_fields_ctx(&ctx1, false);
 #+END_SRC
 
-=vnlog_free_ctx(ctx)=:
-
-Frees memory for an vnlog context. Do this before throwing the context away.
-Currently this is only needed for context that have binary fields, but this
-should be called in for all contexts, just in case
+- =vnlog_free_ctx(ctx)= frees memory for an vnlog context. Do this before
+throwing the context away. Currently this is only needed for context that have
+binary fields, but this should be called for all contexts anyway, in case this
+changes in a later revision
 
 * numpy interface
 
@@ -1477,12 +1699,12 @@ I might do that at some point, but in the meantime, patches are welcome.
 
 * Caveats and bugs
 
-The tools that wrap GNU coreutils (=vnl-sort=, =vnl-join=, =vnl-tail=) are
-written specifically to work with the Linux kernel and the GNU coreutils. None
-of these have been tested with BSD tools or with non-Linux kernels, and I'm sure
-things don't just work. It's probably not too effortful to get that running, but
-somebody needs to at least bug me for that. Or better yet, send me nice
-patches :)
+The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
+=vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
+the GNU coreutils. None of these have been tested with BSD tools or with
+non-Linux kernels, and I'm sure things don't just work. It's probably not too
+effortful to get that running, but somebody needs to at least bug me for that.
+Or better yet, send me nice patches :)
 
 These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for

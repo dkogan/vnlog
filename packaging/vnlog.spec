@@ -91,11 +91,13 @@ make clean
 %{_bindir}/vnl-join
 %{_bindir}/vnl-make-matrix
 %{_bindir}/vnl-align
+%{_bindir}/vnl-ts
 %doc %{_mandir}/man1/vnl-filter.1.gz
 %doc %{_mandir}/man1/vnl-tail.1.gz
 %doc %{_mandir}/man1/vnl-sort.1.gz
 %doc %{_mandir}/man1/vnl-join.1.gz
 %doc %{_mandir}/man1/vnl-make-matrix.1.gz
 %doc %{_mandir}/man1/vnl-align.1.gz
+%doc %{_mandir}/man1/vnl-ts.1.gz
 %{_datadir}/zsh/*
 %{_datadir}/bash-completion/*

@@ -51,7 +51,6 @@ but also the most verbose
 
 from __future__ import print_function
 import re
-import numpy as np
 
 class vnlog:
 
@@ -227,6 +226,7 @@ def _slurp(f):
     Returns a tuple (log_numpy_array, list_keys, dict_key_index)
 
     '''
+    import numpy as np
 
     parser = vnlog()
 

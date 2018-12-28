@@ -56,7 +56,7 @@ vnlog is built on assuming a particular record separator
 EOF
                           );
 
-my ($filenames,$options) = parse_options(\@ARGV, \@specs, <<EOF);
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
 
   $0 [join options]
            [--vnl-sort -|[dfgiMhnRrV]+]
@@ -415,7 +415,7 @@ if( $Ndatafiles > 2 )
             $sub_options{a} = [1,2];
         }
 
-        my $ARGV_new = reconstruct_substituted_command([], \%sub_options, \@specs);
+        my $ARGV_new = reconstruct_substituted_command([], \%sub_options, [], \@specs);
 
         # $ARGV_new now has all the arguments except the --vnl-... options The
         # suffix/prefix options have already been parsed into @prefixes and
@@ -618,7 +618,7 @@ sub post_sort
 my $inputs = read_and_preparse_input($filenames,
                                      get_sort_prefilter($options));
 my $keys_output = substitute_field_keys($options, $inputs);
-my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
 
 my $legend = '# ' . join(' ', @$keys_output) . "\n";
 
@@ -720,7 +720,6 @@ __END__
 vnl-join - joins two log files on a particular field
 
 =head1 SYNOPSIS
-
 
  $ cat a.vnl
  # a b
@@ -1005,11 +1004,6 @@ supported. This is possible, but wasn't obviously worth the trouble.
 
 C<-v> is not supported. Again, this is possible, but wasn't obviously worth the
 trouble.
-
-=item *
-
-Full outer joins are supported by passing C<-a->, but no other C<-a> option is
-supported. This is possible, but wasn't obviously worth the trouble.
 
 =item *
 

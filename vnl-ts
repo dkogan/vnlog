@@ -1,0 +1,173 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use feature 'say';
+use autodie;
+
+use FindBin '$Bin';
+use lib "$Bin/lib";
+
+use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
+
+
+my @specs = ( qw(i s m r),
+              "vnl-field=s",
+              "help|h");
+
+
+my ($filenames,$options,$nondash_options) = parse_options(\@ARGV, \@specs, 1, <<EOF);
+  $0 [-i | -s] [-m] [--vnl-field t] format < pipe
+
+This wraps the 'ts' utility: a tool that prepends timestamps to streaming input.
+Unlike the 'ts' utility, this tool REQUIRES an explicit format to be given, and
+this tool will barf if this format contains whitespace. The 'ts' -r option is
+not supported.
+
+The options are (from the 'ts' manpage)
+
+  -i   Instead of reporting the absolute time, report the elapsed time since the
+       last record.
+
+  -s   Instead of reporting the absolute time, report the elapsed time since the
+       legend line was received.
+
+  -m   Use monotonic clock
+
+  --vnl-field t
+       Specifies the name of the new field. If omitted, a sensible default will
+       be used
+EOF
+
+if( defined $options->{'vnl-field'} && $options->{'vnl-field'} =~ /\s/ )
+{
+    my $fieldname = $options->{'vnl-field'};
+    say "Error: the new field name MUST be free of whitespace. Instead got '$fieldname'";
+    exit 1;
+}
+
+my $format = $nondash_options->[0];
+if( $format =~ /\s/ )
+{
+    say "Error: the format MUST be free of whitespace. Instead got '$format'";
+    exit 1;
+}
+
+if( defined $options->{r} )
+{
+    say "Error: 'vnl-ts -r' is not supported: it assumes input timestamps with whitespace, which is incompatible with vnlog";
+    exit 1;
+}
+
+my $inputs = read_and_preparse_input($filenames, undef, 1);
+ensure_all_legends_equivalent($inputs);
+
+if(!defined $options->{'vnl-field'})
+{
+    # default field names
+    if   ($options->{i}) { $options->{'vnl-field'} = "time-diff"; }
+    elsif($options->{s}) { $options->{'vnl-field'} = "time-rel"; }
+    else                 { $options->{'vnl-field'} = "time"; }
+}
+
+say "# " .$options->{'vnl-field'} . " " . join(' ', @{$inputs->[0]{keys}});
+
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, [$format], \@specs);
+
+exec 'ts', @$ARGV_new;
+
+
+
+__END__
+
+=head1 NAME
+
+vnl-ts - add a timestamp to a vnlog stream
+
+=head1 SYNOPSIS
+
+ $ read_temperature
+ # temperature
+ 29.5
+ 30.4
+ 28.3
+ 22.1
+ ... continually produces data at 1Hz
+
+ $ read_temperature | vnl-ts -s %.s
+ # time-rel temperature
+ 0.013893 30.2
+ 1.048695 28.6
+ 2.105592 29.3
+ 3.162873 22.0
+ ...
+
+=head1 DESCRIPTION
+
+  Usage: vnl-ts [-i | -s] [-m] [--vnl-field t] format < pipe
+
+This tool runs C<ts> on given vnlog streams. C<vnl-ts> is a wrapper around the
+C<ts> tool from Joey Hess's L<moreutils|https://joeyh.name/code/moreutils/>
+toolkit. Since this is a wrapper, most commandline options and behaviors of the
+C<ts> tool are present; consult the L<ts(1)> manpage for details. The
+differences from C<ts> are
+
+=over
+
+=item *
+
+The input and output to this tool are vnlog files, complete with a legend
+
+=item *
+
+The format I<must> be passed-in by the user; no default is assumed.
+
+=item *
+
+The given format I<must not> contain whitespace, so that it fits a single vnlog
+field.
+
+=item *
+
+C<-r> is not supported: it assumes input timestamps with whitespace, which is
+incompatible with vnlog
+
+=item *
+
+A C<vnl-ts>-specific option C<--vnl-field> is available to set the name of the
+new field. If omitted, a reasonable default will be used.
+
+=back
+
+Past that, everything C<ts> does is supported, so see that man page for
+detailed documentation.
+
+=head1 BUGS
+
+This and the other C<vnl-xxx> tools that wrap standard utilities are written
+specifically to work with the Linux kernel. None of these have been tested with
+BSD tools or with non-Linux kernels, and I'm sure things don't just work. It's
+probably not too effortful to get that running, but somebody needs to at least
+bug me for that. Or better yet, send me nice patches :)
+
+=head1 SEE ALSO
+
+L<ts(1)>
+
+=head1 REPOSITORY
+
+https://github.com/dkogan/vnlog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <dima@secretsauce.net> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2018 Dima Kogan C<< <dima@secretsauce.net> >>
+
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option) any
+later version.
+
+=cut

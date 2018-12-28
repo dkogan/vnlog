@@ -65,7 +65,7 @@ if( @ifollow )
         $ARGV[$i] = $last;
     }
 }
-my ($filenames,$options) = parse_options(\@ARGV, \@specs, <<EOF);
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
   $0 [options] logfile logfile logfile ... < logfile
 
 The most common options are (from the GNU tail manpage)
@@ -119,7 +119,7 @@ say '# ' . join(' ', @{$inputs->[0]{keys}});
 #
 # Additionally, since I don't use the file filter anymore, I close those pipes
 
-my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs, 1);
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs, 1);
 close_nondev_inputs($inputs);
 exec 'tail', @$ARGV_new;
 
@@ -152,8 +152,8 @@ vnl-tail - tail a log file, preserving the legend
 
   Usage: vnl-tail [options] logfile logfile logfile ... < logfile
 
-This tool runs tail on given vnlog files in various ways. C<vnl-tail> is
-a wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
+This tool runs C<tail> on given vnlog files in various ways. C<vnl-tail> is a
+wrapper around the GNU coreutils C<tail> tool. Since this is a wrapper, most
 commandline options and behaviors of the C<tail> tool are present; consult the
 L<tail(1)> manpage for detail. The differences from GNU coreutils C<tail> are
 

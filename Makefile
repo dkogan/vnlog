@@ -9,15 +9,23 @@ BIN_SOURCES := test/test1.c
 TOOLS :=					\
   vnl-filter					\
   vnl-gen-header				\
-  vnl-tail					\
   vnl-make-matrix				\
   vnl-align					\
+  vnl-sort					\
   vnl-join					\
-  vnl-sort
+  vnl-tail					\
+  vnl-ts
 
 
 # I construct the README.org from the template. The only thing I do is to insert
-# the manpages
+# the manpages. Note that this is more complicated than it looks:
+#
+# 1. The tools are written in perl and contain POD documentation
+# 2. This documentation is stripped out here with pod2text, and included in the
+#    README. This README is an org-mode file, and the README.template.org
+#    container included the manpage text inside a #+BEGIN_EXAMPLE/#+END_EXAMPLE.
+#    So the manpages are treated as a verbatim, unformatted text blob
+# 3. Further down, the same POD is converted to a manpage via pod2man
 define MAKE_README =
 BEGIN									\
 {									\
@@ -33,7 +41,7 @@ while(<STDIN>)								\
 }
 endef
 
-README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail
+README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail vnl-ts
 	< $(filter README%,$^) perl -e '$(MAKE_README)' $(filter-out README%,$^) > $@
 all: README.org
 

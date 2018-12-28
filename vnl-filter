@@ -23,6 +23,7 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --dumpexprs
       --perl
       --unbuffered
+      --stream
 
     This tool is a nicer 'awk' that reads and write vnlog. As a result, it
     can refer to columns by name, not number, like awk does.
@@ -45,6 +46,8 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
 
     --unbuffered flushes each line after each print. Useful for streaming data.
 
+    --stream is a synonym for "--unbuffered"
+
     For more information, please read the manpage.
 EOF
 
@@ -65,6 +68,7 @@ GetOptions(\%options,
            "dumpexprs!",
            "perl",
            "unbuffered",
+           "stream",
            "help") or die($usage);
 if( defined $options{help} )
 {
@@ -74,6 +78,8 @@ if( defined $options{help} )
 
 $options{has}  //= [];
 $options{pick} //= [];
+
+$options{unbuffered} = $options{unbuffered} || $options{stream};
 
 # anything remaining on the commandline are 'matches' expressions
 $options{matches} = \@ARGV;
@@ -158,12 +164,14 @@ my $colidx_needed_max = -1;
 # column references (such as $1), or more complex expressions
 my @langspecific_output_fields;
 
-# How many rel(),diff() calls we have. I generate code based on this
-my $Nrel  = 0;
-my $Ndiff = 0;
-my @rel_outer;
-my @diff_outer;
-
+# How many rel(),diff(),... calls we have. I generate code based on this
+my @all_specialops = qw(rel diff sum prev);
+my %specialops;
+for my $what (@all_specialops)
+{
+    $specialops{$what} = {N     => 0,
+                          outer => []};
+}
 
 # Loop searching for the legend.
 #
@@ -446,11 +454,23 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
+sub find_outer_specialop
+{
+    # returns the FIRST outer specialop that appears in the given string, or
+    # undef if none are found
+    my ($str) = @_;
+
+    my $re_any = join('|', @all_specialops);
+
+    my $re = qr/^.*?\b($re_any)\s*\(/;
+    $str =~ $re or return undef;
+    return $1;
+}
 sub subst_reldiff
 {
-    # This is somewhat convoluted. I want the meaning of rel() and diff() to be
-    # preserved regardless of any early-exit expressions. I.e. this sequence is
-    # broken:
+    # This is somewhat convoluted. I want the meaning of rel() and diff() and
+    # ... to be preserved regardless of any early-exit expressions. I.e. this
+    # sequence is broken:
     #
     # - if(!matches) { continue }
     # - print rel() # update internal state
@@ -479,18 +499,8 @@ sub subst_reldiff
 
     my $sigil = $options{perl} ? '$' : '';
 
-    my $N;
-    my $outer_list;
-    if( $what eq 'rel' )
-    {
-        $N          = \$Nrel;
-        $outer_list = \@rel_outer;
-    }
-    else
-    {
-        $N          = \$Ndiff;
-        $outer_list = \@diff_outer;
-    }
+    my $N          = \$specialops{$what}{N};
+    my $outer_list = $specialops{$what}{outer};
 
     my $whatre = qr/\b$what\s*\(/p;
     while( $expr =~ /$whatre/p )
@@ -524,21 +534,32 @@ sub subst_reldiff
 
 sub get_reldiff_outer_expr
 {
-    # should be called AFTER all the outer rel/diff expressions were
+    # should be called AFTER all the outer rel/diff/... expressions were
     # encountered. I.e. after the last expr_subst_col_names()
     my $sigil = $options{perl} ? '$' : '';
     my $expr = '';
-    for my $e (@rel_outer)
-    {
-        my ($i, $paren_expr) = @$e;
-        $expr .= $sigil . "__rel$i = rel$i" . subst_reldiff('rel', $paren_expr, 0) . '; ';
 
-    }
-    for my $e (@diff_outer)
+    for my $what (@all_specialops)
     {
-        my ($i, $paren_expr) = @$e;
-        $expr .= $sigil . "__diff$i = diff$i" . subst_reldiff('diff', $paren_expr, 0) . '; ';
+        for my $e (@{$specialops{$what}{outer}})
+        {
+            my ($i, $paren_expr) = @$e;
 
+            # I keep substituting until I got everything. This is required
+            # because I can have deeply recursive calls
+            my $substituted = $paren_expr;
+            while(1)
+            {
+                my $start = $substituted;
+                for my $what_inner (@all_specialops)
+                {
+                    $substituted = subst_reldiff($what_inner, $substituted, 0);
+                }
+                if($substituted eq $start) { last; }
+            }
+
+            $expr .= $sigil . "__$what$i = $what$i" . $substituted . '; ';
+        }
     }
     return $expr;
 }
@@ -604,9 +625,10 @@ sub expr_subst_col_names
         }
     }
 
-    $out = subst_reldiff ('rel',  $out, 1);
-    $out = subst_reldiff ('diff', $out, 1);
-
+    while(my $what = find_outer_specialop($out))
+    {
+        $out = subst_reldiff ($what, $out, 1);
+    }
     return ($out, $colidx_needed_max_here);
 }
 
@@ -634,12 +656,12 @@ $evalstr .=
 $evalstr .=
   'sub compute_reldiff { ' . get_reldiff_outer_expr() . '}' . "\n";
 
-# I'm defining the rel()/diff() functions. These should be global, so if I do
-# this inside a for(){}, the functions end up local to that for(). I thus have
-# an ugly manual loop
+# I'm defining the rel()/diff()/... functions. These should be global, so if I
+# do this inside a for(){}, the functions end up local to that for(). I thus
+# have an ugly manual loop
 my $i = 0;
 EVAL_REL_FUNC:
-if( $i < $Nrel )
+if( $i < $specialops{rel}{N} )
 {
     $evalstr = "sub rel$i" . '{ my ($x) = @_; state $state=undef; if(!defined $state) { $state=$x; } return $x - $state; } ' . "\n" . $evalstr;
     $i++;
@@ -648,11 +670,29 @@ if( $i < $Nrel )
 
 $i = 0;
 EVAL_DIFF_FUNC:
-if( $i < $Ndiff )
+if( $i < $specialops{diff}{N} )
 {
     $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ' . $evalstr;
     $i++;
     goto EVAL_DIFF_FUNC;
+}
+
+$i = 0;
+EVAL_SUM_FUNC:
+if( $i < $specialops{sum}{N} )
+{
+    $evalstr = "sub sum$i" . '{ my ($x) = @_; state $state=0; $state += $x; return $state; } ' . $evalstr;
+    $i++;
+    goto EVAL_SUM_FUNC;
+}
+
+$i = 0;
+EVAL_PREV_FUNC:
+if( $i < $specialops{prev}{N} )
+{
+    $evalstr = "sub prev$i" . '{ my ($x) = @_; state $state=0; my $prev = $state; $state = $x; return $prev; } ' . $evalstr;
+    $i++;
+    goto EVAL_PREV_FUNC;
 }
 
 
@@ -780,7 +820,7 @@ sub makeAwkProgram
     else
     {
         # skip empty records if we must. I evaluate the fields just one time to
-        # not affect the state inside rel() and diff()
+        # not affect the state inside rel() and diff() and ...
         if (!$options{skipempty})
         {
             # print selected fields
@@ -796,8 +836,9 @@ sub makeAwkProgram
                    map { "__f$_ = $langspecific_output_fields[$_]; " }
                    0..$#langspecific_output_fields) .
 
-                     # Then I do skipempty. Important to do this after evaluating ALL the
-                     # fields to tick all the rel(), diff() state
+                     # Then I do skipempty. Important to do this after
+                     # evaluating ALL the fields to tick all the rel(), diff(),
+                     # ... state
                      "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
                      ") { next }; " .
 
@@ -810,13 +851,21 @@ sub makeAwkProgram
     my $outer_expr = get_reldiff_outer_expr();
 
     my $awkprogram_reldiff = '';
-    for my $i (0..$Nrel-1)
+    for my $i (0..$specialops{rel}{N}-1)
     {
         $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
     }
-    for my $i (0..$Ndiff-1)
+    for my $i (0..$specialops{diff}{N}-1)
     {
         $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+    }
+    for my $i (0..$specialops{sum}{N}-1)
+    {
+        $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
+    }
+    for my $i (0..$specialops{prev}{N}-1)
+    {
+        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
     }
 
     my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
@@ -1053,8 +1102,9 @@ this can be requested with the C<--perl> option.
 
 =head2 Special functions
 
-For convenience we support two special functions in any expression passed on to
-awk or perl (named expressions, matches expressions, C<--eval> strings). These are
+For convenience we support several special functions in any expression passed on
+to awk or perl (named expressions, matches expressions, C<--eval> strings).
+These are
 
 =over
 
@@ -1082,26 +1132,39 @@ relative to some absolute beginning. Example:
 =item *
 
 C<diff(x)> returns the difference between the current value of C<x> and the
-previous value of C<x>. Example:
+previous value of C<x>. The first row will always be 0. Example:
 
- $ cat tst.vnl
+ $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
- # x
- 1
- 8
- 27
- 64
- 125
+ # x d1 d2
+   1  0  0
+   8  7  7
+  27 19 12
+  64 37 18
+ 125 61 24
 
+=item *
 
- $ <tst.vnl vnl-filter -p 'd1=diff(x),d2=diff(diff(x))'
+C<sum(x)> returns the cumulative sum of C<x>. As C<diff(x)> can be thought of as
+a derivative, C<sum(x)> can be thought of as an integral. So C<diff(sum(x))>
+would return the same value as C<x> (except for the first row; C<diff()> always
+returns 0 for the first row).
 
- # d1 d2
- 0 0
- 7 7
- 19 12
- 37 18
- 61 24
+Example:
+
+ $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
+
+ # x  s   ds
+   1   1   0
+   8   9   8
+  27  36  27
+  64 100  64
+ 125 225 125
+
+=item *
+
+C<prev(x)> returns the previous value of C<x>. One could construct C<sum()> and
+C<rel()> using this, if they weren't already available.
 
 =back
 
@@ -1308,6 +1371,10 @@ what went wrong.
 Flushes each line after each print. This makes sure each line is output as soon
 as it is available, which is crucial for realtime output and streaming plots.
 
+=head2 --stream
+
+Synonym for C<--unbuffered>
+
 =head1 CAVEATS
 
 This tool is very lax in its input validation (on purpose). As a result, columns
@@ -1333,7 +1400,7 @@ anyway.
 =item *
 
 Strings passed to C<-p> are split on C<,> I<except> if the C<,> is inside
-balanced <()>. This makes it possible to say things like C<vnl-filter --function
+balanced C<()>. This makes it possible to say things like C<vnl-filter --function
 'f(a,b) { ... }' -p 'c=f(a,b)'>. This is probably the right behavior, although
 some questionable looking field names become potentially impossible: C<f(a> and
 C<b)> I<could> otherwise be legal field names, but you're probably asking for

@@ -67,7 +67,7 @@ vnlog is built on assuming a particular record separator
 EOF
                           );
 
-my ($filenames,$options) = parse_options(\@ARGV, \@specs, <<EOF);
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
   $0 [options] logfile logfile logfile ... < logfile
 
 The most common options are (from the GNU sort manpage)
@@ -130,7 +130,7 @@ $options->{'ignore-leading-blanks'} = 1;
 my $inputs = read_and_preparse_input($filenames);
 ensure_all_legends_equivalent($inputs);
 substitute_field_keys($options, $inputs->[0]);
-my $ARGV_new = reconstruct_substituted_command($inputs, $options, \@specs);
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
 
 say '# ' . join(' ', @{$inputs->[0]{keys}});
 exec 'sort', @$ARGV_new;

@@ -1,3 +1,18 @@
+vnlog (1.14)
+
+  * "vnl-filter --stream" is now a synonym for
+    "vnl-filter --unbuffered"
+  * added new tool: vnl-ts
+
+ -- Dima Kogan <dkogan@debian.org>  Fri, 28 Dec 2018 12:32:22 -0800
+
+vnlog (1.13)
+
+  * vnl-join doesn't get confused by trailing whitespace
+  * vnl-filter new special-operations: sum(), prev()
+
+ -- Dima Kogan <dkogan@debian.org>  Sun, 02 Dec 2018 13:49:59 -0800
+
 vnlog (1.12)
 
   * test data now lives in separate subdirectories per tool

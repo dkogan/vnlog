@@ -1,0 +1,8 @@
+#compdef vnl-ts
+
+_arguments -S                                            \
+    '(-s)-i[Report time since last record]'              \
+    '(-i)-s[Report time from the receipt of the legend]' \
+    '-m[Use the monotonic system clock]'                 \
+    '--help'                                             \
+    ':format:_guard "^-*" "strftime-like format for the timestamp"'
