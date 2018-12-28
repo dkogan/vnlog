@@ -49,6 +49,7 @@ Requires:       mawk
 Requires:       perl-Text-Table
 Requires:       perl-List-MoreUtils
 Requires:       perl-autodie
+Requires:       moreutils
 
 %description tools
 Various helper tools to make working with vnlogs easier
@@ -93,12 +94,14 @@ make clean
 %{_bindir}/vnl-tail
 %{_bindir}/vnl-sort
 %{_bindir}/vnl-join
+%{_bindir}/vnl-ts
 %{_bindir}/vnl-make-matrix
 %{_bindir}/vnl-align
 %doc %{_mandir}/man1/vnl-filter.1.gz
 %doc %{_mandir}/man1/vnl-tail.1.gz
 %doc %{_mandir}/man1/vnl-sort.1.gz
 %doc %{_mandir}/man1/vnl-join.1.gz
+%doc %{_mandir}/man1/vnl-ts.1.gz
 %doc %{_mandir}/man1/vnl-make-matrix.1.gz
 %doc %{_mandir}/man1/vnl-align.1.gz
 %{_datadir}/zsh/*
