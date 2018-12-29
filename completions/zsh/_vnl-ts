@@ -24,4 +24,5 @@ _arguments -S                                            \
     '(-s)-i[Report time since last record]'              \
     '(-i)-s[Report time from the receipt of the legend]' \
     '-m[Use the monotonic system clock]'                 \
+    '--vnl-field[Name for the new timestamp field]:field-name:' \
     ':strftime-like format for the timestamp:_guarded_date_formats "^-*"'
