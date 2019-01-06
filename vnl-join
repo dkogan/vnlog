@@ -832,14 +832,14 @@ records in both of the inputs.
 C<vnl-join>-specific options are available to adjust the field-naming in the
 output:
 
-  C<--vnl-prefix1>
-  C<--vnl-suffix1>
-  C<--vnl-prefix2>
-  C<--vnl-suffix2>
-  C<--vnl-prefix>
-  C<--vnl-suffix>
-  C<--vnl-autoprefix>
-  C<--vnl-autosuffix>
+  --vnl-prefix1
+  --vnl-suffix1
+  --vnl-prefix2
+  --vnl-suffix2
+  --vnl-prefix
+  --vnl-suffix
+  --vnl-autoprefix
+  --vnl-autosuffix
 
 See below for details.
 
