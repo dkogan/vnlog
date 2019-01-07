@@ -67,7 +67,7 @@ sub parse
 
     $line =~ /^\s*(.*?)\s*$/; # get the non-newline part. Like chomp, but
                               # non-destructive
-    $this->{values} = [ map {$_ eq '-' ? undef : $_} split(/ /, $1) ];
+    $this->{values} = [ map {$_ eq '-' ? undef : $_} split(' ', $1) ];
     if( scalar @{$this->{'keys'}} != scalar @{$this->{'values'}} )
     {
         # mismatched key/value counts
