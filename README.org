@@ -1116,7 +1116,7 @@ SYNOPSIS
 
 DESCRIPTION
       Usage: vnl-join [join options]
-                      [--vnl-sort -|[dfgiMhnRrV]+]
+                      [--vnl-sort -|[sdfgiMhnRrV]+]
                       [ --vnl-[pre|suf]fix[1|2] xxx    |
                         --vnl-[pre|suf]fix xxx,yyy,zzz |
                         --vnl-autoprefix               |
@@ -1239,7 +1239,7 @@ DESCRIPTION
     take only a single pass through the data. If the input isn't sorted,
     then we can use normal shell substitutions to sort it:
 
-     $ vnl-join -j key <(vnl-sort -k key a.vnl) <(vnl-sort -k key b.vnl)
+     $ vnl-join -j key <(vnl-sort -s -k key a.vnl) <(vnl-sort -s -k key b.vnl)
 
     For convenience "vnl-join" provides a "--vnl-sort" option. This allows
     the above to be equivalently expressed as
@@ -1284,8 +1284,8 @@ DESCRIPTION
     (because you almost certainly want to) sort it back into numerical
     order:
 
-     $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) |
-       vnl-sort -n -k time
+     $ vnl-join -j time <(vnl-sort -s -k time a.vnl) <(vnl-sort -s -k time b.vnl) |
+       vnl-sort -s -n -k time
      # time a b
      9 b d
      10 c e
@@ -1297,6 +1297,10 @@ DESCRIPTION
      # time a b
      9 b d
      10 c e
+
+    Note that the input sort is stable: "vnl-join" will invoke "vnl-sort
+    -s". If you want a stable post-sort, you need to ask for it with
+    "--vnl-sort s...".
 
   N-way joins
     The GNU coreutils "join" tool is inherently designed to join *exactly*
