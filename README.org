@@ -21,10 +21,9 @@ Such data works very nicely with normal UNIX tools (=awk=, =sort=, =join=), can
 be easily read by fancier tools (=numpy=, =matlab=, =excel=, etc), and can be
 plotted with =feedgnuplot=. This tookit provides some tools to manipulate
 =vnlog= data and a few libraries to read/write it. The core philosophy is to
-avoid creating new knowledge as much as possible. A consequence of this is that
-the toolkit relies /heavily/ on existing (and familiar!) tools and workflows.
-And a result of /that/ is that the toolkit is very small and light, and has a
-/very/ friendly learning curve.
+avoid creating new knowledge as much as possible. Consequently, the toolkit 
+relies /heavily/ on existing (and familiar!) tools and workflows. As such, 
+the toolkit is small, light, and has a /very/ friendly learning curve.
 
 * Synopsis
 
