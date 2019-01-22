@@ -1,3 +1,9 @@
+vnlog (1.16)
+
+  * 'vnl-join --vnl-sort' runs a STABLE pre-sort
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 21 Jan 2019 17:26:32 -0800
+
 vnlog (1.15)
 
   * Vnlog::Parser perl library handles whitespace properly
