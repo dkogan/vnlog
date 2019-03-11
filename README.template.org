@@ -1,3 +1,7 @@
+* Talk
+
+I just gave a talk about this at [[https://www.socallinuxexpo.org/scale/17x][SCaLE 17x]]. Presentation lives [[https://github.com/dkogan/talk-feedgnuplot-vnlog/blob/master/feedgnuplot-vnlog.org][here]].
+
 * Summary
 
 Vnlog (pronounced "vanillog") is a trivially-simple log format:
