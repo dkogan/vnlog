@@ -18,7 +18,7 @@ BuildRequires: perl-List-MoreUtils
 BuildRequires: mawk
 BuildRequires: make
 BuildRequires: chrpath
-BuildRequires: mrbuild
+BuildRequires: mrbuild >= 0.63
 
 BuildRequires: /usr/bin/pod2man
 BuildRequires: perl-autodie
