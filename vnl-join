@@ -59,7 +59,7 @@ EOF
 my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
 
   $0 [join options]
-           [--vnl-sort -|[dfgiMhnRrV]+]
+           [--vnl-sort -|[sdfgiMhnRrV]+]
            [--vnl-[pre|suf]fix[1|2] xxx]
            logfile1 logfile2
 
@@ -96,11 +96,15 @@ There're also a few vnlog-specific options
          comma-separated lists for files 1-N, or these can be inferred from the
          filenames
 
-  --vnl-sort -|[dfgiMhnRrV]+]
+  --vnl-sort -|[sdfgiMhnRrV]+]
          Pre-sort both input files lexicographically (join assumes this sort
          order). If the argument isn't -, then ALSO post-sort the output
          using the given sort order. This is both for convenience and to work
-         around the hard-coded sort order that join assumes.
+         around the hard-coded sort order that join assumes. Note that
+         the pre-sort is stable (-s passed in), while the post-sort takes
+         the arguments as given: if you want a stable post-sort, ask for it
+         with '--vnl-sort s...'
+
 EOF
 
 
@@ -547,15 +551,15 @@ sub get_sort_prefilter
 
     return undef if !defined $options->{'vnl-sort'};
 
-    if ($options->{'vnl-sort'} !~ /^(?: [dfgiMhnRrV]+ | -)$/x)
+    if ($options->{'vnl-sort'} !~ /^(?: [sdfgiMhnRrV]+ | -)$/x)
     {
-        die("--vnl-sort must be followed by '-' or one or more of the ordering options that 'sort' takes: dfgiMhnRrV");
+        die("--vnl-sort must be followed by '-' or one or more of the ordering options that 'sort' takes: sdfgiMhnRrV");
     }
 
     # We sort with the default order (lexicographical) since that's what join
     # wants. We'll re-sort the output by the desired order again
     my $key = $options->{j};
-    my $input_filter = ["$Bin/vnl-sort", "-k", "$key"];
+    my $input_filter = ["$Bin/vnl-sort", "-s", "-k", "$key"];
     if ($options->{'ignore-case'})
     {
         push @$input_filter, '-f';
@@ -784,7 +788,7 @@ vnl-join - joins two log files on a particular field
 =head1 DESCRIPTION
 
   Usage: vnl-join [join options]
-                  [--vnl-sort -|[dfgiMhnRrV]+]
+                  [--vnl-sort -|[sdfgiMhnRrV]+]
                   [ --vnl-[pre|suf]fix[1|2] xxx    |
                     --vnl-[pre|suf]fix xxx,yyy,zzz |
                     --vnl-autoprefix               |
@@ -832,14 +836,14 @@ records in both of the inputs.
 C<vnl-join>-specific options are available to adjust the field-naming in the
 output:
 
-  C<--vnl-prefix1>
-  C<--vnl-suffix1>
-  C<--vnl-prefix2>
-  C<--vnl-suffix2>
-  C<--vnl-prefix>
-  C<--vnl-suffix>
-  C<--vnl-autoprefix>
-  C<--vnl-autosuffix>
+  --vnl-prefix1
+  --vnl-suffix1
+  --vnl-prefix2
+  --vnl-suffix2
+  --vnl-prefix
+  --vnl-suffix
+  --vnl-autoprefix
+  --vnl-autosuffix
 
 See below for details.
 
@@ -928,7 +932,7 @@ The GNU coreutils C<join> tool expects sorted columns because it can then take
 only a single pass through the data. If the input isn't sorted, then we can use
 normal shell substitutions to sort it:
 
- $ vnl-join -j key <(vnl-sort -k key a.vnl) <(vnl-sort -k key b.vnl)
+ $ vnl-join -j key <(vnl-sort -s -k key a.vnl) <(vnl-sort -s -k key b.vnl)
 
 For convenience C<vnl-join> provides a C<--vnl-sort> option. This allows the
 above to be equivalently expressed as
@@ -972,8 +976,8 @@ Then you cannot use C<vnl-join> directly to join the data on time:
 Instead you must re-sort both files lexicographically, I<and> then (because you
 almost certainly want to) sort it back into numerical order:
 
- $ vnl-join -j time <(vnl-sort -k time a.vnl) <(vnl-sort -k time b.vnl) |
-   vnl-sort -n -k time
+ $ vnl-join -j time <(vnl-sort -s -k time a.vnl) <(vnl-sort -s -k time b.vnl) |
+   vnl-sort -s -n -k time
  # time a b
  9 b d
  10 c e
@@ -985,6 +989,10 @@ palatable:
  # time a b
  9 b d
  10 c e
+
+Note that the input sort is stable: C<vnl-join> will invoke C<vnl-sort -s>.
+If you want a stable post-sort, you need to ask for it with C<--vnl-sort
+s...>.
 
 =head2 N-way joins
 

@@ -351,12 +351,12 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
                     next if $excludeRegexMatch->($picked_expr);
 
                     my @output_names_have = map {$_->[2]} @picked_fields;
-                    die "Couldn't find requested column '$picked_expr' to exclude. Currently have output columns '@output_names_have'";
+                    die "Couldn't find requested column '$picked_expr' to exclude. Currently have output columns\n" . join('', map { "  $_\n" } @output_names_have);
                 }
 
                 next if $acceptRegexMatch->($picked_expr);
 
-                die "Couldn't find requested column '$picked_expr' in the legend line '$_'";
+                die "Couldn't find requested column '$picked_expr'. Legend has columns\n" . join('', map { "  $_\n" } @cols_all_legend_input);
             }
 
             if(!@picked_fields)
