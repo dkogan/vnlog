@@ -467,6 +467,170 @@ if( !$options{perl} )
     exit; # dummy. We never get here
 }
 
+sub makeAwkProgram
+{
+    # The awk program I generate here is analogous to the logic in the data
+    # while() loop above
+
+    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @{$options{function}});
+
+    my $awkprogram_preamble = '';
+
+    # skip comments
+    $awkprogram_preamble .=
+      '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
+
+    # skip incomplete records. Can happen if a log line at the end of a file
+    # was cut off in the middle
+    if( $colidx_needed_max >= 0)
+    {
+        $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
+    }
+
+    # skip records that have empty input columns that must be non-empty
+    if (@must_have_col_indices_input)
+    {
+        $awkprogram_preamble .=
+          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
+        $awkprogram_preamble .= ' { next } ';
+    }
+
+    my $awkprogram_matches = '';
+    for my $expr( @{$options{matches}} )
+    {
+        ($expr) = expr_subst_col_names('awk', $expr);
+        $awkprogram_matches .= ' !' . "($expr) { next } ";
+    }
+
+    my $awkprogram_print = '';
+    if( $options{eval} )
+    {
+        my ($expr) = expr_subst_col_names('awk', $options{eval});
+        $awkprogram_print .= "$expr ";
+    }
+    else
+    {
+        # skip empty records if we must. I evaluate the fields just one time to
+        # not affect the state inside rel() and diff() and ...
+        if (!$options{skipempty})
+        {
+            # print selected fields
+            $awkprogram_print .=
+              '{ print ' . (join(',', @langspecific_output_fields)) . ' } ';
+        }
+        else
+        {
+            # I evaluate and cache all the fields
+            $awkprogram_print .=
+              '{ ' .
+              join(' ',
+                   map { "__f$_ = $langspecific_output_fields[$_]; " }
+                   0..$#langspecific_output_fields) .
+
+                     # Then I do skipempty. Important to do this after
+                     # evaluating ALL the fields to tick all the rel(), diff(),
+                     # ... state
+                     "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
+                     ") { next }; " .
+
+                     # And THEN I print everything
+                     'print ' . (join(',', map {"__f$_"} 0..$#langspecific_output_fields)) . '} ';
+        }
+    }
+
+
+    my $outer_expr = get_reldiff_outer_expr();
+
+    my $awkprogram_reldiff = '';
+    for my $i (0..$specialops{rel}{N}-1)
+    {
+        $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
+    }
+    for my $i (0..$specialops{diff}{N}-1)
+    {
+        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+    }
+    for my $i (0..$specialops{sum}{N}-1)
+    {
+        $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
+    }
+    for my $i (0..$specialops{prev}{N}-1)
+    {
+        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
+    }
+
+    my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
+    if(length($outer_expr))
+    {
+        $awkprogram .= "{ $outer_expr } ";
+    }
+    $awkprogram .= $awkprogram_matches . $awkprogram_print;
+    return $awkprogram;
+}
+
+# line split(',', $s), but respects (). I.e. splitting "a,b,f(c,d)" produces 3
+# tokens, not 4
+sub split_on_comma_respect_parens
+{
+    my ($s) = @_;
+
+    my @f;
+
+  FIELDS: # loop accumulating fields
+    while (1)
+    {
+        my $field_accum = '';
+
+      FIELD_ACCUM: # accumulate THIS field. Keep grabbing tokens until I see an
+                   # , or the end
+        while(1)
+        {
+            if (length($s) == 0)
+            {
+                if (length($field_accum))
+                {
+                    push @f, $field_accum;
+                }
+                last FIELDS;
+            }
+
+            if ($s !~ /^         # start of string
+                       ([^(,]*?) # some minimal number of non-comma, non-paren
+                       ([(,])    # comma or paren
+                      /px) {
+                # didn't match. The whole thing is the last field
+                push @f, $field_accum . $s;
+                last FIELDS;
+            }
+
+            my ($pre,$sep) = ($1,$2);
+            if ($sep eq ',')
+            {
+                # we have a field
+                push @f, $field_accum . $pre;
+                $field_accum = '';
+                $s = ${^POSTMATCH};
+                next FIELD_ACCUM;
+            }
+
+            # we have a paren. accumulate
+            my ($paren_expr, $rest) = extract_bracketed($sep . ${^POSTMATCH}, '(');
+            if ( !defined $paren_expr )
+            {
+                # non-matched paren. Accum normally
+                $rest =~ /^\((.*)$/ or die "Weird... '$rest' should have started with a '('. Giving up";
+                $field_accum .= '(';
+                $s = $1;
+                next FIELD_ACCUM;
+            }
+            $field_accum .= $pre . $paren_expr;
+            $s = $rest;
+        }
+    }
+
+    return @f;
+}
+
 sub find_outer_specialop
 {
     # returns the FIRST outer specialop that appears in the given string, or
@@ -909,171 +1073,6 @@ while(<STDIN>)
 
 
 
-
-
-sub makeAwkProgram
-{
-    # The awk program I generate here is analogous to the logic in the data
-    # while() loop above
-
-    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @{$options{function}});
-
-    my $awkprogram_preamble = '';
-
-    # skip comments
-    $awkprogram_preamble .=
-      '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
-
-    # skip incomplete records. Can happen if a log line at the end of a file
-    # was cut off in the middle
-    if( $colidx_needed_max >= 0)
-    {
-        $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
-    }
-
-    # skip records that have empty input columns that must be non-empty
-    if (@must_have_col_indices_input)
-    {
-        $awkprogram_preamble .=
-          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
-        $awkprogram_preamble .= ' { next } ';
-    }
-
-    my $awkprogram_matches = '';
-    for my $expr( @{$options{matches}} )
-    {
-        ($expr) = expr_subst_col_names('awk', $expr);
-        $awkprogram_matches .= ' !' . "($expr) { next } ";
-    }
-
-    my $awkprogram_print = '';
-    if( $options{eval} )
-    {
-        my ($expr) = expr_subst_col_names('awk', $options{eval});
-        $awkprogram_print .= "$expr ";
-    }
-    else
-    {
-        # skip empty records if we must. I evaluate the fields just one time to
-        # not affect the state inside rel() and diff() and ...
-        if (!$options{skipempty})
-        {
-            # print selected fields
-            $awkprogram_print .=
-              '{ print ' . (join(',', @langspecific_output_fields)) . ' } ';
-        }
-        else
-        {
-            # I evaluate and cache all the fields
-            $awkprogram_print .=
-              '{ ' .
-              join(' ',
-                   map { "__f$_ = $langspecific_output_fields[$_]; " }
-                   0..$#langspecific_output_fields) .
-
-                     # Then I do skipempty. Important to do this after
-                     # evaluating ALL the fields to tick all the rel(), diff(),
-                     # ... state
-                     "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
-                     ") { next }; " .
-
-                     # And THEN I print everything
-                     'print ' . (join(',', map {"__f$_"} 0..$#langspecific_output_fields)) . '} ';
-        }
-    }
-
-
-    my $outer_expr = get_reldiff_outer_expr();
-
-    my $awkprogram_reldiff = '';
-    for my $i (0..$specialops{rel}{N}-1)
-    {
-        $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
-    }
-    for my $i (0..$specialops{diff}{N}-1)
-    {
-        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
-    }
-    for my $i (0..$specialops{sum}{N}-1)
-    {
-        $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
-    }
-    for my $i (0..$specialops{prev}{N}-1)
-    {
-        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
-    }
-
-    my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
-    if(length($outer_expr))
-    {
-        $awkprogram .= "{ $outer_expr } ";
-    }
-    $awkprogram .= $awkprogram_matches . $awkprogram_print;
-    return $awkprogram;
-}
-
-# line split(',', $s), but respects (). I.e. splitting "a,b,f(c,d)" produces 3
-# tokens, not 4
-sub split_on_comma_respect_parens
-{
-    my ($s) = @_;
-
-    my @f;
-
-  FIELDS: # loop accumulating fields
-    while (1)
-    {
-        my $field_accum = '';
-
-      FIELD_ACCUM: # accumulate THIS field. Keep grabbing tokens until I see an
-                   # , or the end
-        while(1)
-        {
-            if (length($s) == 0)
-            {
-                if (length($field_accum))
-                {
-                    push @f, $field_accum;
-                }
-                last FIELDS;
-            }
-
-            if ($s !~ /^         # start of string
-                       ([^(,]*?) # some minimal number of non-comma, non-paren
-                       ([(,])    # comma or paren
-                      /px) {
-                # didn't match. The whole thing is the last field
-                push @f, $field_accum . $s;
-                last FIELDS;
-            }
-
-            my ($pre,$sep) = ($1,$2);
-            if ($sep eq ',')
-            {
-                # we have a field
-                push @f, $field_accum . $pre;
-                $field_accum = '';
-                $s = ${^POSTMATCH};
-                next FIELD_ACCUM;
-            }
-
-            # we have a paren. accumulate
-            my ($paren_expr, $rest) = extract_bracketed($sep . ${^POSTMATCH}, '(');
-            if ( !defined $paren_expr )
-            {
-                # non-matched paren. Accum normally
-                $rest =~ /^\((.*)$/ or die "Weird... '$rest' should have started with a '('. Giving up";
-                $field_accum .= '(';
-                $s = $1;
-                next FIELD_ACCUM;
-            }
-            $field_accum .= $pre . $paren_expr;
-            $s = $rest;
-        }
-    }
-
-    return @f;
-}
 
 
 __END__
