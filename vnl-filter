@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Getopt::Long qw(:config no_getopt_compat);
+use Getopt::Long qw(:config no_getopt_compat bundling);
 use List::Util 'max';
 use List::MoreUtils qw(any all);
 use FindBin '$Bin';
@@ -48,6 +48,7 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
 
     --stream is a synonym for "--unbuffered"
 
+context
     For more information, please read the manpage.
 EOF
 
@@ -62,6 +63,9 @@ GetOptions(\%options,
            "has=s@",
            "pick|print|p=s@",
            "eval=s",
+           "after-context|A=i",
+           "before-context|B=i",
+           "context|C=i",
            "function|sub=s@",
            "skipempty!",
            "skipcomments!",
@@ -94,6 +98,15 @@ if( defined $options{eval} && @{$options{pick}} )
     say STDERR "--eval is given, so no column selectors should be given also";
     die $usage;
 }
+
+if( defined $options{context} &&
+    (defined $options{'before-context'} ||
+     defined $options{'after-context'}) )
+{
+    say STDERR "-C is exclusive with -A and -B";
+    die $usage;
+}
+
 
 # parse the , in $options{has} and $options{pick}. In --pick use the fancy
 # ()-respecting version of split
@@ -719,6 +732,119 @@ use warnings;
 
 
 
+# The stuff from here until the main while(<STDIN>) loop is all for context
+# handling (-A,-B,-C)
+
+# TODO
+# ## needs to go into the right place: (echo '# x'; seq 15) | ./vnl-filter -C 5 --perl 'x =~ /3$/'
+# trailing ##: (echo '# x'; seq 15) | ./vnl-filter -A 1 --perl 'x =~ /3$/'
+# do this in awk too
+my $any_context_stuff =
+  $options{'after-context'}  ||
+  $options{'before-context'} ||
+  $options{'context'};
+
+my $NcontextBefore = $options{'before-context'} || $options{'context'};
+my $NcontextAfter  = $options{'after-context'}  || $options{'context'};
+
+# circular buffer containing previous entries. Used for -B
+my @contextbuffer;
+@contextbuffer = (undef) x $NcontextBefore if $NcontextBefore;
+my $i1_contextbuffer = 0; # the end; new entries written here
+my $N_contextbuffer  = 0;
+
+# how many record to print unconditionally. Used for -A
+my $N_printafter = 0;
+
+# used for the group separator '##'
+my $just_skipped_something = 0;
+my $printed_something_ever = 0;
+
+sub make_record_line
+{
+    my $fout = compute_output_fields();
+
+    # skip empty records if we must
+    my $doskip = $options{skipempty} && all {!defined $_} @$fout;
+    return join(' ', map {$_ // '-'} @$fout), $doskip;
+}
+
+sub contextbuffer_output_and_clear
+{
+    return unless $NcontextBefore;
+
+    my $i0_contextbuffer =
+      $i1_contextbuffer - $N_contextbuffer;
+    $i0_contextbuffer += @contextbuffer if $i0_contextbuffer < 0;
+
+    while ($N_contextbuffer)
+    {
+        say $contextbuffer[$i0_contextbuffer++];
+        $i0_contextbuffer = 0 if $i0_contextbuffer == @contextbuffer;
+        $N_contextbuffer--;
+    }
+}
+
+# pushes to the buffer. Returns TRUE if I did NOT just overwrite an element of
+# the buffer
+sub contextbuffer_push
+{
+    return unless $NcontextBefore;
+
+    my ($line) = @_;
+
+    $contextbuffer[$i1_contextbuffer++] = $line;
+    $i1_contextbuffer = 0 if $i1_contextbuffer == @contextbuffer;
+    $N_contextbuffer++ unless $N_contextbuffer == @contextbuffer;
+}
+
+sub record_accept
+{
+    return if $options{eval};
+
+    my ($line) = @_;
+
+    if(!$any_context_stuff)
+    {
+        say $line;
+        flush STDOUT if $options{unbuffered};
+        return;
+    }
+
+    say '##' if $just_skipped_something && $printed_something_ever;
+    $just_skipped_something = 0;
+    $printed_something_ever = 1;
+    contextbuffer_output_and_clear();
+    say $line;
+    flush STDOUT if $options{unbuffered};
+
+    $N_printafter = $NcontextAfter;
+}
+
+sub record_skip
+{
+    return if $options{eval};
+    return if !$any_context_stuff;
+
+    my ($line) = @_;
+    if(!defined $line)
+    {
+        my $doskip;
+        ($line,$doskip) = make_record_line();
+    }
+
+    if($N_printafter)
+    {
+        say $line;
+        flush STDOUT if $options{unbuffered};
+        $N_printafter--;
+        return;
+    }
+
+    $just_skipped_something = 1 if $N_contextbuffer == @contextbuffer;
+    contextbuffer_push($line);
+}
+
 RECORD:
 while(<STDIN>)
 {
@@ -740,16 +866,25 @@ while(<STDIN>)
     @fields = map {q{-} eq $_ ? undef : $_ } split;
 
     # skip incomplete records. Can happen if a log line at the end of a file was
-    # cut off in the middle
+    # cut off in the middle. These are invalid lines, so I don't even bother to
+    # handle -A/-B/-C
     next unless $colidx_needed_max <= $#fields;
 
     # skip records that have empty input columns that must be non-empty
-    next if any {!defined $fields[$_]} @must_have_col_indices_input;
+    if( any {!defined $fields[$_]} @must_have_col_indices_input )
+    {
+        record_skip();
+        next;
+    }
 
     compute_reldiff();
 
     # skip all records that don't match given expressions
-    next unless matches();
+    if(!matches())
+    {
+        record_skip();
+        next;
+    }
 
     if( $options{eval} )
     {
@@ -757,13 +892,13 @@ while(<STDIN>)
     }
     else
     {
-        my $fout = compute_output_fields();
-
-        # skip empty records if we must
-        next if $options{skipempty} && all {!defined $_} @$fout;
-
-        say join(' ', map {$_ // '-'} @$fout);
-        flush STDOUT if $options{unbuffered};
+        my ($line,$doskip) = make_record_line();
+        if($doskip)
+        {
+            record_skip($line);
+            next;
+        }
+        record_accept($line);
     }
 }
 
