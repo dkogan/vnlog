@@ -107,6 +107,21 @@ if( defined $options{context} &&
     die $usage;
 }
 
+my $any_context_stuff =
+  $options{'after-context'}  ||
+  $options{'before-context'} ||
+  $options{'context'};
+
+if( $any_context_stuff && $options{eval} )
+{
+    say STDERR "--eval is exclusive with -A/-B/-C";
+    die $usage;
+}
+
+my $NcontextBefore = ($options{'before-context'} || $options{'context'}) // 0;
+my $NcontextAfter  = ($options{'after-context'}  || $options{'context'}) // 0;
+
+
 
 # parse the , in $options{has} and $options{pick}. In --pick use the fancy
 # ()-respecting version of split
@@ -476,30 +491,88 @@ sub makeAwkProgram
 
     my $awkprogram_preamble = '';
 
-    # skip comments
+
+    if($any_context_stuff)
+    {
+        # context-handling stuff. This is a mirror of the perl implementation
+        # below. See the comments there for a description
+        $awkprogram_preamble .= 'BEGIN {' .
+          '__i1_contextbuffer       = 0; ' .
+          '__N_contextbuffer        = 0; ' .
+          '__N_printafter           = 0; ' .
+          '__just_skipped_something = 0; ' .
+          '__printed_something_ever = 0; ' .
+          '} ';
+
+        $awkprogram_preamble .= 'function __contextbuffer_output_and_clear() { ' .
+          "__i0_contextbuffer = __i1_contextbuffer - __N_contextbuffer; " .
+          "if(__i0_contextbuffer < 0){__i0_contextbuffer += $NcontextBefore;} " .
+          "while (__N_contextbuffer) { " .
+          "    print __contextbuffer[__i0_contextbuffer++]; " .
+          "    if(__i0_contextbuffer == $NcontextBefore){__i0_contextbuffer = 0} " .
+          "    __N_contextbuffer--; " .
+          "} " .
+          "} ";
+
+        # pushes to the buffer. Returns TRUE if I did NOT just overwrite an element of
+        # the buffer
+        $awkprogram_preamble .= 'function __contextbuffer_push(__line) { ' .
+          '__contextbuffer[__i1_contextbuffer++] = __line; ' .
+          "if(__i1_contextbuffer == $NcontextBefore) {__i1_contextbuffer = 0} " .
+          "if(__N_contextbuffer  != $NcontextBefore) {__N_contextbuffer++} " .
+          "} ";
+
+        my $call_contextbuffer_output_and_clear =
+          $NcontextBefore ? '__contextbuffer_output_and_clear(); ' : '';
+        $awkprogram_preamble .= 'function __record_accept(__line) { ' .
+          'if( __just_skipped_something && __printed_something_ever) { print "##" } ' .
+          '__just_skipped_something = 0; ' .
+          '__printed_something_ever = 1; ' .
+          $call_contextbuffer_output_and_clear .
+          'print __line; ' .
+          "__N_printafter = $NcontextAfter" .
+          '} ';
+
+        my $call_contextbuffer_push =
+          $NcontextBefore ? '__contextbuffer_push(__line); ' : '';
+        $awkprogram_preamble .= 'function __record_skip(__line) { ' .
+          'if(__N_printafter) { ' .
+          '    print __line; ' .
+          '    __N_printafter--; ' .
+          '    return; ' .
+          '} ' .
+          "if(__N_contextbuffer == $NcontextBefore){__just_skipped_something = 1;}  " .
+          $call_contextbuffer_push .
+          '} ';
+    }
+
+    # Deal with comments. If printing, these do not count towards the context
+    # stuff (-A/-B/-C)
     $awkprogram_preamble .=
       '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
 
-    # skip incomplete records. Can happen if a log line at the end of a file
-    # was cut off in the middle
+    # skip incomplete records. Can happen if a log line at the end of a file was
+    # cut off in the middle. These are invalid lines, so I don't even bother to
+    # handle -A/-B/-C
     if( $colidx_needed_max >= 0)
     {
         $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
     }
 
     # skip records that have empty input columns that must be non-empty
+    my $record_skip_call =
+      $any_context_stuff ? '__record_skip(' . join('" "', @langspecific_output_fields) .');' : '';
     if (@must_have_col_indices_input)
     {
         $awkprogram_preamble .=
           join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
-        $awkprogram_preamble .= ' { next } ';
+        $awkprogram_preamble .= " { $record_skip_call next } ";
     }
-
     my $awkprogram_matches = '';
     for my $expr( @{$options{matches}} )
     {
         ($expr) = expr_subst_col_names('awk', $expr);
-        $awkprogram_matches .= ' !' . "($expr) { next } ";
+        $awkprogram_matches .= ' !' . "($expr) { $record_skip_call next } ";
     }
 
     my $awkprogram_print = '';
@@ -510,32 +583,45 @@ sub makeAwkProgram
     }
     else
     {
-        # skip empty records if we must. I evaluate the fields just one time to
-        # not affect the state inside rel() and diff() and ...
+        $awkprogram_print .= '{';
+
+        my $record_skip_call =
+          $any_context_stuff ? '__record_skip(__line); ' : '';
+        my $record_accept_call =
+          $any_context_stuff ? '__record_accept(__line); ' : 'print __line; ';
+
+            # skip empty records if we must. I evaluate the fields just one time to
+            # not affect the state inside rel() and diff()
         if (!$options{skipempty})
         {
-            # print selected fields
+            # Not skipping the null fields. I just print everything I have
             $awkprogram_print .=
-              '{ print ' . (join(',', @langspecific_output_fields)) . ' } ';
+              '__line = ' . (join('" "', @langspecific_output_fields)) . '; ' .
+              $record_accept_call;
         }
         else
         {
-            # I evaluate and cache all the fields
+            # I'm skipping the null fields. I thus look at each field
+            # individually, and print only if they're all non-null
             $awkprogram_print .=
-              '{ ' .
               join(' ',
                    map { "__f$_ = $langspecific_output_fields[$_]; " }
                    0..$#langspecific_output_fields) .
 
-                     # Then I do skipempty. Important to do this after
-                     # evaluating ALL the fields to tick all the rel(), diff(),
-                     # ... state
-                     "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
-                     ") { next }; " .
+                     '__line = ' . join('" "', map {"__f$_"} 0..$#langspecific_output_fields) . '; ';
 
-                     # And THEN I print everything
-                     'print ' . (join(',', map {"__f$_"} 0..$#langspecific_output_fields)) . '} ';
+            # Then I do skipempty. Important to do this after
+            # evaluating ALL the fields to tick all the rel(), diff(),
+            # ... state
+            $awkprogram_print .=
+              "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
+              ") { $record_skip_call next }; ";
+
+            # And THEN I print everything
+            $awkprogram_print .= $record_accept_call;
         }
+
+        $awkprogram_print .= '}';
     }
 
 
@@ -899,18 +985,6 @@ use warnings;
 # The stuff from here until the main while(<STDIN>) loop is all for context
 # handling (-A,-B,-C)
 
-# TODO
-# ## needs to go into the right place: (echo '# x'; seq 15) | ./vnl-filter -C 5 --perl 'x =~ /3$/'
-# trailing ##: (echo '# x'; seq 15) | ./vnl-filter -A 1 --perl 'x =~ /3$/'
-# do this in awk too
-my $any_context_stuff =
-  $options{'after-context'}  ||
-  $options{'before-context'} ||
-  $options{'context'};
-
-my $NcontextBefore = $options{'before-context'} || $options{'context'};
-my $NcontextAfter  = $options{'after-context'}  || $options{'context'};
-
 # circular buffer containing previous entries. Used for -B
 my @contextbuffer;
 @contextbuffer = (undef) x $NcontextBefore if $NcontextBefore;
@@ -939,12 +1013,12 @@ sub contextbuffer_output_and_clear
 
     my $i0_contextbuffer =
       $i1_contextbuffer - $N_contextbuffer;
-    $i0_contextbuffer += @contextbuffer if $i0_contextbuffer < 0;
+    $i0_contextbuffer += $NcontextBefore if $i0_contextbuffer < 0;
 
     while ($N_contextbuffer)
     {
         say $contextbuffer[$i0_contextbuffer++];
-        $i0_contextbuffer = 0 if $i0_contextbuffer == @contextbuffer;
+        $i0_contextbuffer = 0 if $i0_contextbuffer == $NcontextBefore;
         $N_contextbuffer--;
     }
 }
@@ -958,8 +1032,8 @@ sub contextbuffer_push
     my ($line) = @_;
 
     $contextbuffer[$i1_contextbuffer++] = $line;
-    $i1_contextbuffer = 0 if $i1_contextbuffer == @contextbuffer;
-    $N_contextbuffer++ unless $N_contextbuffer == @contextbuffer;
+    $i1_contextbuffer = 0 if $i1_contextbuffer == $NcontextBefore;
+    $N_contextbuffer++ unless $N_contextbuffer == $NcontextBefore;
 }
 
 sub record_accept
@@ -1005,7 +1079,7 @@ sub record_skip
         return;
     }
 
-    $just_skipped_something = 1 if $N_contextbuffer == @contextbuffer;
+    $just_skipped_something = 1 if $N_contextbuffer == $NcontextBefore;
     contextbuffer_push($line);
 }
 
@@ -1015,7 +1089,8 @@ while(<STDIN>)
     # Data loop. Each statement here is analogous to the awk program generated
     # by makeAwkProgram();
 
-    # skip comments
+    # Deal with comments. If printing, these do not count towards the context
+    # stuff (-A/-B/-C)
     if(/^#/)
     {
         unless($options{skipcomments})

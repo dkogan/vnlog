@@ -615,7 +615,7 @@ my $data_seq15 = <<'EOF';
 15
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-A', '1', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-A', '1', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 3 6
@@ -625,7 +625,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-A', '1', 'x =~ /3$/'], {data => $data_seq15
 14 28
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-A1', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-A1', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 3 6
@@ -635,7 +635,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-A1', 'x =~ /3$/'], {data => $data_seq15, la
 14 28
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-A8', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-A8', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 3 6
@@ -653,7 +653,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-A8', 'x =~ /3$/'], {data => $data_seq15, la
 15 30
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-A9', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-A9', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 3 6
@@ -671,7 +671,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-A9', 'x =~ /3$/'], {data => $data_seq15, la
 15 30
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-B1', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-B1', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 2 4
@@ -681,7 +681,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-B1', 'x =~ /3$/'], {data => $data_seq15, la
 13 26
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-B2', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-B2', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 1 2
@@ -693,7 +693,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-B2', 'x =~ /3$/'], {data => $data_seq15, la
 13 26
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-B3', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-B3', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 1 2
@@ -706,7 +706,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-B3', 'x =~ /3$/'], {data => $data_seq15, la
 13 26
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-B8', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-B8', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 1 2
@@ -724,7 +724,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-B8', 'x =~ /3$/'], {data => $data_seq15, la
 13 26
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-B9', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-B9', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 1 2
@@ -742,7 +742,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-B9', 'x =~ /3$/'], {data => $data_seq15, la
 13 26
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-C1', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-C1', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 2 4
@@ -754,7 +754,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-C1', 'x =~ /3$/'], {data => $data_seq15, la
 14 28
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-C4', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-C4', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 1 2
@@ -774,7 +774,7 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-C4', 'x =~ /3$/'], {data => $data_seq15, la
 15 30
 EOF
 
-check( <<'EOF', ['-p', '.,x2=2*x', '-C5', 'x =~ /3$/'], {data => $data_seq15, language => 'perl'} );
+check( <<'EOF', ['-p', '.,x2=2*x', '-C5', '(x-3)%10 == 0'], {data => $data_seq15} );
 #!/bin/xxx
 # x x2
 1 2
