@@ -454,8 +454,6 @@ if(!%colindices_input)
 
 
 
-
-
 # At this point I'm done dealing with the legend, and it's time to read in and
 # process the data. I can keep going in perl, or I can generate an awk program,
 # and let awk do this work. The reason: awk (mawk especialy) runs much faster.
@@ -521,29 +519,6 @@ sub makeAwkProgram
           "if(__i1_contextbuffer == $NcontextBefore) {__i1_contextbuffer = 0} " .
           "if(__N_contextbuffer  != $NcontextBefore) {__N_contextbuffer++} " .
           "} ";
-
-        my $call_contextbuffer_output_and_clear =
-          $NcontextBefore ? '__contextbuffer_output_and_clear(); ' : '';
-        $awkprogram_preamble .= 'function __record_accept(__line) { ' .
-          'if( __just_skipped_something && __printed_something_ever) { print "##" } ' .
-          '__just_skipped_something = 0; ' .
-          '__printed_something_ever = 1; ' .
-          $call_contextbuffer_output_and_clear .
-          'print __line; ' .
-          "__N_printafter = $NcontextAfter" .
-          '} ';
-
-        my $call_contextbuffer_push =
-          $NcontextBefore ? '__contextbuffer_push(__line); ' : '';
-        $awkprogram_preamble .= 'function __record_skip(__line) { ' .
-          'if(__N_printafter) { ' .
-          '    print __line; ' .
-          '    __N_printafter--; ' .
-          '    return; ' .
-          '} ' .
-          "if(__N_contextbuffer == $NcontextBefore){__just_skipped_something = 1;}  " .
-          $call_contextbuffer_push .
-          '} ';
     }
 
     # Deal with comments. If printing, these do not count towards the context
@@ -560,44 +535,89 @@ sub makeAwkProgram
     }
 
     # skip records that have empty input columns that must be non-empty
-    my $record_skip_call =
-      $any_context_stuff ? '__record_skip(' . join('" "', @langspecific_output_fields) .');' : '';
     if (@must_have_col_indices_input)
     {
         $awkprogram_preamble .=
           join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
-        $awkprogram_preamble .= " { $record_skip_call next } ";
-    }
-    my $awkprogram_matches = '';
-    for my $expr( @{$options{matches}} )
-    {
-        ($expr) = expr_subst_col_names('awk', $expr);
-        $awkprogram_matches .= ' !' . "($expr) { $record_skip_call next } ";
+        $awkprogram_preamble .= " { next } ";
     }
 
-    my $awkprogram_print = '';
-    if( $options{eval} )
+    my $not_matches_condition = join(' && ',
+                                     map
+                                     {
+                                         my ($expr) = expr_subst_col_names('awk', $_);
+                                         '!' . "($expr)"
+                                     } @{$options{matches}});
+    my $awkprogram_matches = '';
+    my $awkprogram_print;
+    if($options{eval})
     {
+        if( length($not_matches_condition) )
+        {
+            $awkprogram_matches .= $not_matches_condition . '{next}';
+        }
         my ($expr) = expr_subst_col_names('awk', $options{eval});
         $awkprogram_print .= "$expr ";
     }
     else
     {
+        if( length($not_matches_condition) )
+        {
+            $awkprogram_matches .= $not_matches_condition . '{ ';
+
+            if ($any_context_stuff)
+            {
+                # get the line
+                $awkprogram_matches .= "__line = " . join('" "', @langspecific_output_fields) . "; ";
+
+                # save and skip the record
+                $awkprogram_matches .=
+                  'if(__N_printafter) { ' .
+                  '    print __line; ' .
+                  '    __N_printafter--; ' .
+                  '} ' .
+                  "else { if(__N_contextbuffer == $NcontextBefore){__just_skipped_something = 1;}  ";
+                if ($NcontextBefore)
+                {
+                    $awkprogram_matches .= '__contextbuffer_push(__line); ';
+                }
+                $awkprogram_matches .= '} ';
+            }
+            $awkprogram_matches .= ' next } ';
+        }
+
+
+        # past if(!matches) {}
+
         $awkprogram_print .= '{';
 
-        my $record_skip_call =
-          $any_context_stuff ? '__record_skip(__line); ' : '';
-        my $record_accept_call =
-          $any_context_stuff ? '__record_accept(__line); ' : 'print __line; ';
 
-            # skip empty records if we must. I evaluate the fields just one time to
-            # not affect the state inside rel() and diff()
+        my $record_accept_pre_print  = '';
+        my $record_accept_post_print = '';
+        if($any_context_stuff)
+        {
+            $record_accept_pre_print =
+              'if( __just_skipped_something && __printed_something_ever) { print "##" } ' .
+              '__just_skipped_something = 0; ' .
+              '__printed_something_ever = 1; ';
+            if($NcontextBefore)
+            {
+                $record_accept_pre_print .= '__contextbuffer_output_and_clear(); ';
+            }
+            ####### now print the thing
+            $record_accept_post_print .=
+              "__N_printafter = $NcontextAfter; ";
+        }
+
+        # skip empty records if we must. I evaluate the fields just one time to
+        # not affect the state inside rel() and diff()
         if (!$options{skipempty})
         {
             # Not skipping the null fields. I just print everything I have
             $awkprogram_print .=
-              '__line = ' . (join('" "', @langspecific_output_fields)) . '; ' .
-              $record_accept_call;
+              $record_accept_pre_print .
+              'print ' . (join(',', @langspecific_output_fields)) . '; ' .
+              $record_accept_post_print . ' ';
         }
         else
         {
@@ -615,15 +635,17 @@ sub makeAwkProgram
             # ... state
             $awkprogram_print .=
               "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
-              ") { $record_skip_call next }; ";
+              ") { next } ";
 
             # And THEN I print everything
-            $awkprogram_print .= $record_accept_call;
+            $awkprogram_print .=
+              $record_accept_pre_print .
+              'print ' . join(',', map {"__f$_"} 0..$#langspecific_output_fields) . '; ' .
+              $record_accept_post_print . ' ';
         }
 
         $awkprogram_print .= '}';
     }
-
 
     my $outer_expr = get_reldiff_outer_expr();
 
@@ -998,15 +1020,6 @@ my $N_printafter = 0;
 my $just_skipped_something = 0;
 my $printed_something_ever = 0;
 
-sub make_record_line
-{
-    my $fout = compute_output_fields();
-
-    # skip empty records if we must
-    my $doskip = $options{skipempty} && all {!defined $_} @$fout;
-    return join(' ', map {$_ // '-'} @$fout), $doskip;
-}
-
 sub contextbuffer_output_and_clear
 {
     return unless $NcontextBefore;
@@ -1036,52 +1049,6 @@ sub contextbuffer_push
     $N_contextbuffer++ unless $N_contextbuffer == $NcontextBefore;
 }
 
-sub record_accept
-{
-    return if $options{eval};
-
-    my ($line) = @_;
-
-    if(!$any_context_stuff)
-    {
-        say $line;
-        flush STDOUT if $options{unbuffered};
-        return;
-    }
-
-    say '##' if $just_skipped_something && $printed_something_ever;
-    $just_skipped_something = 0;
-    $printed_something_ever = 1;
-    contextbuffer_output_and_clear();
-    say $line;
-    flush STDOUT if $options{unbuffered};
-
-    $N_printafter = $NcontextAfter;
-}
-
-sub record_skip
-{
-    return if $options{eval};
-    return if !$any_context_stuff;
-
-    my ($line) = @_;
-    if(!defined $line)
-    {
-        my $doskip;
-        ($line,$doskip) = make_record_line();
-    }
-
-    if($N_printafter)
-    {
-        say $line;
-        flush STDOUT if $options{unbuffered};
-        $N_printafter--;
-        return;
-    }
-
-    $just_skipped_something = 1 if $N_contextbuffer == $NcontextBefore;
-    contextbuffer_push($line);
-}
 
 RECORD:
 while(<STDIN>)
@@ -1110,35 +1077,56 @@ while(<STDIN>)
     next unless $colidx_needed_max <= $#fields;
 
     # skip records that have empty input columns that must be non-empty
-    if( any {!defined $fields[$_]} @must_have_col_indices_input )
-    {
-        record_skip();
-        next;
-    }
+    next if any {!defined $fields[$_]} @must_have_col_indices_input;
 
     compute_reldiff();
 
     # skip all records that don't match given expressions
-    if(!matches())
+    if($options{eval})
     {
-        record_skip();
+        next unless matches();
+        evalexpr();
         next;
     }
 
-    if( $options{eval} )
+    # skip all records that don't match given expressions
+    if(!matches())
     {
-        evalexpr();
-    }
-    else
-    {
-        my ($line,$doskip) = make_record_line();
-        if($doskip)
+        next unless $any_context_stuff;
+
+        my $fout = compute_output_fields();
+        my $line = join(' ', map {$_ // '-'} @$fout);
+
+        if ($N_printafter)
         {
-            record_skip($line);
-            next;
+            say $line;
+            flush STDOUT if $options{unbuffered};
+            $N_printafter--;
         }
-        record_accept($line);
+        else
+        {
+            $just_skipped_something = 1 if $N_contextbuffer == $NcontextBefore;
+            contextbuffer_push($line);
+        }
+        next;
     }
+
+    my $fout = compute_output_fields();
+
+    # skip empty records if we must
+    next if $options{skipempty} && all {!defined $_} @$fout;
+    my $line = join(' ', map {$_ // '-'} @$fout);
+
+    if ($any_context_stuff)
+    {
+        say '##' if $just_skipped_something && $printed_something_ever;
+        $just_skipped_something = 0;
+        $printed_something_ever = 1;
+        contextbuffer_output_and_clear();
+        $N_printafter = $NcontextAfter;
+    }
+    say $line;
+    flush STDOUT if $options{unbuffered};
 }
 
 
