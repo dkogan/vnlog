@@ -794,6 +794,161 @@ check( <<'EOF', ['-p', '.,x2=2*x', '-C5', '(x-3)%10 == 0'], {data => $data_seq15
 15 30
 EOF
 
+##########################################
+# Testing context stuff (-A/-B/-C) together with diff() expressions.
+my $data_reldiff_context = <<'EOF';
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+4 - 6
+4 - 6
+4 - 6
+7 9 -
+10 11 12
+EOF
+
+
+# Baselines:
+check( <<'EOF', ['-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+-
+-
+-
+-
+9
+EOF
+check( <<'EOF', ['-p', 'p=prev(b)'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+-
+9
+EOF
+
+# The context business only kicks in with 'matches' expressions. I.e. any
+# records thrown out by --has or --skipempty are not output as context
+check( <<'EOF', ['-A1', '-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+-
+-
+-
+-
+9
+EOF
+check( <<'EOF', ['-A1', '-p', 'p=prev(b)'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-A1', '-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-A1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+##
+-
+9
+EOF
+check( <<'EOF', ['-B1', '-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+-
+-
+-
+-
+9
+EOF
+check( <<'EOF', ['-B1', '-p', 'p=prev(b)'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-B1', '-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-B1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+##
+-
+-
+9
+EOF
+check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+-
+-
+-
+-
+9
+EOF
+check( <<'EOF', ['-C1', '-p', 'p=prev(b)'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+9
+EOF
+check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
+#!/bin/xxx
+# p
+0
+2
+##
+-
+-
+9
+EOF
+
 
 
 # # awk and perl write out the data with different precisions, so I test them separately for now
