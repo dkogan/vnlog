@@ -1313,7 +1313,11 @@ this can be requested with the C<--perl> option.
 
 For convenience we support several special functions in any expression passed on
 to awk or perl (named expressions, matches expressions, C<--eval> strings).
-These are
+These generally maintain some internal state, and vnl-filter makes sure that
+this state is consistent. Note that these are evaluated I<after>
+C<--skipcomments> and C<--has>. So any record skipped because of a C<--has>
+expression, for instance, will I<not> be considered in C<prev()>, C<diff()> and
+so on.
 
 =over
 
