@@ -1,3 +1,19 @@
+vnlog (1.17)
+
+  * vnl-join --autoprefix handles numerical filenames better
+
+    A common special case is that the input files are of the form
+    aaaNNNbbb where NNN are numbers. If the numbers are 0-padded, the set
+    of NNN could be "01", "02", "03". In this case the "0" is a common
+    prefix, so it would not be included in the file labels, which is NOT
+    what you want here: the labels should be "01", "02", ... not "1", "2".
+    Here I handle this case by removing all trailing digits from the
+    common prefix
+
+  * Support for grep-style -A/-B/-C options
+
+ -- Dima Kogan <dima@secretsauce.net>  Fri, 29 Mar 2019 18:20:08 -0700
+
 vnlog (1.16)
 
   * 'vnl-join --vnl-sort' runs a STABLE pre-sort
