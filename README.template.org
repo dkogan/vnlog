@@ -1,3 +1,7 @@
+* Talk
+
+I just gave a talk about this at [[https://www.socallinuxexpo.org/scale/17x][SCaLE 17x]]. Presentation lives [[https://github.com/dkogan/talk-feedgnuplot-vnlog/blob/master/feedgnuplot-vnlog.org][here]].
+
 * Summary
 
 Vnlog (pronounced "vanillog") is a trivially-simple log format:
@@ -327,7 +331,7 @@ doesn't lie.
 * Description
 
 Vnlog tools are designed to be very simple and light. There exist a number of
-other tools that manipulate data on the commandline. Some of these:
+other tools that do vaguely the same thing. Some of these:
 
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
@@ -337,13 +341,15 @@ other tools that manipulate data on the commandline. Some of these:
 - https://github.com/dinedal/textql
 - https://github.com/BurntSushi/xsv
 - https://github.com/dbohdan/sqawk
+- https://stedolan.github.io/jq/
 
-These all provide facilities to run various analyses, and are neither simple nor
-light. Vnlog by contrast doesn't analyze anything, but makes it easy to write
-simple bits of awk or perl to process stuff to your heart's content. The main
-envisioned use case is one-liners, and the tools are geared for that purpose.
-The above mentioned tools are much more powerful than vnlog, so they could be a
-better fit for some use cases. I claim that
+Many of these provide facilities to run various analyses, and others focus on
+data types that aren't just a table (json for instance). Vnlog by contrast
+doesn't analyze anything, and targets the most trivial possible data format.
+This makes it very easy to run any analysis you like in any tool you like. The
+main envisioned use case is one-liners, and the tools are geared for that
+purpose. The above mentioned tools are much more powerful than vnlog, so they
+could be a better fit for some use cases. I claim that
 
 - 90% of the time you want to do simple things, and vnlog is a great fit for the
   task
@@ -355,17 +361,17 @@ In the spirit of doing as little as possible, the provided tools are wrappers
 around tools you already have and are familiar with. The provided tools are:
 
 - =vnl-filter= is a tool to select a subset of the rows/columns in a vnlog
-  and/or to manipulate the contents. This is effectively an =awk= wrapper where
-  the fields can be referenced by name instead of index. 20-second tutorial:
+  and/or to manipulate the contents. This is an =awk= wrapper where the fields
+  can be referenced by name instead of index. 20-second tutorial:
 
 #+BEGIN_EXAMPLE
 vnl-filter -p col1,col2,colx=col3+col4 'col5 > 10' --has col6
 #+END_EXAMPLE
   will read the input, and produce a vnlog with 3 columns: =col1= and =col2=
   from the input, and a column =colx= that's the sum of =col3= and =col4= in the
-  input. Only those rows for which =col5 > 10= is true will be output. Finally,
-  only those rows that have a non-null value for =col6= will be selected. A null
-  entry is signified by a single =-= character.
+  input. Only those rows for which /both/ =col5 > 10= is true /and/ that have a
+  non-null value for =col6= will be output. A null entry is signified by a
+  single =-= character.
 
 #+BEGIN_EXAMPLE
 vnl-filter --eval '{s += x} END {print s}'

@@ -441,6 +441,14 @@ sub longest_leading_trailing_substring
         substr($match_leading,           $NleadingMatches ) = '';
         substr($match_trailing_reversed, $NtrailingMatches) = '';
     }
+
+    # A common special case is that the input files are of the form aaaNNNbbb
+    # where NNN are numbers. If the numbers are 0-padded, the set of NNN could
+    # be "01", "02", "03". In this case the "0" is a common prefix, so it would
+    # not be included in the file labels, which is NOT what you want here: the
+    # labels should be "01", "02", ... not "1", "2". Here I handle this case by
+    # removing all trailing digits from the common prefix
+    $match_leading =~ s/[0-9]$//;
     return ($match_leading, scalar reverse $match_trailing_reversed);
 }
 

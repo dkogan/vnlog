@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Getopt::Long qw(:config no_getopt_compat);
+use Getopt::Long qw(:config no_getopt_compat bundling);
 use List::Util 'max';
 use List::MoreUtils qw(any all);
 use FindBin '$Bin';
@@ -24,6 +24,7 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --perl
       --unbuffered
       --stream
+      -A/-B/-C
 
     This tool is a nicer 'awk' that reads and write vnlog. As a result, it
     can refer to columns by name, not number, like awk does.
@@ -48,6 +49,9 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
 
     --stream is a synonym for "--unbuffered"
 
+    -A N/ -B N / -C N prints N lines of context after/before/around all records
+     matching the given expressions. Works just like in the 'grep' tool
+
     For more information, please read the manpage.
 EOF
 
@@ -62,6 +66,9 @@ GetOptions(\%options,
            "has=s@",
            "pick|print|p=s@",
            "eval=s",
+           "after-context|A=i",
+           "before-context|B=i",
+           "context|C=i",
            "function|sub=s@",
            "skipempty!",
            "skipcomments!",
@@ -94,6 +101,30 @@ if( defined $options{eval} && @{$options{pick}} )
     say STDERR "--eval is given, so no column selectors should be given also";
     die $usage;
 }
+
+if( defined $options{context} &&
+    (defined $options{'before-context'} ||
+     defined $options{'after-context'}) )
+{
+    say STDERR "-C is exclusive with -A and -B";
+    die $usage;
+}
+
+my $any_context_stuff =
+  $options{'after-context'}  ||
+  $options{'before-context'} ||
+  $options{'context'};
+
+if( $any_context_stuff && $options{eval} )
+{
+    say STDERR "--eval is exclusive with -A/-B/-C";
+    die $usage;
+}
+
+my $NcontextBefore = ($options{'before-context'} || $options{'context'}) // 0;
+my $NcontextAfter  = ($options{'after-context'}  || $options{'context'}) // 0;
+
+
 
 # parse the , in $options{has} and $options{pick}. In --pick use the fancy
 # ()-respecting version of split
@@ -426,8 +457,6 @@ if(!%colindices_input)
 
 
 
-
-
 # At this point I'm done dealing with the legend, and it's time to read in and
 # process the data. I can keep going in perl, or I can generate an awk program,
 # and let awk do this work. The reason: awk (mawk especialy) runs much faster.
@@ -452,6 +481,265 @@ if( !$options{perl} )
     }
 
     exit; # dummy. We never get here
+}
+
+sub makeAwkProgram
+{
+    # The awk program I generate here is analogous to the logic in the data
+    # while() loop above
+
+    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @{$options{function}});
+
+    my $awkprogram_preamble = '';
+
+
+    if($any_context_stuff)
+    {
+        # context-handling stuff. This is a mirror of the perl implementation
+        # below. See the comments there for a description
+        $awkprogram_preamble .= 'BEGIN {' .
+          '__i1_contextbuffer       = 0; ' .
+          '__N_contextbuffer        = 0; ' .
+          '__N_printafter           = 0; ' .
+          '__just_skipped_something = 0; ' .
+          '__printed_something_ever = 0; ' .
+          '} ';
+
+        $awkprogram_preamble .= 'function __contextbuffer_output_and_clear() { ' .
+          "__i0_contextbuffer = __i1_contextbuffer - __N_contextbuffer; " .
+          "if(__i0_contextbuffer < 0){__i0_contextbuffer += $NcontextBefore;} " .
+          "while (__N_contextbuffer) { " .
+          "    print __contextbuffer[__i0_contextbuffer++]; " .
+          "    if(__i0_contextbuffer == $NcontextBefore){__i0_contextbuffer = 0} " .
+          "    __N_contextbuffer--; " .
+          "} " .
+          "} ";
+
+        # pushes to the buffer. Returns TRUE if I did NOT just overwrite an element of
+        # the buffer
+        $awkprogram_preamble .= 'function __contextbuffer_push(__line) { ' .
+          '__contextbuffer[__i1_contextbuffer++] = __line; ' .
+          "if(__i1_contextbuffer == $NcontextBefore) {__i1_contextbuffer = 0} " .
+          "if(__N_contextbuffer  != $NcontextBefore) {__N_contextbuffer++} " .
+          "} ";
+    }
+
+    # Deal with comments. If printing, these do not count towards the context
+    # stuff (-A/-B/-C)
+    $awkprogram_preamble .=
+      '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
+
+    # skip incomplete records. Can happen if a log line at the end of a file was
+    # cut off in the middle. These are invalid lines, so I don't even bother to
+    # handle -A/-B/-C
+    if( $colidx_needed_max >= 0)
+    {
+        $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
+    }
+
+    # skip records that have empty input columns that must be non-empty
+    if (@must_have_col_indices_input)
+    {
+        $awkprogram_preamble .=
+          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
+        $awkprogram_preamble .= " { next } ";
+    }
+
+    my $not_matches_condition = join(' && ',
+                                     map
+                                     {
+                                         my ($expr) = expr_subst_col_names('awk', $_);
+                                         '!' . "($expr)"
+                                     } @{$options{matches}});
+    my $awkprogram_matches = '';
+    my $awkprogram_print;
+    if($options{eval})
+    {
+        if( length($not_matches_condition) )
+        {
+            $awkprogram_matches .= $not_matches_condition . '{next}';
+        }
+        my ($expr) = expr_subst_col_names('awk', $options{eval});
+        $awkprogram_print .= "$expr ";
+    }
+    else
+    {
+        if( length($not_matches_condition) )
+        {
+            $awkprogram_matches .= $not_matches_condition . '{ ';
+
+            if ($any_context_stuff)
+            {
+                # get the line
+                $awkprogram_matches .= "__line = " . join('" "', @langspecific_output_fields) . "; ";
+
+                # save and skip the record
+                $awkprogram_matches .=
+                  'if(__N_printafter) { ' .
+                  '    print __line; ' .
+                  '    __N_printafter--; ' .
+                  '} ' .
+                  "else { if(__N_contextbuffer == $NcontextBefore){__just_skipped_something = 1;}  ";
+                if ($NcontextBefore)
+                {
+                    $awkprogram_matches .= '__contextbuffer_push(__line); ';
+                }
+                $awkprogram_matches .= '} ';
+            }
+            $awkprogram_matches .= ' next } ';
+        }
+
+
+        # past if(!matches) {}
+
+        $awkprogram_print .= '{';
+
+
+        my $record_accept_pre_print  = '';
+        my $record_accept_post_print = '';
+        if($any_context_stuff)
+        {
+            $record_accept_pre_print =
+              'if( __just_skipped_something && __printed_something_ever) { print "##" } ' .
+              '__just_skipped_something = 0; ' .
+              '__printed_something_ever = 1; ';
+            if($NcontextBefore)
+            {
+                $record_accept_pre_print .= '__contextbuffer_output_and_clear(); ';
+            }
+            ####### now print the thing
+            $record_accept_post_print .=
+              "__N_printafter = $NcontextAfter; ";
+        }
+
+        # skip empty records if we must. I evaluate the fields just one time to
+        # not affect the state inside rel() and diff()
+        if (!$options{skipempty})
+        {
+            # Not skipping the null fields. I just print everything I have
+            $awkprogram_print .=
+              $record_accept_pre_print .
+              'print ' . (join(',', @langspecific_output_fields)) . '; ' .
+              $record_accept_post_print . ' ';
+        }
+        else
+        {
+            # I'm skipping the null fields. I thus look at each field
+            # individually, and print only if they're all non-null
+            $awkprogram_print .=
+              join(' ',
+                   map { "__f$_ = $langspecific_output_fields[$_]; " }
+                   0..$#langspecific_output_fields) .
+
+                     '__line = ' . join('" "', map {"__f$_"} 0..$#langspecific_output_fields) . '; ';
+
+            # Then I do skipempty. Important to do this after
+            # evaluating ALL the fields to tick all the rel(), diff(),
+            # ... state
+            $awkprogram_print .=
+              "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
+              ") { next } ";
+
+            # And THEN I print everything
+            $awkprogram_print .=
+              $record_accept_pre_print .
+              'print ' . join(',', map {"__f$_"} 0..$#langspecific_output_fields) . '; ' .
+              $record_accept_post_print . ' ';
+        }
+
+        $awkprogram_print .= '}';
+    }
+
+    my $outer_expr = get_reldiff_outer_expr();
+
+    my $awkprogram_reldiff = '';
+    for my $i (0..$specialops{rel}{N}-1)
+    {
+        $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
+    }
+    for my $i (0..$specialops{diff}{N}-1)
+    {
+        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+    }
+    for my $i (0..$specialops{sum}{N}-1)
+    {
+        $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
+    }
+    for my $i (0..$specialops{prev}{N}-1)
+    {
+        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
+    }
+
+    my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
+    if(length($outer_expr))
+    {
+        $awkprogram .= "{ $outer_expr } ";
+    }
+    $awkprogram .= $awkprogram_matches . $awkprogram_print;
+    return $awkprogram;
+}
+
+# line split(',', $s), but respects (). I.e. splitting "a,b,f(c,d)" produces 3
+# tokens, not 4
+sub split_on_comma_respect_parens
+{
+    my ($s) = @_;
+
+    my @f;
+
+  FIELDS: # loop accumulating fields
+    while (1)
+    {
+        my $field_accum = '';
+
+      FIELD_ACCUM: # accumulate THIS field. Keep grabbing tokens until I see an
+                   # , or the end
+        while(1)
+        {
+            if (length($s) == 0)
+            {
+                if (length($field_accum))
+                {
+                    push @f, $field_accum;
+                }
+                last FIELDS;
+            }
+
+            if ($s !~ /^         # start of string
+                       ([^(,]*?) # some minimal number of non-comma, non-paren
+                       ([(,])    # comma or paren
+                      /px) {
+                # didn't match. The whole thing is the last field
+                push @f, $field_accum . $s;
+                last FIELDS;
+            }
+
+            my ($pre,$sep) = ($1,$2);
+            if ($sep eq ',')
+            {
+                # we have a field
+                push @f, $field_accum . $pre;
+                $field_accum = '';
+                $s = ${^POSTMATCH};
+                next FIELD_ACCUM;
+            }
+
+            # we have a paren. accumulate
+            my ($paren_expr, $rest) = extract_bracketed($sep . ${^POSTMATCH}, '(');
+            if ( !defined $paren_expr )
+            {
+                # non-matched paren. Accum normally
+                $rest =~ /^\((.*)$/ or die "Weird... '$rest' should have started with a '('. Giving up";
+                $field_accum .= '(';
+                $s = $1;
+                next FIELD_ACCUM;
+            }
+            $field_accum .= $pre . $paren_expr;
+            $s = $rest;
+        }
+    }
+
+    return @f;
 }
 
 sub find_outer_specialop
@@ -719,13 +1007,60 @@ use warnings;
 
 
 
+# The stuff from here until the main while(<STDIN>) loop is all for context
+# handling (-A,-B,-C)
+
+# circular buffer containing previous entries. Used for -B
+my @contextbuffer;
+@contextbuffer = (undef) x $NcontextBefore if $NcontextBefore;
+my $i1_contextbuffer = 0; # the end; new entries written here
+my $N_contextbuffer  = 0;
+
+# how many record to print unconditionally. Used for -A
+my $N_printafter = 0;
+
+# used for the group separator '##'
+my $just_skipped_something = 0;
+my $printed_something_ever = 0;
+
+sub contextbuffer_output_and_clear
+{
+    return unless $NcontextBefore;
+
+    my $i0_contextbuffer =
+      $i1_contextbuffer - $N_contextbuffer;
+    $i0_contextbuffer += $NcontextBefore if $i0_contextbuffer < 0;
+
+    while ($N_contextbuffer)
+    {
+        say $contextbuffer[$i0_contextbuffer++];
+        $i0_contextbuffer = 0 if $i0_contextbuffer == $NcontextBefore;
+        $N_contextbuffer--;
+    }
+}
+
+# pushes to the buffer. Returns TRUE if I did NOT just overwrite an element of
+# the buffer
+sub contextbuffer_push
+{
+    return unless $NcontextBefore;
+
+    my ($line) = @_;
+
+    $contextbuffer[$i1_contextbuffer++] = $line;
+    $i1_contextbuffer = 0 if $i1_contextbuffer == $NcontextBefore;
+    $N_contextbuffer++ unless $N_contextbuffer == $NcontextBefore;
+}
+
+
 RECORD:
 while(<STDIN>)
 {
     # Data loop. Each statement here is analogous to the awk program generated
     # by makeAwkProgram();
 
-    # skip comments
+    # Deal with comments. If printing, these do not count towards the context
+    # stuff (-A/-B/-C)
     if(/^#/)
     {
         unless($options{skipcomments})
@@ -740,7 +1075,8 @@ while(<STDIN>)
     @fields = map {q{-} eq $_ ? undef : $_ } split;
 
     # skip incomplete records. Can happen if a log line at the end of a file was
-    # cut off in the middle
+    # cut off in the middle. These are invalid lines, so I don't even bother to
+    # handle -A/-B/-C
     next unless $colidx_needed_max <= $#fields;
 
     # skip records that have empty input columns that must be non-empty
@@ -749,196 +1085,60 @@ while(<STDIN>)
     compute_reldiff();
 
     # skip all records that don't match given expressions
-    next unless matches();
-
-    if( $options{eval} )
+    if($options{eval})
     {
+        next unless matches();
         evalexpr();
+        next;
     }
-    else
+
+    # skip all records that don't match given expressions
+    if(!matches())
     {
+        next unless $any_context_stuff;
+
         my $fout = compute_output_fields();
+        my $line = join(' ', map {$_ // '-'} @$fout);
 
-        # skip empty records if we must
-        next if $options{skipempty} && all {!defined $_} @$fout;
-
-        say join(' ', map {$_ // '-'} @$fout);
-        flush STDOUT if $options{unbuffered};
-    }
-}
-
-
-
-
-
-
-
-
-
-
-sub makeAwkProgram
-{
-    # The awk program I generate here is analogous to the logic in the data
-    # while() loop above
-
-    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @{$options{function}});
-
-    my $awkprogram_preamble = '';
-
-    # skip comments
-    $awkprogram_preamble .=
-      '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
-
-    # skip incomplete records. Can happen if a log line at the end of a file
-    # was cut off in the middle
-    if( $colidx_needed_max >= 0)
-    {
-        $awkprogram_preamble .= (1+$colidx_needed_max) . " > NF { next } ";
-    }
-
-    # skip records that have empty input columns that must be non-empty
-    if (@must_have_col_indices_input)
-    {
-        $awkprogram_preamble .=
-          join(' || ', map { '$'.($_+1). " == \"-\"" } @must_have_col_indices_input);
-        $awkprogram_preamble .= ' { next } ';
-    }
-
-    my $awkprogram_matches = '';
-    for my $expr( @{$options{matches}} )
-    {
-        ($expr) = expr_subst_col_names('awk', $expr);
-        $awkprogram_matches .= ' !' . "($expr) { next } ";
-    }
-
-    my $awkprogram_print = '';
-    if( $options{eval} )
-    {
-        my ($expr) = expr_subst_col_names('awk', $options{eval});
-        $awkprogram_print .= "$expr ";
-    }
-    else
-    {
-        # skip empty records if we must. I evaluate the fields just one time to
-        # not affect the state inside rel() and diff() and ...
-        if (!$options{skipempty})
+        if ($N_printafter)
         {
-            # print selected fields
-            $awkprogram_print .=
-              '{ print ' . (join(',', @langspecific_output_fields)) . ' } ';
+            say $line;
+            flush STDOUT if $options{unbuffered};
+            $N_printafter--;
         }
         else
         {
-            # I evaluate and cache all the fields
-            $awkprogram_print .=
-              '{ ' .
-              join(' ',
-                   map { "__f$_ = $langspecific_output_fields[$_]; " }
-                   0..$#langspecific_output_fields) .
-
-                     # Then I do skipempty. Important to do this after
-                     # evaluating ALL the fields to tick all the rel(), diff(),
-                     # ... state
-                     "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
-                     ") { next }; " .
-
-                     # And THEN I print everything
-                     'print ' . (join(',', map {"__f$_"} 0..$#langspecific_output_fields)) . '} ';
+            $just_skipped_something = 1 if $N_contextbuffer == $NcontextBefore;
+            contextbuffer_push($line);
         }
+        next;
     }
 
+    my $fout = compute_output_fields();
 
-    my $outer_expr = get_reldiff_outer_expr();
+    # skip empty records if we must
+    next if $options{skipempty} && all {!defined $_} @$fout;
+    my $line = join(' ', map {$_ // '-'} @$fout);
 
-    my $awkprogram_reldiff = '';
-    for my $i (0..$specialops{rel}{N}-1)
+    if ($any_context_stuff)
     {
-        $awkprogram_reldiff .= "function rel$i(x) { if(!__inited_rel$i) { __state_rel$i = x; __inited_rel$i = 1; } return x - __state_rel$i; } ";
+        say '##' if $just_skipped_something && $printed_something_ever;
+        $just_skipped_something = 0;
+        $printed_something_ever = 1;
+        contextbuffer_output_and_clear();
+        $N_printafter = $NcontextAfter;
     }
-    for my $i (0..$specialops{diff}{N}-1)
-    {
-        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
-    }
-    for my $i (0..$specialops{sum}{N}-1)
-    {
-        $awkprogram_reldiff .= "function sum$i(x) { __state_sum$i += x; return __state_sum$i; } ";
-    }
-    for my $i (0..$specialops{prev}{N}-1)
-    {
-        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
-    }
-
-    my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
-    if(length($outer_expr))
-    {
-        $awkprogram .= "{ $outer_expr } ";
-    }
-    $awkprogram .= $awkprogram_matches . $awkprogram_print;
-    return $awkprogram;
+    say $line;
+    flush STDOUT if $options{unbuffered};
 }
 
-# line split(',', $s), but respects (). I.e. splitting "a,b,f(c,d)" produces 3
-# tokens, not 4
-sub split_on_comma_respect_parens
-{
-    my ($s) = @_;
 
-    my @f;
 
-  FIELDS: # loop accumulating fields
-    while (1)
-    {
-        my $field_accum = '';
 
-      FIELD_ACCUM: # accumulate THIS field. Keep grabbing tokens until I see an
-                   # , or the end
-        while(1)
-        {
-            if (length($s) == 0)
-            {
-                if (length($field_accum))
-                {
-                    push @f, $field_accum;
-                }
-                last FIELDS;
-            }
 
-            if ($s !~ /^         # start of string
-                       ([^(,]*?) # some minimal number of non-comma, non-paren
-                       ([(,])    # comma or paren
-                      /px) {
-                # didn't match. The whole thing is the last field
-                push @f, $field_accum . $s;
-                last FIELDS;
-            }
 
-            my ($pre,$sep) = ($1,$2);
-            if ($sep eq ',')
-            {
-                # we have a field
-                push @f, $field_accum . $pre;
-                $field_accum = '';
-                $s = ${^POSTMATCH};
-                next FIELD_ACCUM;
-            }
 
-            # we have a paren. accumulate
-            my ($paren_expr, $rest) = extract_bracketed($sep . ${^POSTMATCH}, '(');
-            if ( !defined $paren_expr )
-            {
-                # non-matched paren. Accum normally
-                $rest =~ /^\((.*)$/ or die "Weird... '$rest' should have started with a '('. Giving up";
-                $field_accum .= '(';
-                $s = $1;
-                next FIELD_ACCUM;
-            }
-            $field_accum .= $pre . $paren_expr;
-            $s = $rest;
-        }
-    }
 
-    return @f;
-}
 
 
 __END__
@@ -1090,6 +1290,20 @@ an expression. For instance
 would select only those rows whose C<size> column contains a value E<gt> 10. See
 the detailed description of matches expressions below for more detail.
 
+=head2 Context lines
+
+C<vnl-filter> supports the context output options (C<-A>, C<-B> and C<-C>)
+exactly like the C<grep> tool. I.e to print out all rows whose C<size> column
+contains a value E<gt> 10 I<but also> include the 3 rows immediately before
+I<and> after such matching rows, do this:
+
+ vnl-filter -C3 'size > 10'
+
+C<-B> reports the rows I<before> matching ones and C<-A> the rows I<after>
+matching ones. C<-C> reports both. Note that this applies I<only> to I<matches>
+expressions: records skipped because they fail C<--has> or C<--skipempty> are
+I<not> included in contextual output.
+
 =head2 Backend choice
 
 By default, the parsing of arguments and the legend happens in perl, which then
@@ -1104,7 +1318,11 @@ this can be requested with the C<--perl> option.
 
 For convenience we support several special functions in any expression passed on
 to awk or perl (named expressions, matches expressions, C<--eval> strings).
-These are
+These generally maintain some internal state, and vnl-filter makes sure that
+this state is consistent. Note that these are evaluated I<after>
+C<--skipcomments> and C<--has>. So any record skipped because of a C<--has>
+expression, for instance, will I<not> be considered in C<prev()>, C<diff()> and
+so on.
 
 =over
 
@@ -1281,6 +1499,24 @@ or
 
 As with the named expressions given to C<-p> (described above), these are passed
 directly to awk, so anything that can be done with awk is supported here.
+
+=head2 -A N|--after-context N
+
+Output N lines following each I<matches> expression, even those lines that do
+not themselves match. This works just like the C<grep> options of the same name.
+See L<Context lines>
+
+=head2 -B N|--before-context N
+
+Output N lines preceding each I<matches> expression, even those lines that do
+not themselves match. This works just like the C<grep> options of the same name.
+See L<Context lines>
+
+=head2 -C N|--context N
+
+Output N lines preceding and following each I<matches> expression, even those
+lines that do not themselves match. This works just like the C<grep> options of
+the same name. See L<Context lines>
 
 =head2 --eval expr
 
