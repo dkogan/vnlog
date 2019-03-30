@@ -24,6 +24,7 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --perl
       --unbuffered
       --stream
+      -A/-B/-C
 
     This tool is a nicer 'awk' that reads and write vnlog. As a result, it
     can refer to columns by name, not number, like awk does.
@@ -48,7 +49,9 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
 
     --stream is a synonym for "--unbuffered"
 
-context
+    -A N/ -B N / -C N prints N lines of context after/before/around all records
+     matching the given expressions. Works just like in the 'grep' tool
+
     For more information, please read the manpage.
 EOF
 
@@ -1287,6 +1290,20 @@ an expression. For instance
 would select only those rows whose C<size> column contains a value E<gt> 10. See
 the detailed description of matches expressions below for more detail.
 
+=head2 Context lines
+
+C<vnl-filter> supports the context output options (C<-A>, C<-B> and C<-C>)
+exactly like the C<grep> tool. I.e to print out all rows whose C<size> column
+contains a value E<gt> 10 I<but also> include the 3 rows immediately before
+I<and> after such matching rows, do this:
+
+ vnl-filter -C3 'size > 10'
+
+C<-B> reports the rows I<before> matching ones and C<-A> the rows I<after>
+matching ones. C<-C> reports both. Note that this applies I<only> to I<matches>
+expressions: records skipped because they fail C<--has> or C<--skipempty> are
+I<not> included in contextual output.
+
 =head2 Backend choice
 
 By default, the parsing of arguments and the legend happens in perl, which then
@@ -1482,6 +1499,24 @@ or
 
 As with the named expressions given to C<-p> (described above), these are passed
 directly to awk, so anything that can be done with awk is supported here.
+
+=head2 -A N|--after-context N
+
+Output N lines following each I<matches> expression, even those lines that do
+not themselves match. This works just like the C<grep> options of the same name.
+See L<Context lines>
+
+=head2 -B N|--before-context N
+
+Output N lines preceding each I<matches> expression, even those lines that do
+not themselves match. This works just like the C<grep> options of the same name.
+See L<Context lines>
+
+=head2 -C N|--context N
+
+Output N lines preceding and following each I<matches> expression, even those
+lines that do not themselves match. This works just like the C<grep> options of
+the same name. See L<Context lines>
 
 =head2 --eval expr
 

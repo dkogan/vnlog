@@ -584,6 +584,19 @@ DESCRIPTION
     See the detailed description of matches expressions below for more
     detail.
 
+  Context lines
+    "vnl-filter" supports the context output options ("-A", "-B" and "-C")
+    exactly like the "grep" tool. I.e to print out all rows whose "size"
+    column contains a value > 10 *but also* include the 3 rows immediately
+    before *and* after such matching rows, do this:
+
+     vnl-filter -C3 'size > 10'
+
+    "-B" reports the rows *before* matching ones and "-A" the rows *after*
+    matching ones. "-C" reports both. Note that this applies *only* to
+    *matches* expressions: records skipped because they fail "--has" or
+    "--skipempty" are *not* included in contextual output.
+
   Backend choice
     By default, the parsing of arguments and the legend happens in perl,
     which then constructs a simple awk script, and invokes "mawk" to
@@ -597,7 +610,11 @@ DESCRIPTION
   Special functions
     For convenience we support several special functions in any expression
     passed on to awk or perl (named expressions, matches expressions,
-    "--eval" strings). These are
+    "--eval" strings). These generally maintain some internal state, and
+    vnl-filter makes sure that this state is consistent. Note that these are
+    evaluated *after* "--skipcomments" and "--has". So any record skipped
+    because of a "--has" expression, for instance, will *not* be considered
+    in "prev()", "diff()" and so on.
 
     *   rel(x) returns value of "x" relative to the first value of "x". For
         instance we might want to see the time or position relative to the
@@ -750,6 +767,21 @@ ARGUMENTS
     As with the named expressions given to "-p" (described above), these are
     passed directly to awk, so anything that can be done with awk is
     supported here.
+
+  -A N|--after-context N
+    Output N lines following each *matches* expression, even those lines
+    that do not themselves match. This works just like the "grep" options of
+    the same name. See "Context lines"
+
+  -B N|--before-context N
+    Output N lines preceding each *matches* expression, even those lines
+    that do not themselves match. This works just like the "grep" options of
+    the same name. See "Context lines"
+
+  -C N|--context N
+    Output N lines preceding and following each *matches* expression, even
+    those lines that do not themselves match. This works just like the
+    "grep" options of the same name. See "Context lines"
 
   --eval expr
     Instead of printing out all matching records and picked columns, just
