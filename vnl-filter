@@ -667,7 +667,7 @@ sub makeAwkProgram
     }
     for my $i (0..$specialops{prev}{N}-1)
     {
-        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : 0; __state_prev$i = x; return __prev; } ";
+        $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : \"-\"; __state_prev$i = x; return __prev; } ";
     }
 
     my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
@@ -978,7 +978,7 @@ $i = 0;
 EVAL_PREV_FUNC:
 if( $i < $specialops{prev}{N} )
 {
-    $evalstr = "sub prev$i" . '{ my ($x) = @_; state $state=0; my $prev = $state; $state = $x; return $prev; } ' . $evalstr;
+    $evalstr = "sub prev$i" . '{ my ($x) = @_; state $state=undef; my $prev = $state; $state = $x; return $prev; } ' . $evalstr;
     $i++;
     goto EVAL_PREV_FUNC;
 }
