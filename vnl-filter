@@ -545,7 +545,7 @@ sub makeAwkProgram
         $awkprogram_preamble .= " { next } ";
     }
 
-    my $not_matches_condition = join(' && ',
+    my $not_matches_condition = join(' || ',
                                      map
                                      {
                                          my ($expr) = expr_subst_col_names('awk', $_);
