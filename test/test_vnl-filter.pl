@@ -411,6 +411,26 @@ check( <<'EOF', 'a>5' );
 10 11 12
 EOF
 
+check( <<'EOF', 'a<9' );
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+7 9 -
+EOF
+
+check( <<'EOF', 'a>5 && a<9' );
+#!/bin/xxx
+# a b c
+7 9 -
+EOF
+
+check( <<'EOF', 'a>5', 'a<9' );
+#!/bin/xxx
+# a b c
+7 9 -
+EOF
+
 check( <<'EOF', qw(a>5 -p c) );
 #!/bin/xxx
 # c
