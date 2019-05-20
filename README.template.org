@@ -342,6 +342,7 @@ other tools that do vaguely the same thing. Some of these:
 - https://github.com/BurntSushi/xsv
 - https://github.com/dbohdan/sqawk
 - https://stedolan.github.io/jq/
+- https://github.com/benbernard/RecordStream
 
 Many of these provide facilities to run various analyses, and others focus on
 data types that aren't just a table (json for instance). Vnlog by contrast
