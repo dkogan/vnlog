@@ -439,82 +439,8 @@ $ cat /tmp/x.matrix
 All the tools have manpages that contain more detail. And more tools will
 probably be added with time.
 
-* Manpages
-** vnl-filter
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-filter-xxx
-#+END_EXAMPLE
-
-** vnl-align
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-align-xxx
-#+END_EXAMPLE
-
-** vnl-sort
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-sort-xxx
-#+END_EXAMPLE
-
-** vnl-join
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-join-xxx
-#+END_EXAMPLE
-
-** vnl-tail
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-tail-xxx
-#+END_EXAMPLE
-
-** vnl-ts
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-ts-xxx
-#+END_EXAMPLE
-
-* Installation
-
-** On Debian-based boxes
-At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
-later. On those boxes you can simply
-
-#+BEGIN_EXAMPLE
-$ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
-#+END_EXAMPLE
-
-to get the binary tools, the C API, the perl and python2 interfaces
-respectively.
-
-On a Debian (or Ubuntu) machine that's too old to have the packages already
-available, you can build and install them:
-
-#+BEGIN_EXAMPLE
-$ git clone git@github.com:dkogan/vnlog.git
-$ cd vnlog
-$ cp -r packaging/debian .
-$ dpkg-buildpackage -us -uc -b
-$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
-#+END_EXAMPLE
-
-** On non-Debian-based boxes
-
-With the exception of the C API, every part of the toolkit is written in an
-interpreted language, and there's nothing to "install". You can run everything
-directly from the source tree:
-
-#+BEGIN_EXAMPLE
-$ git clone git@github.com:dkogan/vnlog.git
-$ cd vnlog
-$ ./vnl-filter .....
-#+END_EXAMPLE
-
-If you /do/ want to install to some location, do this:
-
-#+BEGIN_EXAMPLE
-$ make
-$ PREFIX=/usr/local make install
-#+END_EXAMPLE
-
-* C interface
-** Basic usage
+** C interface
+*** Basic usage
 
 For most uses, these logfiles are simple enough to be generated with plain
 prints. But then each print statement has to know which numeric column we're
@@ -594,7 +520,7 @@ This is enough for 99% of the use cases. Things get a bit more complex if we
 have have threading or if we have multiple vnlog ouput streams in the same
 program. For both of these we use vnlog /contexts/.
 
-** Contexts
+*** Contexts
 
 To support independent writing into the same vnlog (possibly by multiple
 threads; this is reentrant), each log-writer should create a context, and use it
@@ -671,7 +597,7 @@ this example), then the different writers /must/ live in different source files.
 The compiler will barf if you try to =#include= two different
 =vnlog_fields_....h= files in the same source.
 
-** Remaining APIs
+*** Remaining APIs
 
 - =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
 =printf()= does. This exists primarily for comments.
@@ -698,7 +624,7 @@ throwing the context away. Currently this is only needed for context that have
 binary fields, but this should be called for all contexts anyway, in case this
 changes in a later revision
 
-* numpy interface
+** numpy interface
 
 The built-in =numpy.loadtxt= =numpy.savetxt= functions work well to read and
 write these files. For example to write to standard output a vnlog with fields
@@ -719,7 +645,7 @@ These functions know that =#= lines are comments, but don't interpret anything
 as field headers. That's easy to do, so I'm not providing any helper libraries.
 I might do that at some point, but in the meantime, patches are welcome.
 
-* Caveats and bugs
+** Caveats and bugs
 
 The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
 =vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
@@ -732,6 +658,80 @@ These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for
 escaping or quoting whitespace into a single field. I think supporting something
 like that is more trouble than it's worth.
+
+* Installation
+
+** On Debian-based boxes
+At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
+later. On those boxes you can simply
+
+#+BEGIN_EXAMPLE
+$ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
+#+END_EXAMPLE
+
+to get the binary tools, the C API, the perl and python2 interfaces
+respectively.
+
+On a Debian (or Ubuntu) machine that's too old to have the packages already
+available, you can build and install them:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ cp -r packaging/debian .
+$ dpkg-buildpackage -us -uc -b
+$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
+#+END_EXAMPLE
+
+** On non-Debian-based boxes
+
+With the exception of the C API, every part of the toolkit is written in an
+interpreted language, and there's nothing to "install". You can run everything
+directly from the source tree:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ ./vnl-filter .....
+#+END_EXAMPLE
+
+If you /do/ want to install to some location, do this:
+
+#+BEGIN_EXAMPLE
+$ make
+$ PREFIX=/usr/local make install
+#+END_EXAMPLE
+
+* Manpages
+** vnl-filter
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-filter-xxx
+#+END_EXAMPLE
+
+** vnl-align
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-align-xxx
+#+END_EXAMPLE
+
+** vnl-sort
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-sort-xxx
+#+END_EXAMPLE
+
+** vnl-join
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-join-xxx
+#+END_EXAMPLE
+
+** vnl-tail
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-tail-xxx
+#+END_EXAMPLE
+
+** vnl-ts
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-ts-xxx
+#+END_EXAMPLE
 
 * Repository
 
