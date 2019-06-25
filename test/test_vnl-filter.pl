@@ -274,7 +274,7 @@ EOF
 check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c --noskipempty));
 #!/bin/xxx
 # d s pa b c
-0 1 0 2 3
+0 1 - 2 3
 3 5 1 - 6
 6 12 4 9 -
 9 22 7 11 12
@@ -409,6 +409,26 @@ check( <<'EOF', 'a>5' );
 # a b c
 7 9 -
 10 11 12
+EOF
+
+check( <<'EOF', 'a<9' );
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+7 9 -
+EOF
+
+check( <<'EOF', 'a>5 && a<9' );
+#!/bin/xxx
+# a b c
+7 9 -
+EOF
+
+check( <<'EOF', 'a>5', 'a<9' );
+#!/bin/xxx
+# a b c
+7 9 -
 EOF
 
 check( <<'EOF', qw(a>5 -p c) );
@@ -813,7 +833,7 @@ EOF
 check( <<'EOF', ['-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 -
 -
@@ -824,21 +844,20 @@ EOF
 check( <<'EOF', ['-p', 'p=prev(b)'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
 2
 9
 EOF
 check( <<'EOF', ['-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 9
 EOF
 check( <<'EOF', ['-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 -
 9
 EOF
@@ -848,7 +867,7 @@ EOF
 check( <<'EOF', ['-A1', '-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 -
 -
@@ -859,21 +878,20 @@ EOF
 check( <<'EOF', ['-A1', '-p', 'p=prev(b)'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
 2
 9
 EOF
 check( <<'EOF', ['-A1', '-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 9
 EOF
 check( <<'EOF', ['-A1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 ##
 -
@@ -882,7 +900,7 @@ EOF
 check( <<'EOF', ['-B1', '-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 -
 -
@@ -893,21 +911,20 @@ EOF
 check( <<'EOF', ['-B1', '-p', 'p=prev(b)'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
 2
 9
 EOF
 check( <<'EOF', ['-B1', '-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 9
 EOF
 check( <<'EOF', ['-B1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 ##
 -
 -
@@ -916,7 +933,7 @@ EOF
 check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 -
 -
@@ -927,21 +944,20 @@ EOF
 check( <<'EOF', ['-C1', '-p', 'p=prev(b)'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
 2
 9
 EOF
 check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', '--has','b'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 9
 EOF
 check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $data_reldiff_context});
 #!/bin/xxx
 # p
-0
+-
 2
 ##
 -

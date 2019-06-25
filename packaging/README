@@ -1,5 +1,6 @@
 These are sample packaging files that can be used to build your own packages, or
 as a baseline for packages intended to be included with the distros.
 
-At the time of this writing vnlog is already included in Debian/sid, and will be
-included in Ubuntu in the not-so-distant future.
+At the time of this writing vnlog is already included in the latest releases of
+Debian and Ubuntu. Want this to be shipped in any other distro? Send them
+patches!

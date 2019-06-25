@@ -77,7 +77,7 @@ This is an interface to produce vnlog output from C programs. Common usage:
 
 
 Note that THIS FILE IS NOT MEANT TO BE #include-ed BY THE USER. IT SHOULD BE
-INCLUDED BY THE GENERATED vnlog_fieldss_generated.h
+INCLUDED BY THE GENERATED vnlog_fields_generated.h
  */
 
 
