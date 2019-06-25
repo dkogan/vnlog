@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 r'''A simple parser for vnlog data
 
@@ -6,7 +6,7 @@ Synopsis:
 
     import vnlog
     for d in vnlog.vnlog(f):
-        print d['time'],d['height']
+        print(d['time'],d['height'])
 
 Vnlog is simple, and you don't NEED a parser to read it, but this makes it a bit
 nicer.
@@ -26,7 +26,7 @@ This module provides three different ways to parse vnlog
 
    import vnlog
    for d in vnlog.vnlog(filename_or_fileobject):
-       print d['time'],d['height']
+       print(d['time'],d['height'])
 
    Null data values are represented as None
 
@@ -41,7 +41,7 @@ This module provides three different ways to parse vnlog
        d = parser.values_dict()
        if not d:
            continue
-       print d['time'],d['height']
+       print(d['time'],d['height'])
 
 Most of the time you'd use options 1 or 2 above. Option 3 is the most general,
 but also the most verbose
@@ -63,7 +63,7 @@ class vnlog:
 
        import vnlog
        for d in vnlog.vnlog(filename_or_fileobject):
-           print d['time'],d['height']
+           print(d['time'],d['height'])
 
        Null data values are represented as None
 
@@ -78,7 +78,7 @@ class vnlog:
            d = parser.values_dict()
            if not d:
                continue
-           print d['time'],d['height']
+           print(d['time'],d['height'])
 
     '''
 
