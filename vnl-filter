@@ -218,7 +218,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
     # I pass through (don't treat as a legend) ## comments and #! shebang
     if(/^#[#!]/p)
     {
-        unless($options{skipcomments})
+        if(!$options{skipcomments} && !$options{dumpexprs})
         {
             print;
             flush STDOUT if $options{unbuffered};
