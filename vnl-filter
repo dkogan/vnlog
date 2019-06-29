@@ -387,7 +387,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
                 next if $acceptRegexMatch->($picked_expr);
 
-                die "Couldn't find requested column '$picked_expr'. Legend has columns\n" . join('', map { "  $_\n" } @cols_all_legend_input);
+                die "Couldn't find requested column '$picked_expr'. Legend has the following columns:\n" . join('', map { "  $_\n" } @cols_all_legend_input);
             }
 
             if(!@picked_fields)
