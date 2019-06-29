@@ -123,12 +123,16 @@ class vnlog:
         self._values      = None
         self._values_dict = None
 
-        if re.match('^\s*(?:#[#!]|#\s*$|$)', l):
+        if not hasattr(self, 're_hard_comment'):
+            self.re_hard_comment = re.compile('^\s*(?:#[#!]|#\s*$|$)')
+            self.re_soft_comment = re.compile('^\s*#\s*(.*?)\s*$')
+
+        if self.re_hard_comment.match(l):
             # empty line or hard comment.
             # no data, no error
             return True
 
-        m = re.match('^\s*#\s*(.*?)\s*$', l)
+        m = self.re_soft_comment.match(l)
         if m:
             if self._keys is not None:
                 # already have legend, so this is just a comment
@@ -145,8 +149,7 @@ class vnlog:
             raise Exception("Got dataline before legend")
 
         # strip leading, trailing whitespace
-        m = re.match('\s*(.*?)\s*$', l)
-        l = m.group(1)
+        l = l.strip()
 
         self._values = [ None if x == '-' else x for x in l.split()]
         if len(self._values) != len(self._keys):
