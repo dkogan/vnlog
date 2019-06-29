@@ -123,17 +123,12 @@ class vnlog:
         self._values      = None
         self._values_dict = None
 
-        if re.match('^\s*$', l):
-            # empty line
+        if re.match('^\s*(?:#[#!]|#\s*$|$)', l):
+            # empty line or hard comment.
             # no data, no error
             return True
 
-        if re.match('^\s*#[!#]', l):
-            # comment
-            # no data, no error
-            return True
-
-        m = re.match('^#\s*(.*?)\s*$', l)
+        m = re.match('^\s*#\s*(.*?)\s*$', l)
         if m:
             if self._keys is not None:
                 # already have legend, so this is just a comment

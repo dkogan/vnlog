@@ -1,5 +1,12 @@
 #!/usr/bin/python
 
+r'''Tests the python parser
+
+This is intended to work with both python2 and python3. test_python2_parser.sh
+and test_python3_parser.sh invoke this script with their respective interpreters
+
+'''
+
 from __future__ import print_function
 
 import os
@@ -16,9 +23,15 @@ except ImportError:
     from io import StringIO
 
 inputstring = '''#! zxcv
-# time height
+ 
+ # 
+#
+	#
+ ## fdd
+ #time height
 ## qewr
 1 2
+ ## ff
 3 4
 # - 10
 - 5
