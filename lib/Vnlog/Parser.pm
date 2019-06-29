@@ -29,21 +29,14 @@ sub parse
     $this->{values}      = undef;
     $this->{values_hash} = undef;
 
-    if( $line =~ /^\s*$/ )
+    if( $line =~ /^\s*(?:#[#!]|#\s*$|$)/p)
     {
-        # empty line
+        # empty line or hard comment.
         # no data, no error
         return 1;
     }
 
-    if( $line =~ /^\s*#[!#]/ )
-    {
-        # comment
-        # no data, no error
-        return 1;
-    }
-
-    if( $line =~ /^#\s*(.*?)\s*$/ )
+    if( $line =~ /^\s*#\s*(.*?)\s*$/ )
     {
         if( $this->{keys} )
         {

@@ -29,9 +29,13 @@ EOF
 
 my $data2 = <<'EOF';
 #!/bin/xxx
-## zzz
-# a b
+ ## zzz ##
+	
+#
+#a b
+
 ## yyy
+  # adsf
 # 345
 9 -2
 8 -4
