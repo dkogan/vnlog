@@ -167,7 +167,10 @@ if( !@picked_exprs_named  &&
         }
         if( $options{skipcomments})
         {
-            next if /^#[#!]/;
+            # always skip hard comments
+            next if /^\s*(?:#[#!]|#\s*$|$)/p;
+
+            # skip a single comment only if we need a legend still
             if( /^\s*#/)
             {
                 next if $gotlegend;
@@ -215,8 +218,9 @@ for my $what (@all_specialops)
 # exec(), but if we're reading a pipe, this can't work
 while(defined ($_ = get_unbuffered_line(*STDIN)))
 {
-    # I pass through (don't treat as a legend) ## comments and #! shebang
-    if(/^#[#!]/p)
+    # I pass through (don't treat as a legend) ## comments and #! shebang and
+    # empty lines and # comments without anything else.
+    if(/^\s*(?:#[#!]|#\s*$|$)/p)
     {
         if(!$options{skipcomments} && !$options{dumpexprs})
         {
@@ -226,7 +230,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
         next;
     }
 
-    if( /^#/p )
+    if( /^\s*#\s*/p )
     {
         chomp;
 
@@ -527,7 +531,7 @@ sub makeAwkProgram
     # Deal with comments. If printing, these do not count towards the context
     # stuff (-A/-B/-C)
     $awkprogram_preamble .=
-      '/^#/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
+      '/^ *(#|$)/ { ' . ($options{skipcomments} ? '' : 'print; ') . 'next } ';
 
     # skip incomplete records. Can happen if a log line at the end of a file was
     # cut off in the middle. These are invalid lines, so I don't even bother to
@@ -1061,7 +1065,7 @@ while(<STDIN>)
 
     # Deal with comments. If printing, these do not count towards the context
     # stuff (-A/-B/-C)
-    if(/^#/)
+    if(/^\s*(?:#|$)/p)
     {
         unless($options{skipcomments})
         {

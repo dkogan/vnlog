@@ -59,6 +59,21 @@ my $data_hasempty_hascomments = <<'EOF';
 - - -
 EOF
 
+my $data_funny_whitespace = <<'EOF';
+ # 
+# 
+
+	#
+  ## xxx
+  
+  # a b c
+ 
+  ## yyy
+1 2 3
+
+3 4 5
+EOF
+
 my $data_int_dup = <<'EOF';
 # c a c
 2 1 a
@@ -965,7 +980,59 @@ check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $d
 9
 EOF
 
+# check funny whitespace behavior
+check( <<'EOF', qw(-p .), {data => $data_funny_whitespace});
+ # 
+# 
 
+	#
+  ## xxx
+  
+# a b c
+ 
+  ## yyy
+1 2 3
+
+3 4 5
+EOF
+check( <<'EOF', qw(-p a), {data => $data_funny_whitespace});
+ # 
+# 
+
+	#
+  ## xxx
+  
+# a
+ 
+  ## yyy
+1
+
+3
+EOF
+check( <<'EOF', qw(-p . --skipcomments), {data => $data_funny_whitespace});
+# a b c
+1 2 3
+3 4 5
+EOF
+check( <<'EOF', qw(--noskipempty), {data => $data_funny_whitespace});
+ # 
+# 
+
+	#
+  ## xxx
+  
+  # a b c
+ 
+  ## yyy
+1 2 3
+
+3 4 5
+EOF
+check( <<'EOF', qw(--noskipempty --skipcomments), {data => $data_funny_whitespace});
+  # a b c
+1 2 3
+3 4 5
+EOF
 
 # # awk and perl write out the data with different precisions, so I test them separately for now
 # check( <<'EOF', '-p', 'rel_n(lat),rel_e(lon),rel_n(lat2),rel_e(lon2)', {language => 'AWK', data => $data_latlon} );
