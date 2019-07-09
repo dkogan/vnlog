@@ -439,6 +439,269 @@ $ cat /tmp/x.matrix
 All the tools have manpages that contain more detail. And more tools will
 probably be added with time.
 
+** C interface
+*** Basic usage
+
+For most uses, these logfiles are simple enough to be generated with plain
+prints. But then each print statement has to know which numeric column we're
+populating, which becomes effortful with many columns. In my usage it's common
+to have a large parallelized C program that's writing logs with hundreds of
+columns where any one record would contain only a subset of the columns. In such
+a case, it's helpful to have a library that can output the log files. This is
+available. Basic usage looks like this:
+
+In a shell:
+
+#+BEGIN_EXAMPLE
+$ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' 'void* binary' > vnlog_fields_generated.h
+#+END_EXAMPLE
+
+In a C program test.c:
+
+#+BEGIN_SRC C
+#include "vnlog_fields_generated.h"
+
+int main()
+{
+    vnlog_emit_legend();
+
+    vnlog_set_field_value__w(-10);
+    vnlog_set_field_value__x(40);
+    vnlog_set_field_value__y("asdf");
+    vnlog_emit_record();
+
+    vnlog_set_field_value__z(0.3);
+    vnlog_set_field_value__x(50);
+    vnlog_set_field_value__w(-20);
+    vnlog_set_field_value__binary("\x01\x02\x03", 3);
+    vnlog_emit_record();
+
+    vnlog_set_field_value__w(-30);
+    vnlog_set_field_value__x(10);
+    vnlog_set_field_value__y("whoa");
+    vnlog_set_field_value__z(0.5);
+    vnlog_emit_record();
+
+    return 0;
+}
+#+END_SRC
+
+Then we build and run, and we get
+
+#+BEGIN_EXAMPLE
+$ cc -o test test.c -lvnlog
+
+$ ./test
+
+# w x y z binary
+-10 40 asdf - -
+-20 50 - 0.2999999999999999889 AQID
+-30 10 whoa 0.5 -
+#+END_EXAMPLE
+
+The binary field in base64-encoded. This is a rarely-used feature, but sometimes
+you really need to log binary data for later processing, and this makes it
+possible.
+
+So you
+
+1. Generate the header to define your columns
+
+2. Call =vnlog_emit_legend()=
+
+3. Call =vnlog_set_field_value__...()= for each field you want to set in that
+   row.
+
+4. Call =vnlog_emit_record()= to write the row and to reset all fields for the
+   next row. Any fields unset with a =vnlog_set_field_value__...()= call are
+   written as null: =-=
+
+This is enough for 99% of the use cases. Things get a bit more complex if we
+have have threading or if we have multiple vnlog ouput streams in the same
+program. For both of these we use vnlog /contexts/.
+
+*** Contexts
+
+To support independent writing into the same vnlog (possibly by multiple
+threads; this is reentrant), each log-writer should create a context, and use it
+when talking to vnlog. The context functions will make sure that the fields in
+each context are independent and that the output records won't clobber each
+other:
+
+#+BEGIN_SRC C
+void child_writer( // the parent context also writes to this vnlog. Pass NULL to
+                   // use the global one
+                   struct vnlog_context_t* ctx_parent )
+{
+    struct vnlog_context_t ctx;
+    vnlog_init_child_ctx(&ctx, ctx_parent);
+
+    while(records)
+    {
+        vnlog_set_field_value_ctx__xxx(&ctx, ...);
+        vnlog_set_field_value_ctx__yyy(&ctx, ...);
+        vnlog_set_field_value_ctx__zzz(&ctx, ...);
+        vnlog_emit_record_ctx(&ctx);
+    }
+
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
+}
+#+END_SRC
+
+If we want to have multiple independent vnlog writers to /different/ streams
+(with different columns and legends), we do this instead:
+
+=file1.c=:
+#+BEGIN_SRC C
+#include "vnlog_fields_generated1.h"
+
+void f(void)
+{
+    // Write some data out to the default context and default output (STDOUT)
+    vnlog_emit_legend();
+    ...
+    vnlog_set_field_value__xxx(...);
+    vnlog_set_field_value__yyy(...);
+    ...
+    vnlog_emit_record();
+}
+#+END_SRC
+
+=file2.c=:
+#+BEGIN_SRC C
+#include "vnlog_fields_generated2.h"
+
+void g(void)
+{
+    // Make a new session context, send output to a different file, write
+    // out legend, and send out the data
+    struct vnlog_context_t ctx;
+    vnlog_init_session_ctx(&ctx);
+    FILE* fp = fopen(...);
+    vnlog_set_output_FILE(&ctx, fp);
+    vnlog_emit_legend_ctx(&ctx);
+    ...
+    vnlog_set_field_value__a(...);
+    vnlog_set_field_value__b(...);
+    ...
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
+    vnlog_emit_record();
+}
+#+END_SRC
+
+Note that it's the user's responsibility to make sure the new sessions go to a
+different =FILE= by invoking =vnlog_set_output_FILE()=. Furthermore, note that
+the included =vnlog_fields_....h= file defines the fields we're writing to; and
+if we have multiple different vnlog field definitions in the same program (as in
+this example), then the different writers /must/ live in different source files.
+The compiler will barf if you try to =#include= two different
+=vnlog_fields_....h= files in the same source.
+
+*** Remaining APIs
+
+- =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
+=printf()= does. This exists primarily for comments.
+
+- =vnlog_clear_fields_ctx(ctx, do_free_binary)= clears out the data in a context
+and makes it ready to be used for the next record. It is rare for the user to
+have to call this manually. The most common case is handled automatically
+(clearing out a context after emitting a record). One area where this is useful
+is when making a copy of a context:
+
+#+BEGIN_SRC C
+struct vnlog_context_t ctx1;
+// .... do stuff with ctx1 ... add data to it ...
+
+struct vnlog_context_t ctx2 = ctx1;
+// ctx1 and ctx2 now both have the same data, and the same pointers to
+// binary data. I need to get rid of the pointer references in ctx1
+
+vnlog_clear_fields_ctx(&ctx1, false);
+#+END_SRC
+
+- =vnlog_free_ctx(ctx)= frees memory for an vnlog context. Do this before
+throwing the context away. Currently this is only needed for context that have
+binary fields, but this should be called for all contexts anyway, in case this
+changes in a later revision
+
+** numpy interface
+
+The built-in =numpy.loadtxt= =numpy.savetxt= functions work well to read and
+write these files. For example to write to standard output a vnlog with fields
+=a=, =b= and =c=:
+
+#+BEGIN_SRC python
+numpy.savetxt(sys.stdout, array, fmt="%g", header="a b c")
+#+END_SRC
+
+Note that numpy automatically adds the =#= to the header. To read a vnlog from a
+file on disk, do something like
+
+#+BEGIN_SRC python
+array = numpy.loadtxt('data.vnl')
+#+END_SRC
+
+These functions know that =#= lines are comments, but don't interpret anything
+as field headers. That's easy to do, so I'm not providing any helper libraries.
+I might do that at some point, but in the meantime, patches are welcome.
+
+** Caveats and bugs
+
+The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
+=vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
+the GNU coreutils. None of these have been tested with BSD tools or with
+non-Linux kernels, and I'm sure things don't just work. It's probably not too
+effortful to get that running, but somebody needs to at least bug me for that.
+Or better yet, send me nice patches :)
+
+These tools are meant to be simple, so some things are hard requirements. A big
+one is that columns are whitespace-separated. There is /no/ mechanism for
+escaping or quoting whitespace into a single field. I think supporting something
+like that is more trouble than it's worth.
+
+* Installation
+
+** On Debian-based boxes
+At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
+later. On those boxes you can simply
+
+#+BEGIN_EXAMPLE
+$ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
+#+END_EXAMPLE
+
+to get the binary tools, the C API, the perl and python2 interfaces
+respectively.
+
+On a Debian (or Ubuntu) machine that's too old to have the packages already
+available, you can build and install them:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ cp -r packaging/debian .
+$ dpkg-buildpackage -us -uc -b
+$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
+#+END_EXAMPLE
+
+** On non-Debian-based boxes
+
+With the exception of the C API, every part of the toolkit is written in an
+interpreted language, and there's nothing to "install". You can run everything
+directly from the source tree:
+
+#+BEGIN_EXAMPLE
+$ git clone git@github.com:dkogan/vnlog.git
+$ cd vnlog
+$ ./vnl-filter .....
+#+END_EXAMPLE
+
+If you /do/ want to install to some location, do this:
+
+#+BEGIN_EXAMPLE
+$ make
+$ PREFIX=/usr/local make install
+#+END_EXAMPLE
+
 * Manpages
 ** vnl-filter
 #+BEGIN_EXAMPLE
@@ -1489,269 +1752,6 @@ SEE ALSO
 
 
 #+END_EXAMPLE
-
-* Installation
-
-** On Debian-based boxes
-At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
-later. On those boxes you can simply
-
-#+BEGIN_EXAMPLE
-$ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
-#+END_EXAMPLE
-
-to get the binary tools, the C API, the perl and python2 interfaces
-respectively.
-
-On a Debian (or Ubuntu) machine that's too old to have the packages already
-available, you can build and install them:
-
-#+BEGIN_EXAMPLE
-$ git clone git@github.com:dkogan/vnlog.git
-$ cd vnlog
-$ cp -r packaging/debian .
-$ dpkg-buildpackage -us -uc -b
-$ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
-#+END_EXAMPLE
-
-** On non-Debian-based boxes
-
-With the exception of the C API, every part of the toolkit is written in an
-interpreted language, and there's nothing to "install". You can run everything
-directly from the source tree:
-
-#+BEGIN_EXAMPLE
-$ git clone git@github.com:dkogan/vnlog.git
-$ cd vnlog
-$ ./vnl-filter .....
-#+END_EXAMPLE
-
-If you /do/ want to install to some location, do this:
-
-#+BEGIN_EXAMPLE
-$ make
-$ PREFIX=/usr/local make install
-#+END_EXAMPLE
-
-* C interface
-** Basic usage
-
-For most uses, these logfiles are simple enough to be generated with plain
-prints. But then each print statement has to know which numeric column we're
-populating, which becomes effortful with many columns. In my usage it's common
-to have a large parallelized C program that's writing logs with hundreds of
-columns where any one record would contain only a subset of the columns. In such
-a case, it's helpful to have a library that can output the log files. This is
-available. Basic usage looks like this:
-
-In a shell:
-
-#+BEGIN_EXAMPLE
-$ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' 'void* binary' > vnlog_fields_generated.h
-#+END_EXAMPLE
-
-In a C program test.c:
-
-#+BEGIN_SRC C
-#include "vnlog_fields_generated.h"
-
-int main()
-{
-    vnlog_emit_legend();
-
-    vnlog_set_field_value__w(-10);
-    vnlog_set_field_value__x(40);
-    vnlog_set_field_value__y("asdf");
-    vnlog_emit_record();
-
-    vnlog_set_field_value__z(0.3);
-    vnlog_set_field_value__x(50);
-    vnlog_set_field_value__w(-20);
-    vnlog_set_field_value__binary("\x01\x02\x03", 3);
-    vnlog_emit_record();
-
-    vnlog_set_field_value__w(-30);
-    vnlog_set_field_value__x(10);
-    vnlog_set_field_value__y("whoa");
-    vnlog_set_field_value__z(0.5);
-    vnlog_emit_record();
-
-    return 0;
-}
-#+END_SRC
-
-Then we build and run, and we get
-
-#+BEGIN_EXAMPLE
-$ cc -o test test.c -lvnlog
-
-$ ./test
-
-# w x y z binary
--10 40 asdf - -
--20 50 - 0.2999999999999999889 AQID
--30 10 whoa 0.5 -
-#+END_EXAMPLE
-
-The binary field in base64-encoded. This is a rarely-used feature, but sometimes
-you really need to log binary data for later processing, and this makes it
-possible.
-
-So you
-
-1. Generate the header to define your columns
-
-2. Call =vnlog_emit_legend()=
-
-3. Call =vnlog_set_field_value__...()= for each field you want to set in that
-   row.
-
-4. Call =vnlog_emit_record()= to write the row and to reset all fields for the
-   next row. Any fields unset with a =vnlog_set_field_value__...()= call are
-   written as null: =-=
-
-This is enough for 99% of the use cases. Things get a bit more complex if we
-have have threading or if we have multiple vnlog ouput streams in the same
-program. For both of these we use vnlog /contexts/.
-
-** Contexts
-
-To support independent writing into the same vnlog (possibly by multiple
-threads; this is reentrant), each log-writer should create a context, and use it
-when talking to vnlog. The context functions will make sure that the fields in
-each context are independent and that the output records won't clobber each
-other:
-
-#+BEGIN_SRC C
-void child_writer( // the parent context also writes to this vnlog. Pass NULL to
-                   // use the global one
-                   struct vnlog_context_t* ctx_parent )
-{
-    struct vnlog_context_t ctx;
-    vnlog_init_child_ctx(&ctx, ctx_parent);
-
-    while(records)
-    {
-        vnlog_set_field_value_ctx__xxx(&ctx, ...);
-        vnlog_set_field_value_ctx__yyy(&ctx, ...);
-        vnlog_set_field_value_ctx__zzz(&ctx, ...);
-        vnlog_emit_record_ctx(&ctx);
-    }
-
-    vnlog_free_ctx(&ctx); // required only if we have any binary fields
-}
-#+END_SRC
-
-If we want to have multiple independent vnlog writers to /different/ streams
-(with different columns and legends), we do this instead:
-
-=file1.c=:
-#+BEGIN_SRC C
-#include "vnlog_fields_generated1.h"
-
-void f(void)
-{
-    // Write some data out to the default context and default output (STDOUT)
-    vnlog_emit_legend();
-    ...
-    vnlog_set_field_value__xxx(...);
-    vnlog_set_field_value__yyy(...);
-    ...
-    vnlog_emit_record();
-}
-#+END_SRC
-
-=file2.c=:
-#+BEGIN_SRC C
-#include "vnlog_fields_generated2.h"
-
-void g(void)
-{
-    // Make a new session context, send output to a different file, write
-    // out legend, and send out the data
-    struct vnlog_context_t ctx;
-    vnlog_init_session_ctx(&ctx);
-    FILE* fp = fopen(...);
-    vnlog_set_output_FILE(&ctx, fp);
-    vnlog_emit_legend_ctx(&ctx);
-    ...
-    vnlog_set_field_value__a(...);
-    vnlog_set_field_value__b(...);
-    ...
-    vnlog_free_ctx(&ctx); // required only if we have any binary fields
-    vnlog_emit_record();
-}
-#+END_SRC
-
-Note that it's the user's responsibility to make sure the new sessions go to a
-different =FILE= by invoking =vnlog_set_output_FILE()=. Furthermore, note that
-the included =vnlog_fields_....h= file defines the fields we're writing to; and
-if we have multiple different vnlog field definitions in the same program (as in
-this example), then the different writers /must/ live in different source files.
-The compiler will barf if you try to =#include= two different
-=vnlog_fields_....h= files in the same source.
-
-** Remaining APIs
-
-- =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
-=printf()= does. This exists primarily for comments.
-
-- =vnlog_clear_fields_ctx(ctx, do_free_binary)= clears out the data in a context
-and makes it ready to be used for the next record. It is rare for the user to
-have to call this manually. The most common case is handled automatically
-(clearing out a context after emitting a record). One area where this is useful
-is when making a copy of a context:
-
-#+BEGIN_SRC C
-struct vnlog_context_t ctx1;
-// .... do stuff with ctx1 ... add data to it ...
-
-struct vnlog_context_t ctx2 = ctx1;
-// ctx1 and ctx2 now both have the same data, and the same pointers to
-// binary data. I need to get rid of the pointer references in ctx1
-
-vnlog_clear_fields_ctx(&ctx1, false);
-#+END_SRC
-
-- =vnlog_free_ctx(ctx)= frees memory for an vnlog context. Do this before
-throwing the context away. Currently this is only needed for context that have
-binary fields, but this should be called for all contexts anyway, in case this
-changes in a later revision
-
-* numpy interface
-
-The built-in =numpy.loadtxt= =numpy.savetxt= functions work well to read and
-write these files. For example to write to standard output a vnlog with fields
-=a=, =b= and =c=:
-
-#+BEGIN_SRC python
-numpy.savetxt(sys.stdout, array, fmt="%g", header="a b c")
-#+END_SRC
-
-Note that numpy automatically adds the =#= to the header. To read a vnlog from a
-file on disk, do something like
-
-#+BEGIN_SRC python
-array = numpy.loadtxt('data.vnl')
-#+END_SRC
-
-These functions know that =#= lines are comments, but don't interpret anything
-as field headers. That's easy to do, so I'm not providing any helper libraries.
-I might do that at some point, but in the meantime, patches are welcome.
-
-* Caveats and bugs
-
-The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
-=vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
-the GNU coreutils. None of these have been tested with BSD tools or with
-non-Linux kernels, and I'm sure things don't just work. It's probably not too
-effortful to get that running, but somebody needs to at least bug me for that.
-Or better yet, send me nice patches :)
-
-These tools are meant to be simple, so some things are hard requirements. A big
-one is that columns are whitespace-separated. There is /no/ mechanism for
-escaping or quoting whitespace into a single field. I think supporting something
-like that is more trouble than it's worth.
 
 * Repository
 
