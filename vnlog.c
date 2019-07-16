@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "b64_cencode.h"
+#include "vnlog-base64.h"
 
 #define VNLOG_C
 #include "vnlog.h"
@@ -57,9 +57,9 @@ static void _emit_field(struct vnlog_context_t* ctx, int i)
     else
     {
         // binary field. Encode with base64 first
-        char out_base64[base64_dstlen_to_encode(ctx->fields[i].binlen)];
-        base64_encode( out_base64, sizeof(out_base64),
-                       ctx->fields[i].binptr, ctx->fields[i].binlen );
+        char out_base64[vnlog_base64_dstlen_to_encode(ctx->fields[i].binlen)];
+        vnlog_base64_encode( out_base64, sizeof(out_base64),
+                             ctx->fields[i].binptr, ctx->fields[i].binlen );
         _emit(ctx, out_base64);
     }
 }

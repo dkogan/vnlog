@@ -27,12 +27,20 @@ my $data1 = <<'EOF';
 6a 42b 11
 EOF
 
+# Look at all the funny whitespace! Leading whitespace shouldn't matter.
+# Whitespace-only lines are comments. Single-# line with ONLY whitespace is a
+# hard-comment, NOT a legend
 my $data22 = <<'EOF';
 #!/bin/xxx
-## zxcv
-# b c d e
-## zxcv
+  ## zxcv
+	## zxcv # adsf ## vvv 
+
+ # 
+ #b c d e
+## uuu ## d
+ # xx
 22b 1c 5d 8
+
 # asdf
 32b 5c 6d 9
 ## zxcv

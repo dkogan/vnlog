@@ -58,7 +58,7 @@ For details, see http://sourceforge.net/projects/libb64
 */
 
 
-#include "b64_cencode.h"
+#include "vnlog-base64.h"
 
 typedef enum
 {
@@ -161,9 +161,8 @@ static int base64_encode_blockend(char* code_out, base64_encodestate* state_in)
 	return codechar - code_out;
 }
 
-__attribute__((visibility("hidden")))
-int base64_encode(       char* dst, int dstlen,
-                   const char* src, int srclen )
+int vnlog_base64_encode(       char* dst, int dstlen,
+                         const char* src, int srclen )
 {
     if(srclen <= 0)
     {
@@ -175,7 +174,7 @@ int base64_encode(       char* dst, int dstlen,
     base64_encodestate s;
     base64_init_encodestate(&s);
 
-    const int dstlen_needed = base64_dstlen_to_encode(srclen);
+    const int dstlen_needed = vnlog_base64_dstlen_to_encode(srclen);
 
     if(dstlen < dstlen_needed)
         return -1;

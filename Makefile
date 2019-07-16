@@ -89,7 +89,7 @@ test/test_c_api.sh.RUN: test/test1
 EXTRA_CLEAN += test/testdata_*
 
 
-DIST_INCLUDE      := vnlog.h
+DIST_INCLUDE      := vnlog*.h
 DIST_BIN          := $(TOOLS)
 DIST_PERL_MODULES := lib/Vnlog
 DIST_PY2_MODULES  := lib/vnlog.py
