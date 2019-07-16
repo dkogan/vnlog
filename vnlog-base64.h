@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-
 // encodes the source buffer into the destination buffer. Dest buffer is
 // '\0'-terminated, and the output (including '\0') will fit into dstlen bytes,
 // or else failure is indicated.
