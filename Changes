@@ -1,3 +1,29 @@
+vnlog (1.20) unstable; urgency=medium
+
+  * Exported the base64 interface. It's now usable standalone
+
+ -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:05:41 -0700
+
+vnlog (1.19) unstable; urgency=medium
+
+  * Looser handling of whitespace in the cmdline tools and parsers:
+    
+    - Blank lines count as comments
+    - leading whitespace before # doesn't matter
+    - # by itself works the same as ##. This makes it easier for the user
+      to # comment-out stuff
+
+ -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:04:30 -0700
+
+vnlog (1.18) unstable; urgency=medium
+
+  * Fixed recent regression: vnl-filter with multiple 'matches'
+    expressions works again
+  * vnl-filter -p 'prev(x)' now outputs '-' for the first line instead of
+    0. This is more truthful.
+  
+ -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:02:16 -0700
+
 vnlog (1.17)
 
   * vnl-join --autoprefix handles numerical filenames better
