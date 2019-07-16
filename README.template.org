@@ -630,6 +630,26 @@ throwing the context away. Currently this is only needed for context that have
 binary fields, but this should be called for all contexts anyway, in case this
 changes in a later revision
 
+*** Base64 interface
+The C interface supports writing base64-encoded binary data using Chris Venter's
+libb64. The base64-encoder used here was slightly modified: the output appears
+all on one line, making is suitable to appear in a vnlog field. If we're writing
+a vnlog with =printf()= directly without using the =vnlog.h= interface described
+above, we allow this modified base64 encoder to be invoked by itself. Usage:
+
+#+BEGIN_SRC C
+void* binary_buffer     = ...;
+int   binary_buffer_len = ...;
+
+char base64_buffer[vnlog_base64_dstlen_to_encode(binary_buffer_len)];
+vnlog_base64_encode( base64_buffer, sizeof(base64_buffer),
+                     binary_buffer, binary_buffer_len );
+#+END_SRC
+
+Clearly the above example allocates the base64 buffer on the stack, so it's only
+suitable for small-ish data chunks. But if you have lots and lots of data,
+probably writing it as base64 into a vnlog isn't the best thing to do.
+
 ** numpy interface
 
 The built-in =numpy.loadtxt= =numpy.savetxt= functions work well to read and
