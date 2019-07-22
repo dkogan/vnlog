@@ -1467,7 +1467,8 @@ SYNOPSIS
      dd   14 -
      ee  -    5
 
-     Sort the data, and join on 'a'. Print the unmatched lines from both files, Output ONLY column 'c' from the 2nd input:
+     Sort the data, and join on 'a'. Print the unmatched lines from both files,
+     Output ONLY column 'c' from the 2nd input:
      $ vnl-join -a1 -a2 -o 2.c --vnl-sort - -j a a.vnl b.vnl | vnl-align
      # c
      23
@@ -1844,3 +1845,7 @@ Copyright 2017-2018 Dima Kogan (=dima@secretsauce.net=)
 =b64_cencode.c= comes from =cencode.c= in the =libb64= project. It is written by
 Chris Venter (=chris.venter@gmail.com=) who placed it in the public domain. The
 full text of the license is in that file.
+
+* notes
+talk about how to store mixed data in a single log file
+example using ministat
