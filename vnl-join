@@ -772,7 +772,8 @@ vnl-join - joins two log files on a particular field
  dd   14 -
  ee  -    5
 
- Sort the data, and join on 'a'. Print the unmatched lines from both files, Output ONLY column 'c' from the 2nd input:
+ Sort the data, and join on 'a'. Print the unmatched lines from both files,
+ Output ONLY column 'c' from the 2nd input:
  $ vnl-join -a1 -a2 -o 2.c --vnl-sort - -j a a.vnl b.vnl | vnl-align
  # c
  23
