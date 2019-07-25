@@ -184,7 +184,7 @@ $ < dji.vnl vnl-sort -k Date |
 What was the highest value of the Dow-Jones index, and when did it happen?
 
 #+BEGIN_EXAMPLE
-$ < dji.vnl vnl-sort -rk Close |
+$ < dji.vnl vnl-sort -rgk Close |
   head -n2 |
   vnl-align
 
@@ -244,7 +244,7 @@ $ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
 
 
 $ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
-  vnl-sort -rk d |
+  vnl-sort -rgk d |
   head -n2 |
   vnl-align
 
