@@ -184,7 +184,7 @@ $ < dji.vnl vnl-sort -k Date |
 What was the highest value of the Dow-Jones index, and when did it happen?
 
 #+BEGIN_EXAMPLE
-$ < dji.vnl vnl-sort -rk Close |
+$ < dji.vnl vnl-sort -rgk Close |
   head -n2 |
   vnl-align
 
@@ -244,7 +244,7 @@ $ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
 
 
 $ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
-  vnl-sort -rk d |
+  vnl-sort -rgk d |
   head -n2 |
   vnl-align
 
@@ -727,8 +727,8 @@ like that is more trouble than it's worth.
 * Installation
 
 ** On Debian-based boxes
-At this time vnlog is a part of Debian/sid, and is a part of Ubuntu cosmic or
-later. On those boxes you can simply
+At this time vnlog is a part of Debian/buster and Ubuntu/cosmic (18.10). On
+those boxes you can simply
 
 #+BEGIN_EXAMPLE
 $ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
@@ -1845,7 +1845,3 @@ Copyright 2017-2018 Dima Kogan (=dima@secretsauce.net=)
 =b64_cencode.c= comes from =cencode.c= in the =libb64= project. It is written by
 Chris Venter (=chris.venter@gmail.com=) who placed it in the public domain. The
 full text of the license is in that file.
-
-* notes
-talk about how to store mixed data in a single log file
-example using ministat
