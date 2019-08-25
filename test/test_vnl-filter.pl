@@ -20,66 +20,6 @@ my $data_default = <<'EOF';
 10 11 12
 EOF
 
-my $data_latlon = <<'EOF';
-#!/bin/xxx
-# lat lon lat2 lon2
-37.0597792247 -76.1703387355 37.0602752259 -76.1705049567
-37.0598883299 -76.1703577868 37.0604772596 -76.1705748082
-37.0599879749 -76.1703966222 37.0605833650 -76.1706010153
-37.0600739448 -76.1704347187 37.0606881510 -76.1706390439
-37.0601797672 -76.1704662408 37.0607908914 -76.1706712460
-EOF
-
-my $data_cubics = <<'EOF';
-#!/bin/xxx
-# x
-1
-8
-27
-64
-125
-EOF
-
-my $data_specialchars = <<'EOF';
-#!/bin/xxx
-# PID USER PR NI   VIRT   RES   SHR  S %CPU %MEM  TIME+     COMMAND
-25946 dima 20 0    82132 23828   644 S 5.9  1.2  0:01.42 mailalert.pl
-27036 dima 20 0  1099844 37772 13600 S 5.9  1.9  1:29.57 mpv
-28648 dima 20 0    45292  3464  2812 R 5.9  0.2  0:00.02 top
-    1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd
-EOF
-
-my $data_hasempty_hascomments = <<'EOF';
-#!adsf
-# a b c
-1 2 3
-## zcxv
-4 - 6
-7 9 -
-- - -
-EOF
-
-my $data_funny_whitespace = <<'EOF';
- # 
-# 
-
-	#
-  ## xxx
-  
-  # a b c
- 
-  ## yyy
-1 2 3
-
-3 4 5
-EOF
-
-my $data_int_dup = <<'EOF';
-# c a c
-2 1 a
-4 - b
-6 5 c
-EOF
 
 
 
@@ -100,6 +40,16 @@ check( <<'EOF', qw(-p s=b --noskipempty) );
 -
 9
 11
+EOF
+
+my $data_hasempty_hascomments = <<'EOF';
+#!adsf
+# a b c
+1 2 3
+## zcxv
+4 - 6
+7 9 -
+- - -
 EOF
 
 check( <<'EOF', qw(--noskipempty), {data => $data_hasempty_hascomments} );
@@ -362,6 +312,16 @@ check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
 3
 EOF
 
+my $data_cubics = <<'EOF';
+#!/bin/xxx
+# x
+1
+8
+27
+64
+125
+EOF
+
 check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x)),sd2=sum(diff(diff(x)))', {data => $data_cubics});
 #!/bin/xxx
 # d1 d2 sd2
@@ -518,6 +478,15 @@ check( <<'EOF', 'a>5', '--eval', 'my $v = a + b + 2; say $v', {language => 'perl
 23
 EOF
 
+my $data_specialchars = <<'EOF';
+#!/bin/xxx
+# PID USER PR NI   VIRT   RES   SHR  S %CPU %MEM  TIME+     COMMAND
+25946 dima 20 0    82132 23828   644 S 5.9  1.2  0:01.42 mailalert.pl
+27036 dima 20 0  1099844 37772 13600 S 5.9  1.9  1:29.57 mpv
+28648 dima 20 0    45292  3464  2812 R 5.9  0.2  0:00.02 top
+    1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd
+EOF
+
 check(<<'EOF', qw(-p M), {data => $data_specialchars});
 #!/bin/xxx
 # %MEM TIME+ COMMAND
@@ -538,6 +507,13 @@ EOF
 
 # A log with duplicated columns should generally behave normally, if we aren't
 # explicitly touching the duplicate columns
+my $data_int_dup = <<'EOF';
+# c a c
+2 1 a
+4 - b
+6 5 c
+EOF
+
 check(<<'EOF', qw(1), {data => $data_int_dup});
 # c a c
 2 1 a
@@ -997,6 +973,21 @@ check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $d
 EOF
 
 # check funny whitespace behavior
+my $data_funny_whitespace = <<'EOF';
+ # 
+# 
+
+	#
+  ## xxx
+  
+  # a b c
+ 
+  ## yyy
+1 2 3
+
+3 4 5
+EOF
+
 check( <<'EOF', qw(-p .), {data => $data_funny_whitespace});
  # 
 # 
@@ -1048,6 +1039,16 @@ check( <<'EOF', qw(--noskipempty --skipcomments), {data => $data_funny_whitespac
   # a b c
 1 2 3
 3 4 5
+EOF
+
+my $data_latlon = <<'EOF';
+#!/bin/xxx
+# lat lon lat2 lon2
+37.0597792247 -76.1703387355 37.0602752259 -76.1705049567
+37.0598883299 -76.1703577868 37.0604772596 -76.1705748082
+37.0599879749 -76.1703966222 37.0605833650 -76.1706010153
+37.0600739448 -76.1704347187 37.0606881510 -76.1706390439
+37.0601797672 -76.1704662408 37.0607908914 -76.1706712460
 EOF
 
 # # awk and perl write out the data with different precisions, so I test them separately for now
