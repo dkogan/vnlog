@@ -1,10 +1,17 @@
-vnlog (1.20) unstable; urgency=medium
+vnlog (1.21)
+
+  * --has can take regular expressions
+  * Columns with = in the name are now supported
+
+ -- Dima Kogan <dkogan@debian.org>  Sun, 25 Aug 2019 16:09:14 -0700
+
+vnlog (1.20)
 
   * Exported the base64 interface. It's now usable standalone
 
  -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:05:41 -0700
 
-vnlog (1.19) unstable; urgency=medium
+vnlog (1.19)
 
   * Looser handling of whitespace in the cmdline tools and parsers:
     
@@ -15,7 +22,7 @@ vnlog (1.19) unstable; urgency=medium
 
  -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:04:30 -0700
 
-vnlog (1.18) unstable; urgency=medium
+vnlog (1.18)
 
   * Fixed recent regression: vnl-filter with multiple 'matches'
     expressions works again
