@@ -252,6 +252,53 @@ check( <<'EOF', '-p', 'a,+b' );
 10 11
 EOF
 
+check( <<'EOF', '-p', '.' );
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+7 9 -
+10 11 12
+EOF
+
+check( <<'EOF', '-p', 'a,[bx]' );
+#!/bin/xxx
+# a b
+1 2
+4 -
+7 9
+10 11
+EOF
+
+check( <<'EOF', '-p', 'a,+[bx]' );
+#!/bin/xxx
+# a b
+1 2
+7 9
+10 11
+EOF
+
+check( <<'EOF', '-p', 'a', '--has', '[bx]' );
+#!/bin/xxx
+# a
+1
+7
+10
+EOF
+
+check( <<'EOF', '-p', 'a,[bc]' );
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+7 9 -
+10 11 12
+EOF
+
+check( 'ERROR', '-p', 'a,+[bc]' );
+
+check( 'ERROR', '-p', '+.' );
+
 check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c --noskipempty));
 #!/bin/xxx
 # d s pa b c

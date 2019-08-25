@@ -434,15 +434,56 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
         if( @must_have_col_names )
         {
-            foreach my $col (@must_have_col_names)
+            foreach my $col_name (@must_have_col_names)
             {
-                if( !(defined $colindices_input{$col} && 1 == @{$colindices_input{$col}}) )
+                # First I try exact matches for column names. Only unique
+                # matches accepted
+                if( defined $colindices_input{$col_name} )
                 {
-                    die "I don't have a unique column '$col'";
+                    if(1 == @{$colindices_input{$col_name}})
+                    {
+                        push @must_have_col_indices_input, $colindices_input{$col_name}[0];
+                        next;
+                    }
+
+                    die "--has found multiple columns named '$col_name'; --has expects unique columns";
                 }
-                push @must_have_col_indices_input, $colindices_input{$col}[0];
+
+
+                # No exact matches. Try regex matches. Again, only unique
+                # matches accepted
+                my $col_name_re;
+                eval { $col_name_re = qr/$col_name/p; };
+                if( $@ )
+                {
+                    die "--has found no columns matching '$col_name'";
+                }
+
+                # compiled regex successfully
+                my $matching_col_index;
+
+                for my $matched_legend_input (keys(%colindices_input))
+                {
+                    if ( $matched_legend_input =~ /$col_name_re/p && length(${^MATCH}) > 0 )
+                    {
+                        # Found match. Is it unique?
+                        if(defined $matching_col_index || 1 != @{$colindices_input{$matched_legend_input}})
+                        {
+                            die "--has found multiple columns matching '$col_name'; --has expects unique columns";
+                        }
+
+                        # Found unique (for now) column
+                        $matching_col_index = $colindices_input{$matched_legend_input}[0];
+                    }
+                }
+                if(!defined $matching_col_index)
+                {
+                    die "--has found no columns matching '$col_name'";
+                }
+                push @must_have_col_indices_input, $matching_col_index;
             }
         }
+
         last;
     }
 
@@ -1479,6 +1520,10 @@ column, a shorthand syntax exists:
 is equivalent to
 
  vnl-filter -p +col
+
+Note that just like the column specifications in C<-p> the columns given to
+C<--has> must match exactly I<or> as a regex. In either case, a unique matching
+column must be found.
 
 =head2 Matches expressions
 
