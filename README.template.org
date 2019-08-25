@@ -26,8 +26,8 @@ Such data works very nicely with normal UNIX tools (=awk=, =sort=, =join=), can
 be easily read by fancier tools (=numpy=, =matlab=, =excel=, etc), and can be
 plotted with =feedgnuplot=. This tookit provides some tools to manipulate
 =vnlog= data and a few libraries to read/write it. The core philosophy is to
-avoid creating new knowledge as much as possible. Consequently, the toolkit 
-relies /heavily/ on existing (and familiar!) tools and workflows. As such, 
+avoid creating new knowledge as much as possible. Consequently, the toolkit
+relies /heavily/ on existing (and familiar!) tools and workflows. As such,
 the toolkit is small, light, and has a /very/ friendly learning curve.
 
 * Synopsis
@@ -671,13 +671,111 @@ These functions know that =#= lines are comments, but don't interpret anything
 as field headers. That's easy to do, so I'm not providing any helper libraries.
 I might do that at some point, but in the meantime, patches are welcome.
 
-** Workflow: data statistics
+* Workflows and recipes
 
-A common want is to compute basic statistics from your data. Many of the tools
-describe above provide built-in facilities to do this, but since vnlog is meant
-to be unixy, where each tool has very limited scope. Thus you can either do this
-with =awk= like you would normally, or you can use other standalone tools to
-perform the needed computations. For instance, I can generate some data:
+** Storing disjoint data
+
+A common use case is a complex application that produces several semi-related
+subsets of data at once. Example: a moving vehicle is reporting both its own
+position and the observed positions of other vehicles; at any given time any
+number of other vehicles may be observed. Two equivalent workflows are possible:
+
+- a single unified vnlog stream for /all/ the data
+- several discrete vnlog streams for each data subset
+
+Both are valid approaches
+
+*** One unified vnlog stream
+
+Here the application produces a /single/ vnlog that contains /all/ the columns,
+from /all/ the data subsets. In any given row, many of the columns will be empty
+(i.e. contain only =-= ). For instance, a row describing a vehicle own position
+will not have data about any other vehicles, and vice versa. =vnl-filter= can be
+used to pull out the different subsets. Sample =joint.vnl=:
+
+#+BEGIN_EXAMPLE
+# time x_self x_other
+1      10     -
+2      20     -
+2      -      100
+3      30     -
+3      -      200
+3      -      300
+#+END_EXAMPLE
+
+Here we have 3 instances in time. We have no observations of other vehicles at
+=time= 1, one observation at =time= 2, and two observations at =time= 3. We can
+use =vnl-filter= to pull out the data we want. The =+= modifier in picked
+columns in =vnl-filter= is especially useful here:
+
+#+BEGIN_EXAMPLE
+$ < joint.vnl vnl-filter -p time,self
+
+# time x_self
+1 10
+2 20
+2 -
+3 30
+3 -
+3 -
+
+
+$ < joint.vnl vnl-filter -p time,+self
+
+# time x_self
+1 10
+2 20
+3 30
+
+
+$ < joint.vnl vnl-filter -p time,+other
+
+# time x_other
+2 100
+3 200
+3 300
+#+END_EXAMPLE
+
+*** Several discrete vnlog streams
+
+Conversely, the application can produce /separate/ vnlog streams for /each/
+subset of data. Depending on what is desired, exactly, =vnl-join= can be used to
+re-join them:
+
+#+BEGIN_EXAMPLE
+$ cat self.vnl
+
+# time x_self
+1 10
+2 20
+3 30
+
+
+$ cat other.vnl
+
+# time x_other
+2 100
+3 200
+3 300
+
+
+$ vnl-join -j time -a- self.vnl other.vnl
+
+# time x_self x_other
+1 10 -
+2 20 100
+3 30 200
+3 30 300
+#+END_EXAMPLE
+
+** Data statistics
+
+A common need is to compute basic statistics from your data. Many of the
+alternative toolkits listed above provide built-in facilities to do this, but
+vnlog does not: it's meant to be unixy, where each tool has very limited scope.
+Thus you can either do this with =awk= like you would normally, or you can use
+other standalone tools to perform the needed computations. For instance, I can
+generate some data:
 
 #+BEGIN_EXAMPLE
 $ seq 2 100 | awk 'BEGIN {print "# x"} {print log($1)}' > /tmp/log.vnl
@@ -686,7 +784,7 @@ $ seq 2 100 | awk 'BEGIN {print "# x"} {print log($1)}' > /tmp/log.vnl
 Then I can compute the mean with =awk=:
 
 #+BEGIN_EXAMPLE
-$ < /tmp/log.vnl vnl-filter --eval '{s += x} END {print s/NR}'
+$ < /tmp/log.vnl vnl-filter --eval '{sum += x} END {print sum/NR}'
 3.67414
 #+END_EXAMPLE
 
@@ -707,10 +805,71 @@ x <stdin>
 x  99      0.693147       4.60517       3.93183     3.6741353    0.85656382
 #+END_EXAMPLE
 
-=ministat= is not a part of the vnlog toolkit, but since this data is generic,
-it works just fine.
+=ministat= is not a part of the vnlog toolkit, but the vnlog format is generic
+so it works just fine.
 
-** Caveats and bugs
+** Powershell-style filtering of common shell commands
+
+Everything about vnlog is generic and simple, so it's easy to use it to process
+data that wasn't originally meant to be used this way. For instance filtering
+the output of =ls -l= to report only file names and sizes, skipping directories,
+and sorting by file sizes:
+
+#+BEGIN_EXAMPLE
+$ ls -l
+
+total 320
+-rw-r--r-- 1 dima dima  5044 Aug 25 15:04 Changes
+-rw-r--r-- 1 dima dima 12749 Aug 25 15:04 Makefile
+-rw-r--r-- 1 dima dima 69789 Aug 25 15:04 README.org
+-rw-r--r-- 1 dima dima 33781 Aug 25 15:04 README.template.org
+-rw-r--r-- 1 dima dima  5359 Aug 25 15:04 b64_cencode.c
+drwxr-xr-x 4 dima dima  4096 Aug 25 15:04 completions
+drwxr-xr-x 3 dima dima  4096 Aug 25 15:04 lib
+drwxr-xr-x 3 dima dima  4096 Aug 25 15:04 packaging
+drwxr-xr-x 2 dima dima  4096 Aug 25 15:04 test
+-rwxr-xr-x 1 dima dima  5008 Aug 25 15:04 vnl-align
+-rwxr-xr-x 1 dima dima 56637 Aug 25 15:04 vnl-filter
+-rwxr-xr-x 1 dima dima  5678 Aug 25 15:04 vnl-gen-header
+-rwxr-xr-x 1 dima dima 29815 Aug 25 15:04 vnl-join
+-rwxr-xr-x 1 dima dima  3631 Aug 25 15:04 vnl-make-matrix
+-rwxr-xr-x 1 dima dima  8372 Aug 25 15:04 vnl-sort
+-rwxr-xr-x 1 dima dima  5822 Aug 25 15:04 vnl-tail
+-rwxr-xr-x 1 dima dima  4439 Aug 25 15:04 vnl-ts
+-rw-r--r-- 1 dima dima   559 Aug 25 15:04 vnlog-base64.h
+-rw-r--r-- 1 dima dima  8169 Aug 25 15:04 vnlog.c
+-rw-r--r-- 1 dima dima 12677 Aug 25 15:04 vnlog.h
+
+
+$ (echo '# permissions num_links user group size month day time name';
+   ls -l | tail -n +2) |
+  vnl-filter 'permissions !~ "^d"' -p name,size |
+  vnl-sort -gk size |
+  vnl-align
+
+#       name         size
+vnlog-base64.h        559
+vnl-make-matrix      3631
+vnl-ts               4439
+vnl-align            5008
+Changes              5044
+b64_cencode.c        5359
+vnl-gen-header       5678
+vnl-tail             5822
+vnlog.c              8169
+vnl-sort             8372
+vnlog.h             12677
+Makefile            12749
+vnl-join            29815
+README.template.org 33781
+vnl-filter          56637
+README.org          69789
+#+END_EXAMPLE
+
+With a bit of shell manipulation, these tools can be applied to a whole lot of
+different data streams that know nothing of vnlog.
+
+* Caveats and bugs
 
 The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
 =vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
