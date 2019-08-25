@@ -347,14 +347,10 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
                 my $picked_expr_named = $picked_exprs_named[$i_picked_exprs_named];
 
+                next if $acceptExactMatch->($picked_expr_named, undef);
+
                 my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
-                if ( !defined $picked_expr )
-                {
-                    $picked_expr = $picked_expr_named;
-                }
-
-
-                next if $acceptExactMatch->($picked_expr, $name);
+                $picked_expr //= $picked_expr_named;
 
                 # No exact column match. If this is a named expression, I pass it on
                 # to awk/perl
