@@ -1692,7 +1692,7 @@ trouble if you do that.
 All column names are replaced in all eval strings without regard to context. The
 earlier example that reports the sum of values in a column: C<vnl-filter --eval
 '{suma += a} END {print suma}'> will work fine if we I<do> have a column named
-C<a> and do <not> have a column named C<suma>. But will not do the right thing
+C<a> and do I<not> have a column named C<suma>. But will not do the right thing
 if any of those are violated. It's the user's responsibility to make sure we're
 talking about the right columns. The focus here was one-liners so hopefully
 nobody has so many columns, they can't keep track of all of them in their head.
