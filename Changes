@@ -1,3 +1,9 @@
+vnlog (1.22)
+
+  * vnl-join handles empty vnlog files properly
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 05 Oct 2019 12:36:14 -0700
+
 vnlog (1.21)
 
   * --has can take regular expressions
