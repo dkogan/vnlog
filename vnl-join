@@ -536,12 +536,6 @@ if( $Ndatafiles > 2 )
 # vnlog uses - to represent empty fields
 $options->{e} = '-';
 
-if( !defined $options->{o} )
-{
-    # Some format MUST be given. Otherwise join doesn't respect -e
-    $options->{o} = 'auto';
-}
-
 my $join_key = $options->{j};
 
 
@@ -622,6 +616,11 @@ sub post_sort
 my $inputs = read_and_preparse_input($filenames,
                                      get_sort_prefilter($options));
 my $keys_output = substitute_field_keys($options, $inputs);
+
+# If we don't have a -o, make one. '-o auto' does ALMOST what I want, but it
+# fails if given an empty vnlog
+$options->{o} //= construct_default_o_option($inputs, $options->{1}, $options->{2});
+
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
 
 my $legend = '# ' . join(' ', @$keys_output) . "\n";
@@ -714,6 +713,31 @@ sub substitute_field_keys
     return \@keys_out;
 }
 
+sub construct_default_o_option
+{
+    # I wasn't asked to output specific fields, so I report the default columns:
+    #
+    # - the join key
+    # - all the remaining fields from the first file
+    # - all the remaining fields from the second file
+    #
+    # This is what '-o auto' does, except that infers the number of columns from
+    # the first record, which could be wrong sometimes (most notably a vnlog
+    # with no data). In our case we have the column counts from the vnlog
+    # header, so we can construct the correct thing
+    my ($inputs, @col12) = @_;
+
+    return
+      '0' .
+      join('',
+           map
+           {
+               my $input_index = $_;
+               my $Nkeys = int( @{$inputs->[$input_index]{keys}} );
+               my @output_fields = ((1..$col12[$input_index]-1) , ($col12[$input_index]+1..$Nkeys));
+               map {' ' . ($input_index+1) . ".$_"} @output_fields;
+           } 0..$#$inputs);
+}
 
 
 
@@ -855,8 +879,9 @@ and/or output. See below for details.
 
 =item *
 
-If no C<-o> is given, we pass C<-o auto> to make sure that missing data is shown
-as C<->.
+If no C<-o> is given, we output the join field, the remaining fields in
+logfile1, the remaining fields in logfile2, .... This is what C<-o auto> does,
+except we also handle empty vnlogs correctly.
 
 =item *
 

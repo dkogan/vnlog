@@ -69,13 +69,23 @@ my $data_int_dup = <<'EOF';
 3 12 C
 EOF
 
+my $data_empty1 = <<'EOF';
+# a c d
+EOF
+
+my $data_empty2 = <<'EOF';
+# cc dd a
+EOF
+
 
 test_init('vnl-join', \$Nfailed,
           '$data1'       => $data1,
           '$data22'      => $data22,
           '$data3'       => $data3,
           '$data_int'    => $data_int,
-          '$data_int_dup'=> $data_int_dup);
+          '$data_int_dup'=> $data_int_dup,
+          '$data_empty1'  => $data_empty1,
+          '$data_empty2'  => $data_empty2);
 
 
 
@@ -409,6 +419,40 @@ check( <<'EOF', qw(-jb --vnl-sort=r -a-), '$data3', '$data22', '$data1');
 22b 18 1c 5d 8 1a 9
 EOF
 
+check( <<'EOF', qw(-ja -a-), '$data1', '$data_empty');
+# a b e c d
+1a 22b 9 - -
+5a 32b 10 - -
+6a 42b 11 - -
+EOF
+
+check( <<'EOF', qw(-ja -a-), '$data1', '$data_empty1');
+# a b e c d
+1a 22b 9 - -
+5a 32b 10 - -
+6a 42b 11 - -
+EOF
+
+check( <<'EOF', qw(-ja -a-), '$data1', '$data_empty2');
+# a b e cc dd
+1a 22b 9 - -
+5a 32b 10 - -
+6a 42b 11 - -
+EOF
+
+check( <<'EOF', qw(-ja -a-), '$data_empty1', '$data1');
+# a c d b e
+1a - - 22b 9
+5a - - 32b 10
+6a - - 42b 11
+EOF
+
+check( <<'EOF', qw(-ja -a-), '$data_empty1', '$data1', '$data_empty2');
+# a c d b e cc dd
+1a - - 22b 9 - -
+5a - - 32b 10 - -
+6a - - 42b 11 - -
+EOF
 
 
 if($Nfailed == 0 )
