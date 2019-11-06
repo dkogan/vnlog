@@ -238,7 +238,7 @@ $ < dji.vnl | vnl-filter -p '.,d=diff(Close)' |
     vnl-align
 
 #  Date      Open     High      Low     Close  AdjClose   Volume     d
-2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840    0
+2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840    -
 2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000 -208.77
 2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000  205.99
 
@@ -1124,12 +1124,12 @@ DESCRIPTION
          2 9
 
     *   diff(x) returns the difference between the current value of "x" and
-        the previous value of "x". The first row will always be 0. Example:
+        the previous value of "x". The first row will always be -. Example:
 
          $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
          # x d1 d2
-           1  0  0
+           1  -  -
            8  7  7
           27 19 12
           64 37 18
@@ -1138,14 +1138,14 @@ DESCRIPTION
     *   sum(x) returns the cumulative sum of "x". As diff(x) can be thought
         of as a derivative, sum(x) can be thought of as an integral. So
         "diff(sum(x))" would return the same value as "x" (except for the
-        first row; "diff()" always returns 0 for the first row).
+        first row; "diff()" always returns - for the first row).
 
         Example:
 
          $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
 
          # x  s   ds
-           1   1   0
+           1   1   -
            8   9   8
           27  36  27
           64 100  64
@@ -1699,8 +1699,9 @@ DESCRIPTION
     *   A "vnl-join"-specific option "--vnl-sort" is available to sort the
         input and/or output. See below for details.
 
-    *   If no "-o" is given, we pass "-o auto" to make sure that missing
-        data is shown as "-".
+    *   If no "-o" is given, we output the join field, the remaining fields
+        in logfile1, the remaining fields in logfile2, .... This is what "-o
+        auto" does, except we also handle empty vnlogs correctly.
 
     *   "-e" is not supported because vnlog uses "-" to represent undefined
         fields.
