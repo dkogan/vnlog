@@ -326,7 +326,7 @@ EOF
 check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p s=sum(a) -p c -p a));
 #!/bin/xxx
 # r b d s c a
-0 2 0 1 3 1
+0 2 - 1 3 1
 3 - 3 5 6 4
 6 9 3 12 - 7
 9 11 3 22 12 10
@@ -353,7 +353,6 @@ EOF
 check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
 #!/bin/xxx
 # d
-0
 3
 3
 3
@@ -372,7 +371,7 @@ EOF
 check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x)),sd2=sum(diff(diff(x)))', {data => $data_cubics});
 #!/bin/xxx
 # d1 d2 sd2
-0 0 0
+- - 0
 7 7 7
 19 12 19
 37 18 37
@@ -382,7 +381,7 @@ EOF
 check( <<'EOF', '-p', 'sd=sum(diff(a))', '-p', 'ds=diff(sum(a))');
 #!/bin/xxx
 # sd ds
-0 0
+0 -
 3 4
 6 7
 9 10

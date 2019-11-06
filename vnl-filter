@@ -700,7 +700,7 @@ sub makeAwkProgram
     }
     for my $i (0..$specialops{diff}{N}-1)
     {
-        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+        $awkprogram_reldiff .= "function diff$i(x) { retval = __inited_diff$i ? (x - __state_diff$i) : \"-\"; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
     }
     for my $i (0..$specialops{sum}{N}-1)
     {
@@ -1001,7 +1001,7 @@ $i = 0;
 EVAL_DIFF_FUNC:
 if( $i < $specialops{diff}{N} )
 {
-    $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ' . $evalstr;
+    $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = $inited ? ($x - $state) : undef; $state = $x; $inited=1; return $retval; } ' . $evalstr;
     $i++;
     goto EVAL_DIFF_FUNC;
 }
@@ -1391,12 +1391,12 @@ relative to some absolute beginning. Example:
 =item *
 
 C<diff(x)> returns the difference between the current value of C<x> and the
-previous value of C<x>. The first row will always be 0. Example:
+previous value of C<x>. The first row will always be -. Example:
 
  $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
  # x d1 d2
-   1  0  0
+   1  -  -
    8  7  7
   27 19 12
   64 37 18
@@ -1407,14 +1407,14 @@ previous value of C<x>. The first row will always be 0. Example:
 C<sum(x)> returns the cumulative sum of C<x>. As C<diff(x)> can be thought of as
 a derivative, C<sum(x)> can be thought of as an integral. So C<diff(sum(x))>
 would return the same value as C<x> (except for the first row; C<diff()> always
-returns 0 for the first row).
+returns - for the first row).
 
 Example:
 
  $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
 
  # x  s   ds
-   1   1   0
+   1   1   -
    8   9   8
   27  36  27
   64 100  64
