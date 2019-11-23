@@ -339,6 +339,7 @@ power all the =vnl-...= tools provide.
 Vnlog tools are designed to be very simple and light. There exist a number of
 other tools that do vaguely the same thing. Some of these:
 
+- https://www.gnu.org/software/datamash/
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
 - https://github.com/eBay/tsv-utils-dlang
