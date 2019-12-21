@@ -44,7 +44,8 @@ my @specs = ( # options with no args
               "temporary-directory|T=s",
               "parallel=s",
 
-              # special-case options. Kinda take args
+              # '--check' and '--check=...' are valid. '--check ...' is NOT
+              # valid. parse_options handles that
               "check:s",
               "c|C",
 

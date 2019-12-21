@@ -27,7 +27,8 @@ my @specs = ( # options with no args
              "max-unchanged-stats=i",
              "pid=i",
 
-             # special-case options. Kinda take args
+             # '--follow' and '--follow=...' are valid. '--follow ...' is NOT
+             # valid. parse_options handles that
              "follow:s",
 
              "help|h");
@@ -43,28 +44,6 @@ vnlog is built on assuming a particular record separator
 EOF
                           );
 
-# 'tail --follow' works somewhat non-standardly. It takes an optional argument,
-# but this argument MUST be given as '--follow=xxx', NOT '--follow xxx'. My
-# option parser erroneously accepts both, so I make sure that I don't accept
-# '--follow something' by putting --follow at the end of the argument list
-my @ifollow = grep { $ARGV[$_] =~ /^--follow/ } 0..$#ARGV;
-if( @ifollow )
-{
-    if( @ifollow > 1 )
-    {
-        die "--follow given more than once. I'm easily confused, so I give up.";
-    }
-
-    my $i = $ifollow[0];
-    if( $ARGV[$i] !~ /^--follow=/ )
-    {
-        # we have a --follow that's NOT a --follow=something. I put it at the
-        # end to make sure that I don't assign anything to it
-        my $last = $ARGV[$#ARGV];
-        $ARGV[$#ARGV] = $ARGV[$i];
-        $ARGV[$i] = $last;
-    }
-}
 my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
   $0 [options] logfile logfile logfile ... < logfile
 

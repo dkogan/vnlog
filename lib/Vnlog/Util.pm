@@ -183,10 +183,44 @@ sub pull_key
 }
 sub parse_options
 {
-    my ($ARGV, $specs, $num_nondash_options, $usage) = @_;
+    my ($_ARGV, $_specs, $num_nondash_options, $usage) = @_;
+
+    my @specs     = @$_specs;
+    my @ARGV_copy = @$_ARGV;
+
+    # In my usage, options that take optional arguments (specified as
+    # "option:type") must be given as --option=arg and NOT '--option arg'.
+    # Getopt::Long doesn't allow this, so I have to do it myself.
+    #
+    # I find all occurrences in ARGV, I pull them out before parsing, and I put
+    # them back afterwards. Since '--option arg' is invalid, I only need to pull
+    # out single tokens: multiple-token options aren't valid
+    my @optional_arg_opts = grep /:/, @specs;
+    my %optional_arg_opts_tokens_removed;
+    for my $optional_arg_opt (@optional_arg_opts)
+    {
+        my ($opt_spec) = split(/:/, $optional_arg_opt);
+        # options are specified as a|b|cc|dd. The one-letter options appear as
+        # -a, and the longer ones as --cc. I process each indepenently
+        my @opts = split(/\|/, $opt_spec);
+        for my $opt (@opts)
+        {
+            if(length($opt) == 1) { $opt = "-$opt";  }
+            else                  { $opt = "--$opt"; }
+            my $re = '^' . $opt . '(=|$)';
+            $re = qr/$re/;
+            my @tokens = grep /$re/, @ARGV_copy;
+            if (@tokens)
+            {
+                $optional_arg_opts_tokens_removed{$optional_arg_opt} //= [];
+                push @{$optional_arg_opts_tokens_removed{$optional_arg_opt}}, @tokens;
+                @ARGV_copy = grep {$_ !~ /$re/} @ARGV_copy;
+            }
+        }
+    }
+
 
     my %options;
-    my @ARGV_copy = @$ARGV;
     my $result;
 
     my $oldconfig = Getopt::Long::Configure('gnu_getopt');
@@ -195,17 +229,32 @@ sub parse_options
         $result =
           GetOptionsFromArray( \@ARGV_copy,
                                \%options,
-                               @$specs );
+                               @specs );
     };
-    if('ARRAY' eq ref $oldconfig)
-    {
-        # I restore the old config. This feature (returning old configuration)
-        # is undocumented in Getopt::Long::Configure, so I try to use it if it
-        # returns a correct-looking thing
-        Getopt::Long::Configure($oldconfig);
-    }
 
     my $err = $@ || !$result;
+    if(!$err && !$options{help})
+    {
+        # Parsing succeeded! I parse all the options I pulled out earlier, and
+        # THEN I'm done
+        for my $optional_arg_opt ( keys %optional_arg_opts_tokens_removed )
+        {
+            my $opt = $optional_arg_opts_tokens_removed{$optional_arg_opt};
+            eval
+            {
+                $result =
+                  GetOptionsFromArray( $opt,
+                                       \%options,
+                                       ($optional_arg_opt) );
+            };
+
+            $err = $@ || !$result;
+            last if $err;
+
+            push @ARGV_copy, @$opt;
+        }
+    }
+
     if( $err || $options{help})
     {
         if( $err )
@@ -231,6 +280,14 @@ EOF
         }
 
         exit ($err ? 1 : 0);
+    }
+
+    if('ARRAY' eq ref $oldconfig)
+    {
+        # I restore the old config. This feature (returning old configuration)
+        # is undocumented in Getopt::Long::Configure, so I try to use it if it
+        # returns a correct-looking thing
+        Getopt::Long::Configure($oldconfig);
     }
 
     if(@ARGV_copy < $num_nondash_options)
