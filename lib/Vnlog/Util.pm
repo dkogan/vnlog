@@ -82,54 +82,54 @@ sub open_file_as_pipe
     # (grep here), /dev/fd/N is a pipe, not a file. And opening this pipe DOES
     # start reading the file from the post-legend location
 
-
-
-
-
-    # mawk script to strip away comments and trailing whitespace (GNU coreutils
-    # join treats trailing whitespace as empty-field data:
-    # https://debbugs.gnu.org/32308). This is the pre-filter to the data
-    my $mawk_strip_comments = <<'EOF';
+    my $pipe_cmd = $input_filter;
+    if(!defined $pipe_cmd)
     {
-        if (havelegend)
+        # mawk script to strip away comments and trailing whitespace (GNU coreutils
+        # join treats trailing whitespace as empty-field data:
+        # https://debbugs.gnu.org/32308). This is the pre-filter to the data
+        my $mawk_strip_comments = <<'EOF';
         {
-            sub("[\t ]*#.*","");     # have legend. Strip all comments
-            if (match($0,"[^\t ]"))  # If any non-whitespace remains, print
+            if (havelegend)
             {
-                sub("[\t ]+$","");
+                sub("[\t ]*#.*","");     # have legend. Strip all comments
+                if (match($0,"[^\t ]"))  # If any non-whitespace remains, print
+                {
+                    sub("[\t ]+$","");
+                    print;
+                }
+            }
+            else
+            {
+                sub("[\t ]*#[!#].*",""); # strip all ##/#! comments
+                if (match($0,"^[\t ]*#[\t ]*$"))  # data-less # is a comment too
+                {
+                    next
+                }
+                if (!match($0,"[^\t ]")) # skip if only whitespace remains
+                {
+                    next
+                }
+
+                if (!match($0, "^[\t ]*#")) # Only single # comments are possible
+                                            # If we hit something else, barf
+                {
+                    print "ERROR: Data before legend";
+                    exit
+                }
+
+                havelegend = 1;          # got a legend. spit it out
                 print;
             }
         }
-        else
-        {
-            sub("[\t ]*#[!#].*",""); # strip all ##/#! comments
-            if (match($0,"^[\t ]*#[\t ]*$"))  # data-less # is a comment too
-            {
-                next
-            }
-            if (!match($0,"[^\t ]")) # skip if only whitespace remains
-            {
-                next
-            }
-
-            if (!match($0, "^[\t ]*#")) # Only single # comments are possible
-                                        # If we hit something else, barf
-            {
-                print "ERROR: Data before legend";
-                exit
-            }
-
-            havelegend = 1;          # got a legend. spit it out
-            print;
-        }
-    }
 EOF
 
-    my @mawk_cmd = ('mawk');
-    push @mawk_cmd, '-Winteractive' if $unbuffered;
-    push @mawk_cmd, $mawk_strip_comments;
+        my @mawk_cmd = ('mawk');
+        push @mawk_cmd, '-Winteractive' if $unbuffered;
+        push @mawk_cmd, $mawk_strip_comments;
 
-    my $pipe_cmd = $input_filter // \@mawk_cmd;
+        $pipe_cmd = \@mawk_cmd;
+    }
     return fork_and_filter(@$pipe_cmd)
       if ($filename eq '-' && $unbuffered);
     return fork_and_filter(@$pipe_cmd, $filename);
