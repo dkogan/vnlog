@@ -84,13 +84,7 @@ if( defined $options->{follow}         &&
     $options->{follow} ne 'name'       &&
     $options->{follow} ne 'descriptor' )
 {
-    if(grep /^--follow=/, @ARGV)
-    {
-        die "--follow can be given ONLY --follow=name or --follow=descriptor";
-    }
-
-    use Data::Dumper;
-    die "$0 got confused. Please report this to the maintainer: ARGV: " . Dumper \@ARGV;
+    die "--follow can be given ONLY as --follow=name or --follow=descriptor";
 }
 
 
