@@ -1,3 +1,9 @@
+vnlog (1.24)
+
+  * Test suite fix
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 21 Dec 2019 13:33:42 -0800
+
 vnlog (1.23)
 
   * vnl-filter diff() returns - for the first record
