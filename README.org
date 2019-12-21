@@ -1624,6 +1624,11 @@ DESCRIPTION
         another name is wanted, "--vnl-count" does that. "--vnl-count"
         implies "-c"
 
+    *   In addition to the normal behavior of skipping fields at the start,
+        "-f" and "--skip-fields" can take a negative argument to skip the
+        *all but the last* N fields. For instance, to use only the one last
+        field, pass "-f -1" or "--skip-fields=-1".
+
     Past that, everything "uniq" does is supported, so see that man page for
     detailed documentation.
 
