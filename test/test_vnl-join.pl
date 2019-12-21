@@ -419,13 +419,6 @@ check( <<'EOF', qw(-jb --vnl-sort=r -a-), '$data3', '$data22', '$data1');
 22b 18 1c 5d 8 1a 9
 EOF
 
-check( <<'EOF', qw(-ja -a-), '$data1', '$data_empty');
-# a b e c d
-1a 22b 9 - -
-5a 32b 10 - -
-6a 42b 11 - -
-EOF
-
 check( <<'EOF', qw(-ja -a-), '$data1', '$data_empty1');
 # a b e c d
 1a 22b 9 - -
