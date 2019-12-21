@@ -56,7 +56,9 @@ The most common options are (from the GNU uniq manpage):
          METHOD={none(default),prepend,separate}
 
   -f, --skip-fields=N
-         avoid comparing the first N fields
+         avoid comparing the first N fields (vnl-uniq extension: N<0 avoids
+         comparing all but the LAST -N fields. To use ONLY the one last field,
+         pass -f -1 or --skip-fields=-1)
 
   --group[=METHOD]
          show  all  items,  separating  groups  with  an  empty  line;
@@ -123,6 +125,16 @@ for my $key(keys %$options)
 }
 
 my $inputs = read_and_preparse_input($filenames);
+
+if( defined $options->{'skip-fields'} &&
+    $options->{'skip-fields'} < 0 )
+{
+    # I want to use only the last -N fields, so I skip the first Nfields-N
+    # fields
+    my $Nfields = @{$inputs->[0]{keys}};
+    $options->{'skip-fields'} += $Nfields;
+}
+
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
 
 print '# ';
@@ -190,6 +202,13 @@ file on the commandline is not supported.
 C<--vnl-count NAME> can be given to name the C<count> column. C<-c> is still
 supported to add the default new column named C<count>, but if another name is
 wanted, C<--vnl-count> does that. C<--vnl-count> implies C<-c>
+
+=item *
+
+In addition to the normal behavior of skipping fields at the start, C<-f> and
+C<--skip-fields> can take a negative argument to skip the I<all but the last> N
+fields. For instance, to use only the one last field, pass C<-f -1> or
+C<--skip-fields=-1>.
 
 =back
 

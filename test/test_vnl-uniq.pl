@@ -141,6 +141,27 @@ check( <<'EOF', qw(-d -f1), '$data1' );
 20 2
 30 3
 EOF
+check( <<'EOF', qw(-d -f 1), '$data1' );
+# x y
+2 2
+10 1
+20 2
+30 3
+EOF
+check( <<'EOF', qw(-d -f-1), '$data1' );
+# x y
+2 2
+10 1
+20 2
+30 3
+EOF
+check( <<'EOF', qw(-d -f -1), '$data1' );
+# x y
+2 2
+10 1
+20 2
+30 3
+EOF
 
 # print duplicate lines, but don't look at the first column for the duplicate
 # detection. Here I print ALL the duplicates; since I skipped the first column,
