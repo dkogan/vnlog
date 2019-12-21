@@ -1,0 +1,99 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use feature 'say';
+use autodie;
+
+use FindBin '$Bin';
+use lib "$Bin/lib";
+
+use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
+
+
+
+# This comes from the struct option longopts in uniq.c in GNU coreutils
+my @specs = ( # options with no args
+             "count|c",
+             "repeated|d",
+             "ignore-case|i",
+             "unique|u",
+             "zero-terminated|z",
+
+             # options with args
+             "all-repeated|D:s",
+             "skip-fields|f=i",
+             "skip-chars|s=i",
+             "check-chars|w=i",
+             "group:s",
+
+             "help|h");
+
+
+my %options_unsupported = ( 'zero-terminated' => <<'EOF'
+vnlog is built on assuming a particular record separator
+EOF
+                          );
+
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
+  $0 [options] < logfile
+
+The most common usage takes no options (to suppress duplicate consecutive records) or -c (to prepend a "count" column)
+EOF
+
+if( defined $options->{'all-repeated'}      &&
+    length($options->{'all-repeated'}) > 0  &&
+    $options->{'all-repeated'} ne 'none'    &&
+    $options->{'all-repeated'} ne 'prepend' &&
+    $options->{'all-repeated'} ne 'separate'  )
+{
+    die "--all-repeated=XXX was given. XXX may be ONLY one of 'none','prepend','separate'. Got '" . $options->{'all-repeated'} . "'";
+}
+if( defined $options->{'group'} )
+{
+    if( length($options->{'group'}) > 0   &&
+        $options->{'group'} ne 'separate' &&
+        $options->{'group'} ne 'prepend'  &&
+        $options->{'group'} ne 'append'   &&
+        $options->{'group'} ne 'both' )
+    {
+        die "--group=XXX was given. XXX may be ONLY one of 'separate','prepend','append','both'. Got '" . $options->{'group'} . "'";
+    }
+
+    if( $options->{count}                  ||
+        $options->{repeated}               ||
+        defined $options->{'all-repeated'} ||
+        $options->{unique} )
+    {
+        # The underlying uniq tool dictates this
+        die "--group is mutually exclusive with -c/-d/-D/-u";
+    }
+}
+
+if(@$filenames != 1)
+{
+    die "At most one file may be given on the commandline: the input";
+}
+
+for my $key(keys %$options)
+{
+    if($options_unsupported{$key})
+    {
+        my $keyname = length($key) == 1 ? "-$key" : "--$key";
+        die("I don't support $keyname: $options_unsupported{$key}");
+    }
+}
+
+my $inputs = read_and_preparse_input($filenames);
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
+
+print '# ';
+if($options->{count})
+{
+    print 'count ';
+}
+say join(' ', @{$inputs->[0]{keys}});
+exec 'uniq', @$ARGV_new;
+
+
+
+__END__
