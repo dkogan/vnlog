@@ -205,17 +205,14 @@ sub parse_options
         Getopt::Long::Configure($oldconfig);
     }
 
-    if ( $@  )
+    my $err = $@ || !$result;
+    if( $err || $options{help})
     {
-        confess "Error parsing options: '$@'";
-    }
-    if ( !$result  )
-    {
-        confess "Error parsing options";
-    }
+        if( $err )
+        {
+            say "Error parsing options!\n";
+        }
 
-    if ($options{help})
-    {
         my ($what) = $0 =~ /-(.+?)$/;
 
         say <<EOF;
@@ -232,7 +229,8 @@ Basic usage is:
 $usage
 EOF
         }
-        exit 0;
+
+        exit ($err ? 1 : 0);
     }
 
     if(@ARGV_copy < $num_nondash_options)
