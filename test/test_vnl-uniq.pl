@@ -387,6 +387,12 @@ check( <<'EOF', qw(-cu -f1), '$data1' );
       1 3 3
       1 40 4
 EOF
+check( <<'EOF', qw(-u --vnl-count xxx -f1), '$data1' );
+# xxx x y
+      1 1 1
+      1 3 3
+      1 40 4
+EOF
 
 
 
