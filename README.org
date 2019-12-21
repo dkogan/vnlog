@@ -388,9 +388,9 @@ vnl-filter --eval '{s += x} END {print s}'
   you would hope they do: if the input has a column named =x=, this would
   produce the sum of all values in this column.
 
-- =vnl-sort=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around the
-  corresponding commandline tools. These work exactly as you would expect also:
-  the columns can be referenced by name, and the legend comment is handled
+- =vnl-sort=, =vnl-uniq=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around
+  the corresponding commandline tools. These work exactly as you would expect
+  also: the columns can be referenced by name, and the legend comment is handled
   properly. These are wrappers, so all the commandline options those tools have
   "just work" (except options that don't make sense in the context of vnlog). As
   an example, =vnl-tail -f= will follow a log: data will be read by =vnl-tail=
@@ -872,12 +872,12 @@ different data streams that know nothing of vnlog.
 
 * Caveats and bugs
 
-The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-join=,
-=vnl-tail=, =vnl-ts=) are written specifically to work with the Linux kernel and
-the GNU coreutils. None of these have been tested with BSD tools or with
-non-Linux kernels, and I'm sure things don't just work. It's probably not too
-effortful to get that running, but somebody needs to at least bug me for that.
-Or better yet, send me nice patches :)
+The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-uniq=,
+=vnl-join=, =vnl-tail=, =vnl-ts=) are written specifically to work with the
+Linux kernel and the GNU coreutils. None of these have been tested with BSD
+tools or with non-Linux kernels, and I'm sure things don't just work. It's
+probably not too effortful to get that running, but somebody needs to at least
+bug me for that. Or better yet, send me nice patches :)
 
 These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for
@@ -1393,7 +1393,7 @@ CAVEATS
     *   All column names are replaced in all eval strings without regard to
         context. The earlier example that reports the sum of values in a
         column: "vnl-filter --eval '{suma += a} END {print suma}'" will work
-        fine if we *do* have a column named "a" and do <not> have a column
+        fine if we *do* have a column named "a" and do *not* have a column
         named "suma". But will not do the right thing if any of those are
         violated. It's the user's responsibility to make sure we're talking
         about the right columns. The focus here was one-liners so hopefully
@@ -1578,6 +1578,69 @@ SEE ALSO
 
 #+END_EXAMPLE
 
+** vnl-uniq
+#+BEGIN_EXAMPLE
+NAME
+    vnl-uniq - uniq a log file, preserving the legend
+
+SYNOPSIS
+     $ cat colors.vnl
+     # color
+     blue
+     yellow
+     yellow
+     blue
+     yellow
+     orange
+     orange
+
+     $ < colors.vnl | vnl-sort | vnl-uniq -c
+     # count color
+           2 blue
+           2 orange
+           3 yellow
+
+DESCRIPTION
+      Usage: vnl-uniq [options] < logfile
+
+    This tool runs "uniq" on a given vnlog dataset. "vnl-uniq" is a wrapper
+    around the GNU coreutils "uniq" tool. Since this is a wrapper, most
+    commandline options and behaviors of the "uniq" tool are present;
+    consult the uniq(1) manpage for detail. The differences from GNU
+    coreutils "uniq" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   "--zero-terminated" is not supported because vnlog assumes
+        newline-separated records
+
+    *   One *one* input is supported (a file on the cmdline or data on
+        standard input), and the output *always* goes to standard output.
+        Specifying the output as a file on the commandline is not supported.
+
+    *   "--vnl-count NAME" can be given to name the "count" column. "-c" is
+        still supported to add the default new column named "count", but if
+        another name is wanted, "--vnl-count" does that. "--vnl-count"
+        implies "-c"
+
+    Past that, everything "uniq" does is supported, so see that man page for
+    detailed documentation.
+
+BUGS
+    This and the other "vnl-xxx" tools that wrap coreutils are written
+    specifically to work with the Linux kernel and the GNU coreutils. None
+    of these have been tested with BSD tools or with non-Linux kernels, and
+    I'm sure things don't just work. It's probably not too effortful to get
+    that running, but somebody needs to at least bug me for that. Or better
+    yet, send me nice patches :)
+
+SEE ALSO
+    uniq(1)
+
+
+#+END_EXAMPLE
+
 ** vnl-join
 #+BEGIN_EXAMPLE
 NAME
@@ -1695,7 +1758,7 @@ DESCRIPTION
           --vnl-autoprefix
           --vnl-autosuffix
 
-        See below for details.
+        See "Field names in the output" below for details.
 
     *   A "vnl-join"-specific option "--vnl-sort" is available to sort the
         input and/or output. See below for details.
