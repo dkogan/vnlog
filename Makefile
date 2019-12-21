@@ -14,7 +14,8 @@ TOOLS :=					\
   vnl-sort					\
   vnl-join					\
   vnl-tail					\
-  vnl-ts
+  vnl-ts					\
+  vnl-uniq
 
 
 # I construct the README.org from the template. The only thing I do is to insert
@@ -41,7 +42,7 @@ while(<STDIN>)								\
 }
 endef
 
-README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail vnl-ts
+README.org: README.template.org vnl-filter vnl-align vnl-sort vnl-join vnl-tail vnl-ts vnl-uniq
 	< $(filter README%,$^) perl -e '$(MAKE_README)' $(filter-out README%,$^) > $@
 all: README.org
 

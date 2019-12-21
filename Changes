@@ -1,3 +1,10 @@
+vnlog (1.23)
+
+  * vnl-filter diff() returns - for the first record
+  * added vnl-uniq
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 21 Dec 2019 11:40:01 -0800
+
 vnlog (1.22)
 
   * vnl-join handles empty vnlog files properly

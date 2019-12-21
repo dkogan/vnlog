@@ -88,6 +88,7 @@ make clean
 %{_bindir}/vnl-filter
 %{_bindir}/vnl-tail
 %{_bindir}/vnl-sort
+%{_bindir}/vnl-uniq
 %{_bindir}/vnl-join
 %{_bindir}/vnl-make-matrix
 %{_bindir}/vnl-align
@@ -95,6 +96,7 @@ make clean
 %doc %{_mandir}/man1/vnl-filter.1.gz
 %doc %{_mandir}/man1/vnl-tail.1.gz
 %doc %{_mandir}/man1/vnl-sort.1.gz
+%doc %{_mandir}/man1/vnl-uniq.1.gz
 %doc %{_mandir}/man1/vnl-join.1.gz
 %doc %{_mandir}/man1/vnl-make-matrix.1.gz
 %doc %{_mandir}/man1/vnl-align.1.gz
