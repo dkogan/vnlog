@@ -1,0 +1,22 @@
+complete -W '       \
+  -c                \
+  --count           \
+  -d                \
+  --repeated        \
+  -D                \
+  --all-repeated    \
+  -f                \
+  --skip-fields     \
+  --group           \
+  -i                \
+  --ignore-case     \
+  -s                \
+  --skip-chars      \
+  -u                \
+  --unique          \
+  -z                \
+  --zero-terminated \
+  -w                \
+  --check-chars     \
+  --help            \
+  --vnl-count' vnl-uniq

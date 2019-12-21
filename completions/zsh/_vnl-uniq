@@ -1,0 +1,54 @@
+#compdef vnl-uniq
+
+# This is mostly from the zsh _uniq file. It is copyright 1992-2014 The Zsh
+# Development Group. Distributed under the zsh license:
+#
+# Permission is hereby granted, without written agreement and without
+# licence or royalty fees, to use, copy, modify, and distribute this
+# software and to distribute modified versions of this software for any
+# purpose, provided that the above copyright notice and the following
+# two paragraphs appear in all copies of this software.
+# .
+# In no event shall the copy right owners liable to any party for
+# direct, indirect, special, incidental, or consequential damages
+# arising out of the use of this software and its documentation, even
+# if and the copyright owners have been advised of the possibility of
+# such damage.
+# .
+# The copyright owners specifically disclaim any warranties, including,
+# but not limited to, the implied warranties of merchantability and
+# fitness for a particular purpose.  The software provided hereunder is
+# on an "as is" basis, and the copyright owners have no obligation to
+# provide maintenance, support, updates, enhancements, or
+# modifications.
+
+local args
+
+args=(
+  '(-c --count)'{-c,--count}'[prefix lines by the number of occurrences]'
+  '(-d --repeated)'{-d,--repeated}'[only print duplicate lines]'
+  '(--all-repeated)-D-[print all duplicate lines]'
+  '(-D)--all-repeated=-[print all duplicate lines]::delimit method [none]:(none prepend separate)'
+  '(-f --skip-fields)'{-f,--skip-fields=}'[avoid comparing initial fields]:number of fields'
+  '--group=-[show all items]::group separation [separate]:(separate prepend append both)'
+  '(-i --ignore-case)'{-i,--ignore-case}'[ignore differences in case when comparing]'
+  '(-s --skip-chars)'{-s,--skip-chars=}'[avoid comparing initial characters]:number of characters'
+  '(-t --separator)'{-t,--separator=}'[specify field delimiter]:separator'
+  '(-u --unique)'{-u,--unique}'[only print unique lines]'
+  '(-w --check-chars)'{-w,--check-chars=}'[specify maximum number of characters to compare]:characters'
+  '(-W --check-fields)'{-W,--check-fields=}'[specify maximum number of fields to compare]:fields'
+  '(- *)--help[display help information]'
+)
+
+if ! _pick_variant -c uniq gnu=Free\ Soft unix --version; then
+  local optchars="cdufs"
+  if [[ "$OSTYPE" == (darwin|dragonfly|freebsd|openbsd)* ]]; then
+    optchars="${optchars}i"
+  fi
+  args=( ${(M)args:#(|\*)(|\(*\))-[$optchars]*} )
+fi
+
+args+=('--vnl-count[prefix lines by the number of occurrences in a new NAMED field]:"count" field name:')
+
+_arguments "$args[@]" \
+  '1::input file:_files'
