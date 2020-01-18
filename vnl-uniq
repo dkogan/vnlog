@@ -193,9 +193,9 @@ newline-separated records
 
 =item *
 
-One I<one> input is supported (a file on the cmdline or data on standard input),
-and the output I<always> goes to standard output. Specifying the output as a
-file on the commandline is not supported.
+Only I<one> input is supported (a file on the cmdline or data on standard
+input), and the output I<always> goes to standard output. Specifying the output
+as a file on the commandline is not supported.
 
 =item *
 
