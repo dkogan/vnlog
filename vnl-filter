@@ -799,7 +799,7 @@ sub find_outer_specialop
 
     my $re_any = join('|', @all_specialops);
 
-    my $re = qr/^.*?\b($re_any)\s*\(/;
+    my $re = qr/^.*?\b($re_any)\s*\(/s;
     $str =~ $re or return undef;
     return $1;
 }

@@ -441,6 +441,53 @@ check( <<'EOF', ['-p', 'r=rel(a),a'], ['--eval', 'say r'], {language => 'perl'} 
 9
 EOF
 
+# rel/diff and eval. Should work
+check( <<'EOF', qw(-p d=rel(a)));
+#!/bin/xxx
+# d
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "{print rel(a)}", {language => "AWK"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "say rel(a)", {language => "perl"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "{if(1) { print rel(a) }}", {language => "AWK"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "{if(1) { \n print rel(a) }}", {language => "AWK"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "say rel(a)", {language => "perl"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "\n say rel(a)", {language => "perl"});
+0
+3
+6
+9
+EOF
+
+
 check( <<'EOF', 'a>5' );
 #!/bin/xxx
 # a b c
