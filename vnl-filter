@@ -96,10 +96,18 @@ if( defined $options{eval} )
     $options{skipcomments} = 1;
 }
 
-if( defined $options{eval} && @{$options{pick}} )
+if( defined $options{eval} )
 {
-    say STDERR "--eval is given, so no column selectors should be given also";
-    die $usage;
+    if( @{$options{pick}} )
+    {
+        say STDERR "--eval is given, so no column selectors should be given also";
+        exit 1;
+    }
+    if($options{unbuffered})
+    {
+        say STDERR "--stream and --unbuffered have no effect if --eval is given";
+        exit 1;
+    }
 }
 
 if( defined $options{context} &&
