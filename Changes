@@ -1,3 +1,9 @@
+vnlog (1.25)
+
+  * vnl-filter: rel()/diff()/prev() work next to newlines
+
+ -- Dima Kogan <dkogan@debian.org>  Wed, 29 Jan 2020 15:53:57 -0800
+
 vnlog (1.24)
 
   * Test suite fix
