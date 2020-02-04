@@ -1,6 +1,5 @@
-These are sample packaging files that can be used to build your own packages, or
-as a baseline for packages intended to be included with the distros.
+These are sample packaging files that can be used to build your own packages.
 
 At the time of this writing vnlog is already included in the latest releases of
-Debian and Ubuntu. Want this to be shipped in any other distro? Send them
-patches!
+Debian and Ubuntu, so those packaging files aren't include dhere. Want this to
+be shipped in some other distro? Send them patches!
