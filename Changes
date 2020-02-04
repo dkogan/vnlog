@@ -1,10 +1,50 @@
-vnlog (1.20) unstable; urgency=medium
+vnlog (1.26)
+
+  * Revert "I explicitly refuse to do anything if --stream --eval"
+  
+    To make it possible to produce unbuffered output with awk
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 03 Feb 2020 22:12:52 -0800
+
+vnlog (1.25)
+
+  * vnl-filter: rel()/diff()/prev() work next to newlines
+
+ -- Dima Kogan <dkogan@debian.org>  Wed, 29 Jan 2020 15:53:57 -0800
+
+vnlog (1.24)
+
+  * Test suite fix
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 21 Dec 2019 13:33:42 -0800
+
+vnlog (1.23)
+
+  * vnl-filter diff() returns - for the first record
+  * added vnl-uniq
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 21 Dec 2019 11:40:01 -0800
+
+vnlog (1.22)
+
+  * vnl-join handles empty vnlog files properly
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 05 Oct 2019 12:36:14 -0700
+
+vnlog (1.21)
+
+  * --has can take regular expressions
+  * Columns with = in the name are now supported
+
+ -- Dima Kogan <dkogan@debian.org>  Sun, 25 Aug 2019 16:09:14 -0700
+
+vnlog (1.20)
 
   * Exported the base64 interface. It's now usable standalone
 
  -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:05:41 -0700
 
-vnlog (1.19) unstable; urgency=medium
+vnlog (1.19)
 
   * Looser handling of whitespace in the cmdline tools and parsers:
     
@@ -15,7 +55,7 @@ vnlog (1.19) unstable; urgency=medium
 
  -- Dima Kogan <dima@secretsauce.net>  Tue, 16 Jul 2019 15:04:30 -0700
 
-vnlog (1.18) unstable; urgency=medium
+vnlog (1.18)
 
   * Fixed recent regression: vnl-filter with multiple 'matches'
     expressions works again

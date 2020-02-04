@@ -347,14 +347,10 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
                 my $picked_expr_named = $picked_exprs_named[$i_picked_exprs_named];
 
+                next if $acceptExactMatch->($picked_expr_named, undef);
+
                 my ($name, $picked_expr) = $picked_expr_named =~ /(.*?)=(.*)/;
-                if ( !defined $picked_expr )
-                {
-                    $picked_expr = $picked_expr_named;
-                }
-
-
-                next if $acceptExactMatch->($picked_expr, $name);
+                $picked_expr //= $picked_expr_named;
 
                 # No exact column match. If this is a named expression, I pass it on
                 # to awk/perl
@@ -438,15 +434,56 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
         if( @must_have_col_names )
         {
-            foreach my $col (@must_have_col_names)
+            foreach my $col_name (@must_have_col_names)
             {
-                if( !(defined $colindices_input{$col} && 1 == @{$colindices_input{$col}}) )
+                # First I try exact matches for column names. Only unique
+                # matches accepted
+                if( defined $colindices_input{$col_name} )
                 {
-                    die "I don't have a unique column '$col'";
+                    if(1 == @{$colindices_input{$col_name}})
+                    {
+                        push @must_have_col_indices_input, $colindices_input{$col_name}[0];
+                        next;
+                    }
+
+                    die "--has found multiple columns named '$col_name'; --has expects unique columns";
                 }
-                push @must_have_col_indices_input, $colindices_input{$col}[0];
+
+
+                # No exact matches. Try regex matches. Again, only unique
+                # matches accepted
+                my $col_name_re;
+                eval { $col_name_re = qr/$col_name/p; };
+                if( $@ )
+                {
+                    die "--has found no columns matching '$col_name'";
+                }
+
+                # compiled regex successfully
+                my $matching_col_index;
+
+                for my $matched_legend_input (keys(%colindices_input))
+                {
+                    if ( $matched_legend_input =~ /$col_name_re/p && length(${^MATCH}) > 0 )
+                    {
+                        # Found match. Is it unique?
+                        if(defined $matching_col_index || 1 != @{$colindices_input{$matched_legend_input}})
+                        {
+                            die "--has found multiple columns matching '$col_name'; --has expects unique columns";
+                        }
+
+                        # Found unique (for now) column
+                        $matching_col_index = $colindices_input{$matched_legend_input}[0];
+                    }
+                }
+                if(!defined $matching_col_index)
+                {
+                    die "--has found no columns matching '$col_name'";
+                }
+                push @must_have_col_indices_input, $matching_col_index;
             }
         }
+
         last;
     }
 
@@ -663,7 +700,7 @@ sub makeAwkProgram
     }
     for my $i (0..$specialops{diff}{N}-1)
     {
-        $awkprogram_reldiff .= "function diff$i(x) { retval = (x - __state_diff$i)*__inited_diff$i; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
+        $awkprogram_reldiff .= "function diff$i(x) { retval = __inited_diff$i ? (x - __state_diff$i) : \"-\"; __state_diff$i = x; __inited_diff$i = 1; return retval; } ";
     }
     for my $i (0..$specialops{sum}{N}-1)
     {
@@ -754,7 +791,7 @@ sub find_outer_specialop
 
     my $re_any = join('|', @all_specialops);
 
-    my $re = qr/^.*?\b($re_any)\s*\(/;
+    my $re = qr/^.*?\b($re_any)\s*\(/s;
     $str =~ $re or return undef;
     return $1;
 }
@@ -964,7 +1001,7 @@ $i = 0;
 EVAL_DIFF_FUNC:
 if( $i < $specialops{diff}{N} )
 {
-    $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = ($x - $state)*$inited; $state = $x; $inited=1; return $retval; } ' . $evalstr;
+    $evalstr = "sub diff$i" . '{ my ($x) = @_; state $inited=0; state $state=0; my $retval = $inited ? ($x - $state) : undef; $state = $x; $inited=1; return $retval; } ' . $evalstr;
     $i++;
     goto EVAL_DIFF_FUNC;
 }
@@ -1354,12 +1391,12 @@ relative to some absolute beginning. Example:
 =item *
 
 C<diff(x)> returns the difference between the current value of C<x> and the
-previous value of C<x>. The first row will always be 0. Example:
+previous value of C<x>. The first row will always be -. Example:
 
  $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
  # x d1 d2
-   1  0  0
+   1  -  -
    8  7  7
   27 19 12
   64 37 18
@@ -1370,14 +1407,14 @@ previous value of C<x>. The first row will always be 0. Example:
 C<sum(x)> returns the cumulative sum of C<x>. As C<diff(x)> can be thought of as
 a derivative, C<sum(x)> can be thought of as an integral. So C<diff(sum(x))>
 would return the same value as C<x> (except for the first row; C<diff()> always
-returns 0 for the first row).
+returns - for the first row).
 
 Example:
 
  $ <tst.vnl vnl-filter -p 'x,s=sum(x),ds=diff(sum(x))' | vnl-align
 
  # x  s   ds
-   1   1   0
+   1   1   -
    8   9   8
   27  36  27
   64 100  64
@@ -1483,6 +1520,10 @@ column, a shorthand syntax exists:
 is equivalent to
 
  vnl-filter -p +col
+
+Note that just like the column specifications in C<-p> the columns given to
+C<--has> must match exactly I<or> as a regex. In either case, a unique matching
+column must be found.
 
 =head2 Matches expressions
 
@@ -1651,7 +1692,7 @@ trouble if you do that.
 All column names are replaced in all eval strings without regard to context. The
 earlier example that reports the sum of values in a column: C<vnl-filter --eval
 '{suma += a} END {print suma}'> will work fine if we I<do> have a column named
-C<a> and do <not> have a column named C<suma>. But will not do the right thing
+C<a> and do I<not> have a column named C<suma>. But will not do the right thing
 if any of those are violated. It's the user's responsibility to make sure we're
 talking about the right columns. The focus here was one-liners so hopefully
 nobody has so many columns, they can't keep track of all of them in their head.
@@ -1679,7 +1720,7 @@ Dima Kogan C<< <dima@secretsauce.net> >>
 
 Copyright 2016-2017 California Institute of Technology
 
-Copyright 2017-2018 Dima Kogan C<< <dima@secretsauce.net> >>
+Copyright 2017-2019 Dima Kogan C<< <dima@secretsauce.net> >>
 
 
 This library is free software; you can redistribute it and/or modify it under

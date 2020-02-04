@@ -20,66 +20,6 @@ my $data_default = <<'EOF';
 10 11 12
 EOF
 
-my $data_latlon = <<'EOF';
-#!/bin/xxx
-# lat lon lat2 lon2
-37.0597792247 -76.1703387355 37.0602752259 -76.1705049567
-37.0598883299 -76.1703577868 37.0604772596 -76.1705748082
-37.0599879749 -76.1703966222 37.0605833650 -76.1706010153
-37.0600739448 -76.1704347187 37.0606881510 -76.1706390439
-37.0601797672 -76.1704662408 37.0607908914 -76.1706712460
-EOF
-
-my $data_cubics = <<'EOF';
-#!/bin/xxx
-# x
-1
-8
-27
-64
-125
-EOF
-
-my $data_specialchars = <<'EOF';
-#!/bin/xxx
-# PID USER PR NI   VIRT   RES   SHR  S %CPU %MEM  TIME+     COMMAND
-25946 dima 20 0    82132 23828   644 S 5.9  1.2  0:01.42 mailalert.pl
-27036 dima 20 0  1099844 37772 13600 S 5.9  1.9  1:29.57 mpv
-28648 dima 20 0    45292  3464  2812 R 5.9  0.2  0:00.02 top
-    1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd
-EOF
-
-my $data_hasempty_hascomments = <<'EOF';
-#!adsf
-# a b c
-1 2 3
-## zcxv
-4 - 6
-7 9 -
-- - -
-EOF
-
-my $data_funny_whitespace = <<'EOF';
- # 
-# 
-
-	#
-  ## xxx
-  
-  # a b c
- 
-  ## yyy
-1 2 3
-
-3 4 5
-EOF
-
-my $data_int_dup = <<'EOF';
-# c a c
-2 1 a
-4 - b
-6 5 c
-EOF
 
 
 
@@ -100,6 +40,16 @@ check( <<'EOF', qw(-p s=b --noskipempty) );
 -
 9
 11
+EOF
+
+my $data_hasempty_hascomments = <<'EOF';
+#!adsf
+# a b c
+1 2 3
+## zcxv
+4 - 6
+7 9 -
+- - -
 EOF
 
 check( <<'EOF', qw(--noskipempty), {data => $data_hasempty_hascomments} );
@@ -286,6 +236,69 @@ check( <<'EOF', qw(--has b --has c -p a) );
 10
 EOF
 
+check( <<'EOF', qw(--has b -p), 'a,b');
+#!/bin/xxx
+# a b
+1 2
+7 9
+10 11
+EOF
+
+check( <<'EOF', '-p', 'a,+b' );
+#!/bin/xxx
+# a b
+1 2
+7 9
+10 11
+EOF
+
+check( <<'EOF', '-p', '.' );
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+7 9 -
+10 11 12
+EOF
+
+check( <<'EOF', '-p', 'a,[bx]' );
+#!/bin/xxx
+# a b
+1 2
+4 -
+7 9
+10 11
+EOF
+
+check( <<'EOF', '-p', 'a,+[bx]' );
+#!/bin/xxx
+# a b
+1 2
+7 9
+10 11
+EOF
+
+check( <<'EOF', '-p', 'a', '--has', '[bx]' );
+#!/bin/xxx
+# a
+1
+7
+10
+EOF
+
+check( <<'EOF', '-p', 'a,[bc]' );
+#!/bin/xxx
+# a b c
+1 2 3
+4 - 6
+7 9 -
+10 11 12
+EOF
+
+check( 'ERROR', '-p', 'a,+[bc]' );
+
+check( 'ERROR', '-p', '+.' );
+
 check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c --noskipempty));
 #!/bin/xxx
 # d s pa b c
@@ -313,7 +326,7 @@ EOF
 check( <<'EOF', qw(-p r=rel(a) -p b -p d=diff(a) -p s=sum(a) -p c -p a));
 #!/bin/xxx
 # r b d s c a
-0 2 0 1 3 1
+0 2 - 1 3 1
 3 - 3 5 6 4
 6 9 3 12 - 7
 9 11 3 22 12 10
@@ -340,16 +353,25 @@ EOF
 check( <<'EOF', ['-p', 'r=rel(a),b,c'], [qw(-p d=diff(r))]);
 #!/bin/xxx
 # d
-0
 3
 3
 3
 EOF
 
+my $data_cubics = <<'EOF';
+#!/bin/xxx
+# x
+1
+8
+27
+64
+125
+EOF
+
 check( <<'EOF', '-p', 'd1=diff(x),d2=diff(diff(x)),sd2=sum(diff(diff(x)))', {data => $data_cubics});
 #!/bin/xxx
 # d1 d2 sd2
-0 0 0
+- - 0
 7 7 7
 19 12 19
 37 18 37
@@ -359,7 +381,7 @@ EOF
 check( <<'EOF', '-p', 'sd=sum(diff(a))', '-p', 'ds=diff(sum(a))');
 #!/bin/xxx
 # sd ds
-0 0
+0 -
 3 4
 6 7
 9 10
@@ -418,6 +440,53 @@ check( <<'EOF', ['-p', 'r=rel(a),a'], ['--eval', 'say r'], {language => 'perl'} 
 6
 9
 EOF
+
+# rel/diff and eval. Should work
+check( <<'EOF', qw(-p d=rel(a)));
+#!/bin/xxx
+# d
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "{print rel(a)}", {language => "AWK"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "say rel(a)", {language => "perl"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "{if(1) { print rel(a) }}", {language => "AWK"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "{if(1) { \n print rel(a) }}", {language => "AWK"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "say rel(a)", {language => "perl"});
+0
+3
+6
+9
+EOF
+check( <<"EOF", '--eval', "\n say rel(a)", {language => "perl"});
+0
+3
+6
+9
+EOF
+
 
 check( <<'EOF', 'a>5' );
 #!/bin/xxx
@@ -502,14 +571,25 @@ check( <<'EOF', 'a>5', '--eval', 'my $v = a + b + 2; say $v', {language => 'perl
 23
 EOF
 
-check(<<'EOF', qw(-p M), {data => $data_specialchars});
+my $data_specialchars = <<'EOF';
 #!/bin/xxx
-# %MEM TIME+ COMMAND
-1.2 0:01.42 mailalert.pl
-1.9 1:29.57 mpv
-0.2 0:00.02 top
-0.2 1:04.41 systemd
+# PID USER PR NI   VIRT   RES   SHR  S %CPU %MEM  TIME+     COMMAND   aaa=bbb ccc=ddd ccc=ddd
+25946 dima 20 0    82132 23828   644 S 5.9  1.2  0:01.42 mailalert.pl 1       a       b
+27036 dima 20 0  1099844 37772 13600 S 5.9  1.9  1:29.57 mpv          2       a       b
+28648 dima 20 0    45292  3464  2812 R 5.9  0.2  0:00.02 top          3       a       b
+    1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd      4       a       b
 EOF
+
+check(<<'EOF', '-p', 'M,aaa=bbb,aaa=USER,ccc', {data => $data_specialchars});
+#!/bin/xxx
+# %MEM TIME+ COMMAND aaa=bbb aaa ccc=ddd ccc=ddd
+1.2 0:01.42 mailalert.pl 1 dima a b
+1.9 1:29.57 mpv 2 dima a b
+0.2 0:00.02 top 3 dima a b
+0.2 1:04.41 systemd 4 root a b
+EOF
+
+check('ERROR', '-p', 'x=ccc=ddd', {data => $data_specialchars});
 
 check(<<'EOF', '-p', q{s=1 + %CPU,s2=%CPU + 2,s3=TIME+ + 1,s4=1 + TIME+}, {data => $data_specialchars});
 #!/bin/xxx
@@ -522,6 +602,13 @@ EOF
 
 # A log with duplicated columns should generally behave normally, if we aren't
 # explicitly touching the duplicate columns
+my $data_int_dup = <<'EOF';
+# c a c
+2 1 a
+4 - b
+6 5 c
+EOF
+
 check(<<'EOF', qw(1), {data => $data_int_dup});
 # c a c
 2 1 a
@@ -981,6 +1068,21 @@ check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $d
 EOF
 
 # check funny whitespace behavior
+my $data_funny_whitespace = <<'EOF';
+ # 
+# 
+
+	#
+  ## xxx
+  
+  # a b c
+ 
+  ## yyy
+1 2 3
+
+3 4 5
+EOF
+
 check( <<'EOF', qw(-p .), {data => $data_funny_whitespace});
  # 
 # 
@@ -1032,6 +1134,16 @@ check( <<'EOF', qw(--noskipempty --skipcomments), {data => $data_funny_whitespac
   # a b c
 1 2 3
 3 4 5
+EOF
+
+my $data_latlon = <<'EOF';
+#!/bin/xxx
+# lat lon lat2 lon2
+37.0597792247 -76.1703387355 37.0602752259 -76.1705049567
+37.0598883299 -76.1703577868 37.0604772596 -76.1705748082
+37.0599879749 -76.1703966222 37.0605833650 -76.1706010153
+37.0600739448 -76.1704347187 37.0606881510 -76.1706390439
+37.0601797672 -76.1704662408 37.0607908914 -76.1706712460
 EOF
 
 # # awk and perl write out the data with different precisions, so I test them separately for now

@@ -1,6 +1,7 @@
 usr/share/man/man1/vnl-filter.1
 usr/share/man/man1/vnl-tail.1
 usr/share/man/man1/vnl-sort.1
+usr/share/man/man1/vnl-uniq.1
 usr/share/man/man1/vnl-join.1
 usr/share/man/man1/vnl-make-matrix.1
 usr/share/man/man1/vnl-align.1
