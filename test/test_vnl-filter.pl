@@ -122,6 +122,60 @@ check( <<'EOF', qw(-p s=a+1) );
 11
 EOF
 
+# asking for bogus fields should never produce an empty-string result. Such a
+# thing would misalign the output fields. In awk I expect -. Perl just outputs
+# the bogus thing as a string; good-enough. --noskipempty had a different code
+# path, so I check it separately
+check( <<'EOF', '-p', 'a=b,b=xxx', {language => 'AWK'} );
+#!/bin/xxx
+# a b
+2 -
+9 -
+11 -
+EOF
+check( <<'EOF', '-p', 'a=b,b=xxx', '--noskipempty', {language => 'AWK'} );
+#!/bin/xxx
+# a b
+2 -
+- -
+9 -
+11 -
+EOF
+
+check( <<'EOF', '-p', 'a=b,b=xxx', {language => 'perl'} );
+#!/bin/xxx
+# a b
+2 xxx
+- xxx
+9 xxx
+11 xxx
+EOF
+check( <<'EOF', '-p', 'a=b,b=xxx', '--noskipempty', {language => 'perl'} );
+#!/bin/xxx
+# a b
+2 xxx
+- xxx
+9 xxx
+11 xxx
+EOF
+
+# And I really REALLY should never output empty strings.
+check( <<'EOF', '-p', 'a=b,b=""' );
+#!/bin/xxx
+# a b
+2 -
+9 -
+11 -
+EOF
+check( <<'EOF', '-p', 'a=b,b=""', '--noskipempty' );
+#!/bin/xxx
+# a b
+2 -
+- -
+9 -
+11 -
+EOF
+
 check( <<'EOF', qw(-p s=a+1) );
 #!/bin/xxx
 # s

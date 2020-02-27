@@ -653,44 +653,32 @@ sub makeAwkProgram
               "__N_printafter = $NcontextAfter; ";
         }
 
-        # skip empty records if we must. I evaluate the fields just one time to
-        # not affect the state inside rel() and diff()
-        if (!$options{skipempty})
+        # I evaluate the fields just one time to not affect the state inside
+        # rel() and diff(): I read them into local variables, and operate on
+        # those
+        #
+        # I make sure the reported field doesn't have length-0. This would
+        # confuse the vnlog fields
+        $awkprogram_print .=
+          join(' ',
+               map { "__f$_ = $langspecific_output_fields[$_]; if(length(__f$_)==0) { __f$_ = \"-\"; } " }
+               0..$#langspecific_output_fields);
+        if ($any_context_stuff)
         {
-            # Not skipping the null fields. I just print everything I have
             $awkprogram_print .=
-              $record_accept_pre_print .
-              'print ' . (join(',', @langspecific_output_fields)) . '; ' .
-              $record_accept_post_print . ' ';
+              '__line = ' . join('" "', map {"__f$_"} 0..$#langspecific_output_fields) . '; ';
         }
-        else
+        if ($options{skipempty})
         {
-            # I'm skipping the null fields. I thus look at each field
-            # individually, and print only if they're all non-null
-            $awkprogram_print .=
-              join(' ',
-                   map { "__f$_ = $langspecific_output_fields[$_]; " }
-                   0..$#langspecific_output_fields);
-
-            if($any_context_stuff)
-            {
-                $awkprogram_print .=
-                  '__line = ' . join('" "', map {"__f$_"} 0..$#langspecific_output_fields) . '; ';
-            }
-
-            # Then I do skipempty. Important to do this after
-            # evaluating ALL the fields to tick all the rel(), diff(),
-            # ... state
             $awkprogram_print .=
               "if(" . join( ' && ', map { "__f$_  == \"-\""} 0..$#langspecific_output_fields ) .
               ") { next } ";
-
-            # And THEN I print everything
-            $awkprogram_print .=
-              $record_accept_pre_print .
-              'print ' . join(',', map {"__f$_"} 0..$#langspecific_output_fields) . '; ' .
-              $record_accept_post_print . ' ';
         }
+        # And THEN I print everything
+        $awkprogram_print .=
+          $record_accept_pre_print .
+          'print ' . join(',', map {"__f$_"} 0..$#langspecific_output_fields) . '; ' .
+          $record_accept_post_print . ' ';
 
         $awkprogram_print .= '}';
     }
@@ -984,7 +972,8 @@ if ( $options{eval} )
 }
 
 $evalstr .=
-  'sub compute_output_fields { return [' . join(',', @langspecific_output_fields) . ']; }' . "\n";
+  'sub compute_output_fields { return [ map {length($_) ? $_ : undef} (' . join(',', @langspecific_output_fields) . ')]; }' . "\n";
+
 
 $evalstr .=
   'sub compute_reldiff { ' . get_reldiff_outer_expr() . '}' . "\n";
