@@ -670,9 +670,13 @@ sub makeAwkProgram
             $awkprogram_print .=
               join(' ',
                    map { "__f$_ = $langspecific_output_fields[$_]; " }
-                   0..$#langspecific_output_fields) .
+                   0..$#langspecific_output_fields);
 
-              '__line = ' . join('" "', map {"__f$_"} 0..$#langspecific_output_fields) . '; ';
+            if($any_context_stuff)
+            {
+                $awkprogram_print .=
+                  '__line = ' . join('" "', map {"__f$_"} 0..$#langspecific_output_fields) . '; ';
+            }
 
             # Then I do skipempty. Important to do this after
             # evaluating ALL the fields to tick all the rel(), diff(),
