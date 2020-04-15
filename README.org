@@ -1615,7 +1615,7 @@ DESCRIPTION
     *   "--zero-terminated" is not supported because vnlog assumes
         newline-separated records
 
-    *   One *one* input is supported (a file on the cmdline or data on
+    *   Only *one* input is supported (a file on the cmdline or data on
         standard input), and the output *always* goes to standard output.
         Specifying the output as a file on the commandline is not supported.
 
