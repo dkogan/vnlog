@@ -38,10 +38,37 @@ static struct vnlog_context_t* get_global_context(int Nfields)
 
 
 
+static void _vnlog_set_output_FILE__ctx_exists(struct vnlog_context_t* ctx, FILE* fp)
+{
+    if(ctx->root->_fp)
+        ERR("fp is already set");
+    if( ctx->root->_emitted_something )
+        ERR("Can only change the output at the start");
+
+    ctx->root->_fp = fp;
+}
+// This is part of the CURRENT ABI. The user calls vnlog_set_output_FILE(), this
+// is expanded by the preprocessor to _vnlog_set_output_FILE()
+void _vnlog_set_output_FILE(struct vnlog_context_t* ctx, FILE* fp, int Nfields)
+{
+    if( ctx == NULL )
+        ctx = get_global_context(Nfields);
+    _vnlog_set_output_FILE__ctx_exists(ctx, fp);
+}
+// This is for legacy compatibility. With today's vnlog, user calls to
+// vnlog_set_output_FILE() are expanded to _vnlog_set_output_FILE() by the
+// preprocessor, so THIS symbol is not used, and does not conflict. But old
+// binaries could call vnlog_set_output_FILE() directly, so I provide that here,
+// with the exact old implementation
+void vnlog_set_output_FILE(struct vnlog_context_t* ctx, FILE* fp)
+{
+    _vnlog_set_output_FILE__ctx_exists(ctx, fp);
+}
+
 static void check_fp(struct vnlog_context_t* ctx)
 {
     if(!ctx->root->_fp)
-        vnlog_set_output_FILE(ctx, stdout);
+        _vnlog_set_output_FILE__ctx_exists(ctx, stdout);
 }
 static void _emit(struct vnlog_context_t* ctx, const char* string)
 {
@@ -87,16 +114,6 @@ void _vnlog_flush(struct vnlog_context_t* ctx, int Nfields)
     if( ctx == NULL ) ctx = get_global_context(Nfields);
     check_fp(ctx);
     fflush(ctx->root->_fp);
-}
-
-void vnlog_set_output_FILE(struct vnlog_context_t* ctx, FILE* fp)
-{
-    if(ctx->root->_fp)
-        ERR("fp is already set");
-    if( ctx->root->_emitted_something )
-        ERR("Can only change the output at the start");
-
-    ctx->root->_fp = fp;
 }
 
 static void flush(struct vnlog_context_t* ctx)

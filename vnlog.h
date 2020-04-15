@@ -17,7 +17,8 @@
   #define vnlog_printf_ctx(ctx, ...)     _vnlog_printf        (ctx,      VNLOG_N_FIELDS, ## __VA_ARGS__)
   #define vnlog_flush()                  _vnlog_flush         (NULL,     VNLOG_N_FIELDS)
   #define vnlog_flush_ctx(ctx)           _vnlog_flush         (ctx,      VNLOG_N_FIELDS)
-  #define vnlog_free_ctx(ctx)            _vnlog_free_ctx      (ctx, VNLOG_N_FIELDS)
+  #define vnlog_free_ctx(ctx)            _vnlog_free_ctx      (ctx,      VNLOG_N_FIELDS)
+  #define vnlog_set_output_FILE(ctx,fp)  _vnlog_set_output_FILE(ctx, fp, VNLOG_N_FIELDS)
 
 #else
 
@@ -126,10 +127,16 @@ struct vnlog_context_t
 extern "C" {
 #endif
 
+// THIS FUNCTION IS NOT A PART OF THE PUBLIC API. The user should call
+//
+//     vnlog_set_output_FILE()
+//
 // Directs the output to a given buffer. If this function is never called, the
-// output goes to STDOUT. If it IS called, that must happen before anything else
-void vnlog_set_output_FILE(struct vnlog_context_t* ctx,
-                           FILE* _fp);
+// output goes to STDOUT. If it IS called, that must happen before everything
+// else. Pass ctx==NULL to set the global context
+void _vnlog_set_output_FILE(struct vnlog_context_t* ctx,
+                            FILE* _fp,
+                            int Nfields);
 
 // THIS FUNCTION IS NOT A PART OF THE PUBLIC API. The user should call
 //
