@@ -1392,9 +1392,38 @@ CAVEATS
     This tool is very lax in its input validation (on purpose). As a result,
     columns with names like %CPU and "TIME+" do work (i.e. you can more or
     less feed in output from "top -b"). The downside is that shooting
-    yourself in the foot is possible. This tradeoff is currently set to work
-    well for my use cases, but I'd be interested in hearing other people's
-    experiences. Potential pitfalls/unexpected behaviors:
+    yourself in the foot is possible. This tradeoff is currently tuned to be
+    very permissive, which works well for my use cases. I'd be interested in
+    hearing other people's experiences. Potential pitfalls/unexpected
+    behaviors:
+
+    *   All column names are replaced in all eval strings without regard to
+        context. The earlier example that reports the sum of values in a
+        column: "vnl-filter --eval '{suma += a} END {print suma}'" will work
+        fine if we *do* have a column named "a" and do *not* have a column
+        named "suma". But will not do the right thing if any of those are
+        violated. For instance, if a column "a" doesn't exist, then "awk"
+        would see "suma += a" instead of something like "suma += $5". "a"
+        would be an uninitialized variable, which evaluates to 0, so the
+        full "vnl-filter" command would not fail, but would print 0 instead.
+        It's the user's responsibility to make sure we're talking about the
+        right columns. The focus here was one-liners so hopefully nobody has
+        so many columns, they can't keep track of all of them in their head.
+        I don't see any way to resolve this without seriously impacting the
+        scope of the tool, so I'm leaving this alone.
+
+    *   It is natural to use vnlog as a database. You can run queries with
+        something like
+
+         vnl-filter 'key == 5'
+
+        This works. But unlike a real database this is clearly a linear
+        lookup. With large data files, this would be significantly slower
+        than the logarithmic searches provided by a real database. The
+        meaning of "large" and "significant" varies, and you should test it.
+        In my experience vnlog "databases" scale surprisingly well. But at
+        some point, importing your data to something like sqlite is well
+        worth it.
 
     *   When substituting column names I match *either* a word-nonword
         transition ("\b") *or* a whitespace-nonword transition. The word
@@ -1413,18 +1442,6 @@ CAVEATS
         field names become potentially impossible: "f(a" and "b)" *could*
         otherwise be legal field names, but you're probably asking for
         trouble if you do that.
-
-    *   All column names are replaced in all eval strings without regard to
-        context. The earlier example that reports the sum of values in a
-        column: "vnl-filter --eval '{suma += a} END {print suma}'" will work
-        fine if we *do* have a column named "a" and do *not* have a column
-        named "suma". But will not do the right thing if any of those are
-        violated. It's the user's responsibility to make sure we're talking
-        about the right columns. The focus here was one-liners so hopefully
-        nobody has so many columns, they can't keep track of all of them in
-        their head. I don't see any way to resolve this without seriously
-        impacting the scope of the tool, so I'm leaving this alone. Comments
-        welcome.
 
     *   Currently there're two modes: a pick/print mode and an "--eval"
         mode. Then there's also "--function", which adds bits of "--eval" to
@@ -1943,7 +1960,14 @@ DESCRIPTION
         obviously worth the trouble, especially since the desired behavior
         can be obtained by post-processing with "vnl-filter".
 
-BUGS
+BUGS AND CAVEATS
+    The underlying "sort" tool assumes lexicographic ordering, and matches
+    fields purely based on their textual contents. This means that for the
+    purposes of joining, 10, 10.0 and 1.0e1 are all considered different. If
+    needed, you can normalize your keys with something like this:
+
+     vnl-filter -p x='sprintf("%f",x)'
+
     This and the other "vnl-xxx" tools that wrap coreutils are written
     specifically to work with the Linux kernel and the GNU coreutils. None
     of these have been tested with BSD tools or with non-Linux kernels, and

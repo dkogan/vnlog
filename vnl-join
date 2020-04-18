@@ -1047,7 +1047,14 @@ post-processing with C<vnl-filter>.
 
 =back
 
-=head1 BUGS
+=head1 BUGS AND CAVEATS
+
+The underlying C<sort> tool assumes lexicographic ordering, and matches fields
+purely based on their textual contents. This means that for the purposes of
+joining, C<10>, C<10.0> and C<1.0e1> are all considered different. If needed,
+you can normalize your keys with something like this:
+
+ vnl-filter -p x='sprintf("%f",x)'
 
 This and the other C<vnl-xxx> tools that wrap coreutils are written specifically
 to work with the Linux kernel and the GNU coreutils. None of these have been
