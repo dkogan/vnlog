@@ -673,7 +673,6 @@ as field headers. That's easy to do, so I'm not providing any helper libraries.
 I might do that at some point, but in the meantime, patches are welcome.
 
 * Workflows and recipes
-
 ** Storing disjoint data
 
 A common use case is a complex application that produces several semi-related
@@ -687,15 +686,16 @@ number of other vehicles may be observed. Two equivalent workflows are possible:
 Both are valid approaches
 
 *** One unified vnlog stream
-
 Here the application produces a /single/ vnlog that contains /all/ the columns,
 from /all/ the data subsets. In any given row, many of the columns will be empty
 (i.e. contain only =-= ). For instance, a row describing a vehicle own position
-will not have data about any other vehicles, and vice versa. =vnl-filter= can be
-used to pull out the different subsets. Sample =joint.vnl=:
+will not have data about any observations, and vice versa. It is inefficient to
+store all the extra =-= but it makes many things much nicer, so it's often worth
+it. =vnl-filter= can be used to pull out the different subsets. Sample
+=joint.vnl=:
 
 #+BEGIN_EXAMPLE
-# time x_self x_other
+# time x_self x_observation
 1      10     -
 2      20     -
 2      -      100
@@ -704,10 +704,9 @@ used to pull out the different subsets. Sample =joint.vnl=:
 3      -      300
 #+END_EXAMPLE
 
-Here we have 3 instances in time. We have no observations of other vehicles at
-=time= 1, one observation at =time= 2, and two observations at =time= 3. We can
-use =vnl-filter= to pull out the data we want. The =+= modifier in picked
-columns in =vnl-filter= is especially useful here:
+Here we have 3 instances in time. We have no observations at =time= 1, one
+observation at =time= 2, and two observations at =time= 3. We can use
+=vnl-filter= to pull out the data we want:
 
 #+BEGIN_EXAMPLE
 $ < joint.vnl vnl-filter -p time,self
@@ -719,8 +718,12 @@ $ < joint.vnl vnl-filter -p time,self
 3 30
 3 -
 3 -
+#+END_EXAMPLE
 
+If we only care about our own positions, the =+= modifier in picked columns in
+=vnl-filter= is very useful here:
 
+#+BEGIN_EXAMPLE
 $ < joint.vnl vnl-filter -p time,+self
 
 # time x_self
@@ -729,13 +732,34 @@ $ < joint.vnl vnl-filter -p time,+self
 3 30
 
 
-$ < joint.vnl vnl-filter -p time,+other
+$ < joint.vnl vnl-filter -p time,+observation
 
-# time x_other
+# time x_observation
 2 100
 3 200
 3 300
 #+END_EXAMPLE
+
+Note that the default is =--skipempty=, so if we're /only/ looking at =x_self=
+for instance, then we don't even need to =+= modifier:
+
+#+begin_example
+$ < joint.vnl vnl-filter -p self
+
+# x_self
+10
+20
+30
+#+end_example
+
+Also, note that the =vnlog= C interface works very nicely to produce these
+datafiles:
+
+- You can define lots and lots of columns, but only fill some of them before
+  calling =vnlog_emit_record()=. The rest will be set to =-=.
+- You can create multiple contexts for each type of data, and you can populate
+  them with data independently. And when calling =vnlog_emit_record_ctx()=,
+  you'll get a record with data for just that context.
 
 *** Several discrete vnlog streams
 
@@ -752,17 +776,17 @@ $ cat self.vnl
 3 30
 
 
-$ cat other.vnl
+$ cat observations.vnl
 
-# time x_other
+# time x_observation
 2 100
 3 200
 3 300
 
 
-$ vnl-join -j time -a- self.vnl other.vnl
+$ vnl-join -j time -a- self.vnl observations.vnl
 
-# time x_self x_other
+# time x_self x_observation
 1 10 -
 2 20 100
 3 30 200
