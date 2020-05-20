@@ -10,6 +10,7 @@ use lib "$Bin/lib";
 # Non-ancient perls have this in List::Util, but I want to support ancient ones too
 use List::MoreUtils 'all';
 use POSIX;
+use Config;
 
 use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring fork_and_filter);
 
@@ -442,7 +443,7 @@ if( $Ndatafiles > 2 )
         }
 
 
-        my @run_opts = ($0, @$ARGV_new, infile($in0), infile($in1));
+        my @run_opts = ($Config{perlpath}, $0, @$ARGV_new, infile($in0), infile($in1));
 
         my ($fd_read, $fd_write);
         if( !$final_subjoin)
@@ -553,7 +554,7 @@ sub get_sort_prefilter
     # We sort with the default order (lexicographical) since that's what join
     # wants. We'll re-sort the output by the desired order again
     my $key = $options->{j};
-    my $input_filter = ["$Bin/vnl-sort", "-s", "-k", "$key"];
+    my $input_filter = [$Config{perlpath}, "$Bin/vnl-sort", "-s", "-k", "$key"];
     if ($options->{'ignore-case'})
     {
         push @$input_filter, '-f';
@@ -581,7 +582,7 @@ sub post_sort
         }
 
         my $order = $options->{'vnl-sort'};
-        exec "$Bin/vnl-sort", "-k", $join_key, "-$order";
+        exec $Config{perlpath}, "$Bin/vnl-sort", "-k", $join_key, "-$order";
     }
 
     my $childpid_join = fork();
