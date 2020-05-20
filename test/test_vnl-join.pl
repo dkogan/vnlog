@@ -7,12 +7,37 @@ use feature ':5.10';
 use FindBin '$Bin';
 use lib $Bin;
 
+use IPC::Run 'run';
 use TestHelpers qw(test_init check);
 
 use Term::ANSIColor;
 my $Nfailed = 0;
 
 
+# I try to detect the join flavor. Not doing FEATURE detection here, because I
+# want to test the feature
+my $in  = '';
+my $out = '';
+my $err = '';
+my $have_fancy_join;
+if(run(['join', '--version'], \$in, \$out, \$err))
+{
+    # success
+    if($out =~ /GNU/)
+    {
+        $have_fancy_join = 1;
+        say "Detected GNU join. Testing all the things";
+    }
+    else
+    {
+        die "I don't know which 'join' this is. 'join --version' succeeed, but didn't say it was 'GNU' join";
+    }
+}
+else
+{
+    $have_fancy_join = 0;
+    say "'join --version' failed: assuming limited functionality";
+}
 
 
 my $data1 = <<'EOF';
@@ -238,7 +263,10 @@ check( 'ERROR', qw(-jb -o),  '1.a,9,2.d,1.e,0,2.e', '$data1', '$data22' );
 
 
 # these keys are sorted numerically, not lexicographically
-check( 'ERROR', qw(-j e), '$data1', '$data22' );
+if($have_fancy_join)
+{
+    check( 'ERROR', qw(-j e), '$data1', '$data22' );
+}
 check( <<'EOF', qw(-j e --vnl-sort - --vnl-suffix1 1), '$data1', '$data22' );
 # e a1 b1 b c d
 10 5a 32b 52b 6c 7d
@@ -328,11 +356,15 @@ EOF
 
 # 3-way -o. Generally unsupported
 check( 'ERROR', '-jb', '-o', '1.a,0,3.f,2.c,3.b,1.b,1.e,2.e', '$data1', '$data22', '$data3');
-check( <<'EOF', qw(-jb -o auto), '$data1', '$data22', '$data3');
+
+if($have_fancy_join)
+{
+    check( <<'EOF', qw(-jb -o auto), '$data1', '$data22', '$data3');
 # b a e c d e f
 22b 1a 9 1c 5d 8 18
 32b 5a 10 5c 6d 9 29
 EOF
+}
 
 # 3-way prefix/suffix
 check( <<'EOF', qw(-jb --vnl-prefix1 a_ --vnl-suffix2 _c), '$data1', '$data22', '$data3');

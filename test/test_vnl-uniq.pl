@@ -7,12 +7,38 @@ use feature ':5.10';
 use FindBin '$Bin';
 use lib $Bin;
 
+use IPC::Run 'run';
 use TestHelpers qw(test_init check);
 
 use Term::ANSIColor;
 my $Nfailed = 0;
 
 
+
+# I try to detect the uniq flavor. Not doing FEATURE detection here, because I
+# want to test the feature
+my $in  = '';
+my $out = '';
+my $err = '';
+my $have_fancy_uniq;
+if(run(['uniq', '--version'], \$in, \$out, \$err))
+{
+    # success
+    if($out =~ /GNU/)
+    {
+        $have_fancy_uniq = 1;
+        say "Detected GNU uniq. Testing all the things";
+    }
+    else
+    {
+        die "I don't know which 'uniq' this is. 'uniq --version' succeeed, but didn't say it was 'GNU' uniq";
+    }
+}
+else
+{
+    $have_fancy_uniq = 0;
+    say "'uniq --version' failed: assuming limited functionality";
+}
 
 my $data1 = <<'EOF';
 #!/bin/xxx
@@ -125,12 +151,15 @@ check( <<'EOF', qw(-d), '$data1' );
 2 2
 EOF
 
-# print the duplicate lines, but don't suppress their duplicate-ness
-check( <<'EOF', qw(-D), '$data1' );
+if($have_fancy_uniq)
+{
+    # print the duplicate lines, but don't suppress their duplicate-ness
+    check( <<'EOF', qw(-D), '$data1' );
 # x y
 2 2
 2 2
 EOF
+}
 
 # print duplicate lines, but don't look at the first column for the duplicate
 # detection. Here I print just the first one of each group
@@ -163,10 +192,12 @@ check( <<'EOF', qw(-d -f -1), '$data1' );
 30 3
 EOF
 
-# print duplicate lines, but don't look at the first column for the duplicate
-# detection. Here I print ALL the duplicates; since I skipped the first column,
-# they're not really duplicates
-check( <<'EOF', qw(-D -f1), '$data1' );
+if($have_fancy_uniq)
+{
+    # print duplicate lines, but don't look at the first column for the duplicate
+    # detection. Here I print ALL the duplicates; since I skipped the first column,
+    # they're not really duplicates
+    check( <<'EOF', qw(-D -f1), '$data1' );
 # x y
 2 2
 2 2
@@ -181,7 +212,7 @@ check( <<'EOF', qw(-D -f1), '$data1' );
 32 3
 33 3
 EOF
-check( <<'EOF', qw(--all-repeated -f1), '$data1' );
+    check( <<'EOF', qw(--all-repeated -f1), '$data1' );
 # x y
 2 2
 2 2
@@ -197,9 +228,9 @@ check( <<'EOF', qw(--all-repeated -f1), '$data1' );
 33 3
 EOF
 
-# same thing, but using different flavors of -D, and making sure my option
-# parser works right
-check( <<'EOF', qw(--all-repeated=none -f1), '$data1' );
+    # same thing, but using different flavors of -D, and making sure my option
+    # parser works right
+    check( <<'EOF', qw(--all-repeated=none -f1), '$data1' );
 # x y
 2 2
 2 2
@@ -214,27 +245,9 @@ check( <<'EOF', qw(--all-repeated=none -f1), '$data1' );
 32 3
 33 3
 EOF
-check( <<'EOF', qw(--all-repeated=prepend -f1), '$data1' );
+    check( <<'EOF', qw(--all-repeated=prepend -f1), '$data1' );
 # x y
 
-2 2
-2 2
-
-10 1
-11 1
-12 1
-
-20 2
-21 2
-22 2
-
-30 3
-31 3
-32 3
-33 3
-EOF
-check( <<'EOF', qw(--all-repeated=separate -f1), '$data1' );
-# x y
 2 2
 2 2
 
@@ -251,10 +264,28 @@ check( <<'EOF', qw(--all-repeated=separate -f1), '$data1' );
 32 3
 33 3
 EOF
-check( 'ERROR', qw(--all-repeated separate -f1), '$data1' );
+    check( <<'EOF', qw(--all-repeated=separate -f1), '$data1' );
+# x y
+2 2
+2 2
 
-# And now --group
-check( <<'EOF', qw(--group), '$data1' );
+10 1
+11 1
+12 1
+
+20 2
+21 2
+22 2
+
+30 3
+31 3
+32 3
+33 3
+EOF
+    check( 'ERROR', qw(--all-repeated separate -f1), '$data1' );
+
+    # And now --group
+    check( <<'EOF', qw(--group), '$data1' );
 # x y
 1 1
 
@@ -285,7 +316,7 @@ check( <<'EOF', qw(--group), '$data1' );
 
 40 4
 EOF
-check( <<'EOF', qw(--group -f1), '$data1' );
+    check( <<'EOF', qw(--group -f1), '$data1' );
 # x y
 1 1
 
@@ -309,7 +340,7 @@ check( <<'EOF', qw(--group -f1), '$data1' );
 
 40 4
 EOF
-check( <<'EOF', qw(--group=both -f1), '$data1' );
+    check( <<'EOF', qw(--group=both -f1), '$data1' );
 # x y
 
 1 1
@@ -335,15 +366,15 @@ check( <<'EOF', qw(--group=both -f1), '$data1' );
 40 4
 
 EOF
-check( 'ERROR', qw(--group both), '$data1' );
-check( 'ERROR', qw(--group -c), '$data1' );
+    check( 'ERROR', qw(--group both), '$data1' );
+    check( 'ERROR', qw(--group -c), '$data1' );
 
-check( <<'EOF', qw(-D -s1), '$data1' );
+    check( <<'EOF', qw(-D -s1), '$data1' );
 # x y
 2 2
 2 2
 EOF
-check( <<'EOF', qw(-D -s2), '$data1' );
+    check( <<'EOF', qw(-D -s2), '$data1' );
 # x y
 2 2
 2 2
@@ -358,6 +389,7 @@ check( <<'EOF', qw(-D -s2), '$data1' );
 32 3
 33 3
 EOF
+}
 
 check( <<'EOF', qw(-c), '$data1' );
 # count x y

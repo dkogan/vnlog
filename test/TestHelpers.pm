@@ -107,6 +107,9 @@ sub check
         }
         else
         {
+            # I ignore differences in leading whitespace
+            $expected =~ s/^\s*//gm;
+            $out      =~ s/^\s*//gm;
             my $diff = diff(\$expected, \$out);
             if ( length $diff )
             {
