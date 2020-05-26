@@ -26,12 +26,12 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
       --stream
       -A/-B/-C
 
-    This tool is a nicer 'awk' that reads and write vnlog. As a result, it
-    can refer to columns by name, not number, like awk does.
+    This tool is a nicer 'awk' that reads and writes vnlog. Unlike awk,
+    vnl-filter refers to columns by name, not index.
 
-    Columns are selected with -p (we select all columns if omitted). We can
-    rename columns with C<=>, and if we do that, we can output arbitrary
-    expressions. For instance:
+    Columns are selected with -p; if omitted, all columns are selected.
+    Arbitrary expressions can be output with 'vnl-filter -p f=...'. For
+    instance, to output columns 'a', 'b' and their sum:
 
       vnl-filter -p 'a,b,sum=a+b'
 
@@ -43,7 +43,8 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
     By default, this tool generates an awk script that's then interpreted by
     mawk. Although it is slower, perl can be used instead by passing --perl.
     This makes no difference in output in most cases, but the various
-    expressions would be evaluated by perl, which could be desirable.
+    expressions would be evaluated by perl, which is often useful, especially
+    for anything non-trivial.
 
     --unbuffered flushes each line after each print. Useful for streaming data.
 
