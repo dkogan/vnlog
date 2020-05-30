@@ -361,9 +361,9 @@ could be a better fit for some use cases. I claim that
 
 - 90% of the time you want to do simple things, and vnlog is a great fit for the
   task
-- If you really do need to do something complex, you really shouldn't be in the
-  shell writing oneliners anymore, and a fully-fledged analysis system (numpy,
-  etc) is more appropriate
+- If you really do need to do something complex, you shouldn't be in the shell
+  writing oneliners anymore, and a fully-fledged analysis system (numpy, etc) is
+  more appropriate
 
 In the spirit of doing as little as possible, the provided tools are wrappers
 around tools you already have and are familiar with. The provided tools are:
@@ -411,8 +411,8 @@ vnl-filter --eval '{s += x} END {print s}'
 - =libvnlog= is a C library to simplify writing a vnlog. Clearly all you
   /really/ need is =printf()=, but this is useful if we have lots of columns,
   many containing null values in any given row, and/or if we have parallel
-  threads writing to a log. In my usage I have hundreds of columns, so this is
-  handy
+  threads writing to a log. In my usage I have hundreds of columns of sparse
+  data, so this is handy
 
 - =vnl-make-matrix= converts a one-point-per-line vnlog to a matrix of data.
   I.e.
@@ -911,8 +911,8 @@ like that is more trouble than it's worth.
 * Installation
 
 ** On Debian-based boxes
-At this time vnlog is a part of Debian/buster and Ubuntu/cosmic (18.10). On
-those boxes you can simply
+vnlog is a part of Debian/buster and Ubuntu/cosmic (18.10) and later. On those
+boxes you can simply
 
 #+BEGIN_EXAMPLE
 $ sudo apt install vnlog libvnlog-dev libvnlog-perl python-vnlog
