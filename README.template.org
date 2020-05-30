@@ -894,23 +894,26 @@ README.org          69789
 With a bit of shell manipulation, these tools can be applied to a whole lot of
 different data streams that know nothing of vnlog.
 
-* Caveats and bugs
+* Compatibility
 
-The tools that wrap standard commandline utilities (=vnl-sort=, =vnl-uniq=,
-=vnl-join=, =vnl-tail=, =vnl-ts=) are written specifically to work with the
-Linux kernel and the GNU coreutils. None of these have been tested with BSD
-tools or with non-Linux kernels, and I'm sure things don't just work. It's
-probably not too effortful to get that running, but somebody needs to at least
-bug me for that. Or better yet, send me nice patches :)
+I use GNU/Linux-based systems exclusively, but everything has been tested
+functional on FreeBSD and OSX in addition to Debian, Ubuntu and CentOS. I can
+imagine there's something I missed when testing on non-Linux systems, so please
+let me know if you find any issues.
+
+* Caveats and bugs
 
 These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for
 escaping or quoting whitespace into a single field. I think supporting something
 like that is more trouble than it's worth.
 
-* Installation
+* Build and installation
+Most of this is written in an interpreted language, so there's nothing to build.
+The C API is the one component that does require compilation, which can be done
+with =make=. Note: GNU Make is required.
 
-** On Debian-based boxes
+** Installation on Debian-based boxes
 vnlog is a part of Debian/buster and Ubuntu/cosmic (18.10) and later. On those
 boxes you can simply
 
@@ -932,7 +935,7 @@ $ dpkg-buildpackage -us -uc -b
 $ sudo dpkg -i ../vnlog*.deb ../libvnlog-dev*.deb ../libvnlog-perl*.deb ../python-vnlog*.deb
 #+END_EXAMPLE
 
-** On non-Debian-based boxes
+** Installation on non-Debian-based boxes
 
 With the exception of the C API, every part of the toolkit is written in an
 interpreted language, and there's nothing to "install". You can run everything
@@ -950,6 +953,9 @@ If you /do/ want to install to some location, do this:
 $ make
 $ PREFIX=/usr/local make install
 #+END_EXAMPLE
+
+Note: this requires the =chrpath= tool, which is available in most package
+repositories.
 
 * Manpages
 ** vnl-filter

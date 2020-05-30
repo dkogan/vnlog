@@ -1057,11 +1057,12 @@ you can normalize your keys with something like this:
 
  vnl-filter -p x='sprintf("%f",x)'
 
-This and the other C<vnl-xxx> tools that wrap coreutils are written specifically
-to work with the Linux kernel and the GNU coreutils. None of these have been
-tested with BSD tools or with non-Linux kernels, and I'm sure things don't just
-work. It's probably not too effortful to get that running, but somebody needs to
-at least bug me for that. Or better yet, send me nice patches :)
+=head1 COMPATIBILITY
+
+I use GNU/Linux-based systems exclusively, but everything has been tested
+functional on FreeBSD and OSX in addition to Debian, Ubuntu and CentOS. I can
+imagine there's something I missed when testing on non-Linux systems, so please
+let me know if you find any issues.
 
 =head1 SEE ALSO
 

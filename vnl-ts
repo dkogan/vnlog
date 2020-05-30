@@ -141,13 +141,16 @@ new field. If omitted, a reasonable default will be used.
 Past that, everything C<ts> does is supported, so see that man page for
 detailed documentation.
 
-=head1 BUGS
+=head1 COMPATIBILITY
 
-This and the other C<vnl-xxx> tools that wrap standard utilities are written
-specifically to work with the Linux kernel. None of these have been tested with
-BSD tools or with non-Linux kernels, and I'm sure things don't just work. It's
-probably not too effortful to get that running, but somebody needs to at least
-bug me for that. Or better yet, send me nice patches :)
+This calls the tool named C<ts>. At least on FreeBSD, it's called
+C<moreutils-ts>, however. Currently only the nominal name is used, so you need
+to make the tool be available under the name C<ts> to make this work.
+
+I use GNU/Linux-based systems exclusively, but everything has been tested
+functional on FreeBSD and OSX in addition to Debian, Ubuntu and CentOS. I can
+imagine there's something I missed when testing on non-Linux systems, so please
+let me know if you find any issues.
 
 =head1 SEE ALSO
 
