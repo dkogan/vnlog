@@ -312,7 +312,9 @@ all: $(if $(strip $(LIB_SOURCES)),$(LIB_TARGET_SO_ALL)) $(if $(strip $(BIN_SOURC
 .PHONY: all
 .DEFAULT_GOAL := all
 
-$(LIB_TARGET_SO_FULL): LDFLAGS += -shared -Wl,--default-symver -fPIC -Wl,-soname,$(notdir $(LIB_TARGET_SO_BARE)).$(ABI_VERSION)
+# use --default-symver if we've got it. *BSDs do not
+LD_DEFAULT_SYMVER := $(shell ld --default-symver --version 1>/dev/null 2>/dev/null && echo -Wl,--default-symver)
+$(LIB_TARGET_SO_FULL): LDFLAGS += -shared $(LD_DEFAULT_SYMVER) -fPIC -Wl,-soname,$(notdir $(LIB_TARGET_SO_BARE)).$(ABI_VERSION)
 
 
 $(LIB_TARGET_SO_BARE) $(LIB_TARGET_SO_ABI): $(LIB_TARGET_SO_FULL)
