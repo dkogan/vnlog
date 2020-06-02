@@ -1607,6 +1607,10 @@ DESCRIPTION
     *   "--zero-terminated" is not supported because vnlog assumes
         newline-separated records
 
+    *   By default we call the "sort" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
+
     Past that, everything "sort" does is supported, so see that man page for
     detailed documentation. Note that all non-legend comments are stripped
     out, since it's not obvious where they should end up.
@@ -1673,6 +1677,10 @@ DESCRIPTION
         "-f" and "--skip-fields" can take a negative argument to skip the
         *all but the last* N fields. For instance, to use only the one last
         field, pass "-f -1" or "--skip-fields=-1".
+
+    *   By default we call the "uniq" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
 
     Past that, everything "uniq" does is supported, so see that man page for
     detailed documentation.
@@ -1810,6 +1818,10 @@ DESCRIPTION
 
     *   A "vnl-join"-specific option "--vnl-sort" is available to sort the
         input and/or output. See below for details.
+
+    *   By default we call the "join" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
 
     *   If no "-o" is given, we output the join field, the remaining fields
         in logfile1, the remaining fields in logfile2, .... This is what "-o
@@ -2021,6 +2033,10 @@ DESCRIPTION
     *   "--zero-terminated" is not supported because vnlog assumes
         newline-separated records
 
+    *   By default we call the "tail" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
+
     Past that, everything "tail" does is supported, so see that man page for
     detailed documentation.
 
@@ -2082,14 +2098,17 @@ DESCRIPTION
         name of the new field. If omitted, a reasonable default will be
         used.
 
+    *   By default we call the "ts" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
+
     Past that, everything "ts" does is supported, so see that man page for
     detailed documentation.
 
 COMPATIBILITY
-    This calls the tool named "ts". At least on FreeBSD, it's called
-    "moreutils-ts", however. Currently only the nominal name is used, so you
-    need to make the tool be available under the name "ts" to make this
-    work.
+    By default this calls the tool named "ts". At least on FreeBSD, it's
+    called "moreutils-ts", so on such systems you should invoke "vnl-ts
+    --vnl-tool moreutils-ts ..."
 
     I use GNU/Linux-based systems exclusively, but everything has been
     tested functional on FreeBSD and OSX in addition to Debian, Ubuntu and
