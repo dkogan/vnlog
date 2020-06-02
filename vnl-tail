@@ -31,6 +31,7 @@ my @specs = ( # options with no args
              # valid. parse_options handles that
              "follow:s",
 
+             "vnl-tool=s",
              "help|h");
 
 
@@ -47,7 +48,7 @@ EOF
 my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
   $0 [options] logfile logfile logfile ... < logfile
 
-The most common options are (from the GNU tail manpage)
+The most common options are (mostly from the GNU tail manpage)
 
   -n, --lines=[+]NUM
          output the last NUM lines, instead of the last 10;
@@ -56,7 +57,12 @@ The most common options are (from the GNU tail manpage)
   -f, --follow[={name|descriptor}]
          output appended data as the file grows;
          an absent option argument means 'descriptor'
+
+  --vnl-tool tool
+       Specifies the path to the tool we're wrapping. By default we wrap 'tail',
+       so most people can omit this
 EOF
+$options->{'vnl-tool'} //= 'tail';
 
 if( defined $options->{follow}         &&
     length($options->{follow}) > 0     &&
@@ -94,7 +100,7 @@ say '# ' . join(' ', @{$inputs->[0]{keys}});
 
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs, 1);
 close_nondev_inputs($inputs);
-exec 'tail', @$ARGV_new;
+exec $options->{'vnl-tool'}, @$ARGV_new;
 
 
 
@@ -144,6 +150,12 @@ C<-c> is not supported because vnlog really doesn't want to break up lines
 
 C<--zero-terminated> is not supported because vnlog assumes
 newline-separated records
+
+=item *
+
+By default we call the C<tail> tool to do the actual work. If the underlying
+tool has a different name or lives in an odd path, this can be specified by
+passing C<--vnl-tool TOOL>
 
 =back
 

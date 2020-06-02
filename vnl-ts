@@ -12,6 +12,7 @@ use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equi
 
 my @specs = ( qw(i s m r),
               "vnl-field=s",
+              "vnl-tool=s",
               "help|h");
 
 
@@ -23,7 +24,7 @@ Unlike the 'ts' utility, this tool REQUIRES an explicit format to be given, and
 this tool will barf if this format contains whitespace. The 'ts' -r option is
 not supported.
 
-The options are (from the 'ts' manpage)
+The options are (mostly from the 'ts' manpage)
 
   -i   Instead of reporting the absolute time, report the elapsed time since the
        last record.
@@ -36,7 +37,12 @@ The options are (from the 'ts' manpage)
   --vnl-field t
        Specifies the name of the new field. If omitted, a sensible default will
        be used
+
+  --vnl-tool tool
+       Specifies the path to the tool we're wrapping. By default we wrap 'ts',
+       so most people can omit this
 EOF
+$options->{'vnl-tool'} //= 'ts';
 
 if( defined $options->{'vnl-field'} && $options->{'vnl-field'} =~ /\s/ )
 {
@@ -73,7 +79,7 @@ say "# " .$options->{'vnl-field'} . " " . join(' ', @{$inputs->[0]{keys}});
 
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, [$format], \@specs);
 
-exec 'ts', @$ARGV_new;
+exec $options->{'vnl-tool'}, @$ARGV_new;
 
 
 
@@ -136,6 +142,12 @@ incompatible with vnlog
 A C<vnl-ts>-specific option C<--vnl-field> is available to set the name of the
 new field. If omitted, a reasonable default will be used.
 
+=item *
+
+By default we call the C<ts> tool to do the actual work. If the underlying tool
+has a different name or lives in an odd path, this can be specified by passing
+C<--vnl-tool TOOL>
+
 =back
 
 Past that, everything C<ts> does is supported, so see that man page for
@@ -143,9 +155,9 @@ detailed documentation.
 
 =head1 COMPATIBILITY
 
-This calls the tool named C<ts>. At least on FreeBSD, it's called
-C<moreutils-ts>, however. Currently only the nominal name is used, so you need
-to make the tool be available under the name C<ts> to make this work.
+By default this calls the tool named C<ts>. At least on FreeBSD, it's called
+C<moreutils-ts>, so on such systems you should invoke C<vnl-ts --vnl-tool
+moreutils-ts ...>
 
 I use GNU/Linux-based systems exclusively, but everything has been tested
 functional on FreeBSD and OSX in addition to Debian, Ubuntu and CentOS. I can

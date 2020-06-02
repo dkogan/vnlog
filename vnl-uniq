@@ -28,6 +28,7 @@ my @specs = ( # options with no args
 
              "vnl-count=s",
 
+             "vnl-tool=s",
              "help|h");
 
 
@@ -70,12 +71,17 @@ The most common options are (from the GNU uniq manpage):
   -u, --unique
          only print unique lines
 
-There's also one vnlog-specific option
+There's also vnlog-specific options
 
   --vnl-count NAME
          Implies -c. Like -c, adds a column of occurrence counts, but gives this
          column an arbitrary name given on the commandline
+
+  --vnl-tool tool
+       Specifies the path to the tool we're wrapping. By default we wrap 'uniq',
+       so most people can omit this
 EOF
+$options->{'vnl-tool'} //= 'uniq';
 
 if( $options->{'vnl-count'} )
 {
@@ -143,7 +149,7 @@ if($options->{count})
     print (($options->{'vnl-count'} || 'count') . ' ');
 }
 say join(' ', @{$inputs->[0]{keys}});
-exec 'uniq', @$ARGV_new;
+exec $options->{'vnl-tool'}, @$ARGV_new;
 
 
 
@@ -209,6 +215,12 @@ In addition to the normal behavior of skipping fields at the start, C<-f> and
 C<--skip-fields> can take a negative argument to skip the I<all but the last> N
 fields. For instance, to use only the one last field, pass C<-f -1> or
 C<--skip-fields=-1>.
+
+=item *
+
+By default we call the C<uniq> tool to do the actual work. If the underlying
+tool has a different name or lives in an odd path, this can be specified by
+passing C<--vnl-tool TOOL>
 
 =back
 

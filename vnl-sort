@@ -49,6 +49,7 @@ my @specs = ( # options with no args
               "check:s",
               "c|C",
 
+              "vnl-tool=s",
               "help|h");
 
 my %options_unsupported = ( 'files0-from' => <<'EOF',
@@ -115,7 +116,14 @@ These all choose the sort order:
   --sort=WORD
          sort according to WORD: general-numeric -g, human-numeric -h,
          month -M, numeric -n, random -R, version -V
+
+There's also a vnlog-specific option
+
+  --vnl-tool tool
+       Specifies the path to the tool we're wrapping. By default we wrap 'sort',
+       so most people can omit this
 EOF
+$options->{'vnl-tool'} //= 'sort';
 
 for my $key(keys %$options)
 {
@@ -134,7 +142,7 @@ substitute_field_keys($options, $inputs->[0]);
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
 
 say '# ' . join(' ', @{$inputs->[0]{keys}});
-exec 'sort', @$ARGV_new;
+exec $options->{'vnl-tool'}, @$ARGV_new;
 
 
 sub substitute_field_keys
@@ -294,6 +302,12 @@ whitespace-separated fields
 
 C<--zero-terminated> is not supported because vnlog assumes
 newline-separated records
+
+=item *
+
+By default we call the C<sort> tool to do the actual work. If the underlying
+tool has a different name or lives in an odd path, this can be specified by
+passing C<--vnl-tool TOOL>
 
 =back
 

@@ -28,6 +28,7 @@ my @specs = ( # options with no args
              # options that take an arg
              "a=s@", "e=s", "1=s", "2=s", "j=s", "o=s", "t=s", "v=s@",
 
+             "vnl-tool=s",
              "help|h");
 
 @specs = (@specs,
@@ -106,7 +107,11 @@ There're also a few vnlog-specific options
          the arguments as given: if you want a stable post-sort, ask for it
          with '--vnl-sort s...'
 
+  --vnl-tool tool
+       Specifies the path to the tool we're wrapping. By default we wrap 'join',
+       so most people can omit this
 EOF
+$options->{'vnl-tool'} //= 'join';
 
 
 my $Ndatafiles = scalar(@$filenames);
@@ -631,13 +636,13 @@ my $legend = '# ' . join(' ', @$keys_output) . "\n";
 if(!defined $options->{'vnl-sort'} || $options->{'vnl-sort'} eq '-')
 {
     syswrite(*STDOUT, $legend);
-    exec 'join', @$ARGV_new;
+    exec $options->{'vnl-tool'}, @$ARGV_new;
 }
 
 
 # Complicated case. We're post-filtering our output. I set up the pipes, fork
 # and exec
-post_sort($legend, $join_key, 'join', @$ARGV_new);
+post_sort($legend, $join_key, $options->{'vnl-tool'}, @$ARGV_new);
 
 
 
@@ -877,6 +882,12 @@ See "Field names in the output" below for details.
 
 A C<vnl-join>-specific option C<--vnl-sort> is available to sort the input
 and/or output. See below for details.
+
+=item *
+
+By default we call the C<join> tool to do the actual work. If the underlying
+tool has a different name or lives in an odd path, this can be specified by
+passing C<--vnl-tool TOOL>
 
 =item *
 
