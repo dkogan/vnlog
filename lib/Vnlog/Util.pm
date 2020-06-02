@@ -265,7 +265,7 @@ sub parse_options
         my ($what) = $0 =~ /-(.+?)$/;
 
         say <<EOF;
-vnl-$what is a wrapper around the GNU Coreutils '$what' tool, so the usage
+vnl-$what is a wrapper around the '$what' tool, so the usage
 and options are almost identical. Main difference is that fields are referenced
 by name instead of number. Please see the manpages for 'vnl-$what' and
 '$what' for more detail
