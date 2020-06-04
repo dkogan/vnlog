@@ -1,3 +1,19 @@
+vnlog (1.28)
+
+  * Compatibility improvements for *BSD (tested on OSX and FreeBSD)
+
+    - vnl-join children use the same perl executable as the parent. This
+      is important if we're not using a vanilla /usr/bin/perl
+    - renamed Makefile -> GNUmakefile to make it clear it is only for GNU
+      Make
+    - #! lines reference '/usr/bin/env ...'. Again, if we don't have
+      /usr/bin/perl then this is required
+    - imported new mrbuild Makefile to support the FreeBSD linker
+    - cmdline tools have --vnl-tool to specify the underlying tool.
+      FreeBSD ships "ts" as "moreutils-ts" so this flexibility is required
+
+ -- Dima Kogan <dkogan@debian.org>  Wed, 03 Jun 2020 20:08:14 -0700
+
 vnlog (1.27)
 
   * vnl-filter produces - for any expression that evaluates to an empty
