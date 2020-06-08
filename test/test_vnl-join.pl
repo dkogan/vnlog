@@ -26,7 +26,7 @@ if(run(['join', '--version'], \$in, \$out, \$err))
     if($out =~ /GNU/)
     {
         $have_fancy_join = 1;
-        say "Detected GNU join. Testing all the things";
+        say "Detected GNU join. Running a full test of vnl-join";
     }
     else
     {
@@ -36,7 +36,7 @@ if(run(['join', '--version'], \$in, \$out, \$err))
 else
 {
     $have_fancy_join = 0;
-    say "'join --version' failed: assuming limited functionality";
+    say "Detected non-GNU join ('join --version' failed): Running a limited test of vnl-join";
 }
 
 

@@ -27,7 +27,7 @@ if(run(['uniq', '--version'], \$in, \$out, \$err))
     if($out =~ /GNU/)
     {
         $have_fancy_uniq = 1;
-        say "Detected GNU uniq. Testing all the things";
+        say "Detected GNU uniq. Running a full test of vnl-uniq";
     }
     else
     {
@@ -37,7 +37,7 @@ if(run(['uniq', '--version'], \$in, \$out, \$err))
 else
 {
     $have_fancy_uniq = 0;
-    say "'uniq --version' failed: assuming limited functionality";
+    say "Detected non-GNU uniq ('uniq --version' failed): Running a limited test of vnl-uniq";
 }
 
 my $data1 = <<'EOF';
