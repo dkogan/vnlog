@@ -408,22 +408,6 @@ check( <<'EOF', qw(-c), '$data1' );
       1 33 3
       1 40 4
 EOF
-check( <<'EOF', qw(-c -u), '$data1' );
-# count x y
-      1 1 1
-      1 3 3
-      1 10 1
-      1 11 1
-      1 12 1
-      1 20 2
-      1 21 2
-      1 22 2
-      1 30 3
-      1 31 3
-      1 32 3
-      1 33 3
-      1 40 4
-EOF
 check( <<'EOF', qw(-c -f1), '$data1' );
 # count x y
       1 1 1
@@ -434,16 +418,14 @@ check( <<'EOF', qw(-c -f1), '$data1' );
       4 30 3
       1 40 4
 EOF
-check( <<'EOF', qw(-cu -f1), '$data1' );
-# count x y
-      1 1 1
-      1 3 3
-      1 40 4
-EOF
-check( <<'EOF', qw(-u --vnl-count xxx -f1), '$data1' );
+check( <<'EOF', qw(--vnl-count xxx -f1), '$data1' );
 # xxx x y
       1 1 1
+      2 2 2
       1 3 3
+      3 10 1
+      3 20 2
+      4 30 3
       1 40 4
 EOF
 

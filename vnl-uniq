@@ -13,16 +13,16 @@ use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equi
 
 # This comes from the struct option longopts in uniq.c in GNU coreutils
 my @specs = ( # options with no args
-             "count|c",
-             "repeated|d",
-             "ignore-case|i",
-             "unique|u",
+             "c|count",
+             "d|repeated",
+             "i|ignore-case",
+             "u|unique",
              "zero-terminated|z",
 
              # options with args
              "all-repeated|D:s",
-             "skip-fields|f=i",
-             "skip-chars|s=i",
+             "f|skip-fields=i",
+             "s|skip-chars=i",
              "check-chars|w=i",
              "group:s",
 
@@ -85,7 +85,7 @@ $options->{'vnl-tool'} //= 'uniq';
 
 if( $options->{'vnl-count'} )
 {
-    $options->{count} = 1;
+    $options->{c} = 1;
 }
 if( defined $options->{'all-repeated'}      &&
     length($options->{'all-repeated'}) > 0  &&
@@ -106,10 +106,10 @@ if( defined $options->{'group'} )
         die "--group=XXX was given. XXX may be ONLY one of 'separate','prepend','append','both'. Got '" . $options->{'group'} . "'";
     }
 
-    if( $options->{count}                  ||
-        $options->{repeated}               ||
+    if( $options->{c}                      ||
+        $options->{d}                      ||
         defined $options->{'all-repeated'} ||
-        $options->{unique} )
+        $options->{u} )
     {
         # The underlying uniq tool dictates this
         die "--group is mutually exclusive with -c/-d/-D/-u";
@@ -132,19 +132,19 @@ for my $key(keys %$options)
 
 my $inputs = read_and_preparse_input($filenames);
 
-if( defined $options->{'skip-fields'} &&
-    $options->{'skip-fields'} < 0 )
+if( defined $options->{'f'} &&
+    $options->{'f'} < 0 )
 {
     # I want to use only the last -N fields, so I skip the first Nfields-N
     # fields
     my $Nfields = @{$inputs->[0]{keys}};
-    $options->{'skip-fields'} += $Nfields;
+    $options->{'f'} += $Nfields;
 }
 
 my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
 
 print '# ';
-if($options->{count})
+if($options->{c})
 {
     print (($options->{'vnl-count'} || 'count') . ' ');
 }
