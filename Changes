@@ -1,3 +1,10 @@
+vnlog (1.29)
+
+  * Added vnl-uniq test to the test suite
+  * vnl-uniq works on OSX
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 15 Jun 2020 11:06:22 -0700
+
 vnlog (1.28)
 
   * Compatibility improvements for *BSD (tested on OSX and FreeBSD)
