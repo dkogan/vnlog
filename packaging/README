@@ -1,5 +1,5 @@
 These are sample packaging files that can be used to build your own packages.
 
 At the time of this writing vnlog is already included in the latest releases of
-Debian and Ubuntu, so those packaging files aren't include dhere. Want this to
+Debian and Ubuntu, so those packaging files aren't included here. Want this to
 be shipped in some other distro? Send them patches!
