@@ -55,7 +55,7 @@ while(<>)
         next;
     }
 
-    if( /^#/ )
+    if( /^#/ || /^\s*$/ )
     {
         # comment. Add to the comment we're accumulating
         $chunks[-1][1] .= $_;
