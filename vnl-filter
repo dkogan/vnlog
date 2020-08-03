@@ -1633,6 +1633,9 @@ and this in perl
 The perl strings are evaluated without C<use strict> or C<use warnings> so I
 didn't have to declare C<$suma> in the example.
 
+With C<--perl>, empty strings (C<-> in the vnlog file) are converted to
+C<undef>.
+
 =head2 --dumpexprs
 
 Used for debugging. This spits out all the final awk (or perl) program we run
