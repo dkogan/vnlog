@@ -960,7 +960,7 @@ my $evalstr = join('', map { my ($sub) = expr_subst_col_names('perl', $_); "sub 
 
 my $must_match_expr =
   join ' && ',
-  map { my ($outexpr) = expr_subst_col_names( 'perl', $_); $outexpr; }
+  map { my ($outexpr) = expr_subst_col_names( 'perl', $_); "( $outexpr )"; }
   @{$options{matches}};
 $must_match_expr = 1 if !defined $must_match_expr || '' eq $must_match_expr;
 
