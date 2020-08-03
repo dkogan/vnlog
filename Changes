@@ -1,3 +1,10 @@
+vnlog (1.30)
+
+  * vnl-align: empty lines are treated like comments, and are preserved
+  * vnl-filter bug fix: --perl puts () around each "match" expression
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 03 Aug 2020 02:12:23 -0700
+
 vnlog (1.29)
 
   * Added vnl-uniq test to the test suite
