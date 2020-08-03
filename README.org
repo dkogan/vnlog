@@ -1364,6 +1364,9 @@ ARGUMENTS
     The perl strings are evaluated without "use strict" or "use warnings" so
     I didn't have to declare $suma in the example.
 
+    With "--perl", empty strings ("-" in the vnlog file) are converted to
+    "undef".
+
   --dumpexprs
     Used for debugging. This spits out all the final awk (or perl) program
     we run for the given commandline options and given input. This is the
