@@ -202,6 +202,10 @@ complain_unless_all_exist = $(call complain_if_nonempty,$(call get_no_wildcards,
 $(call complain_unless_all_exist,$(LIB_SOURCES) $(BIN_SOURCES))
 
 
+COND_DARWIN     := $(if $(findstring Darwin,$(shell uname -a)),1)
+SO		:= $(if $(COND_DARWIN),dylib,so)
+
+
 LIB_SOURCES := $(wildcard $(LIB_SOURCES))
 BIN_SOURCES := $(wildcard $(BIN_SOURCES))
 
@@ -213,7 +217,7 @@ SOURCE_DIRS := $(sort ./ $(dir $(LIB_SOURCES) $(BIN_SOURCES)))
 # if the PROJECT_NAME is libxxx then LIB_NAME is libxxx
 # if the PROJECT_NAME is xxx    then LIB_NAME is libxxx
 LIB_NAME           := $(or $(filter lib%,$(PROJECT_NAME)),lib$(PROJECT_NAME))
-LIB_TARGET_SO_BARE := $(LIB_NAME).so
+LIB_TARGET_SO_BARE := $(LIB_NAME).${SO}
 LIB_TARGET_SO_ABI  := $(LIB_TARGET_SO_BARE).$(ABI_VERSION)
 LIB_TARGET_SO_FULL := $(LIB_TARGET_SO_ABI).$(TAIL_VERSION)
 LIB_TARGET_SO_ALL  := $(LIB_TARGET_SO_BARE) $(LIB_TARGET_SO_ABI) $(LIB_TARGET_SO_FULL)
@@ -315,7 +319,13 @@ all: $(if $(strip $(LIB_SOURCES)),$(LIB_TARGET_SO_ALL)) $(if $(strip $(BIN_SOURC
 
 # use --default-symver if we've got it. *BSDs do not
 LD_DEFAULT_SYMVER := $(shell ld --default-symver --version 1>/dev/null 2>/dev/null && echo -Wl,--default-symver)
-$(LIB_TARGET_SO_FULL): LDFLAGS += -shared $(LD_DEFAULT_SYMVER) -fPIC -Wl,-soname,$(notdir $(LIB_TARGET_SO_BARE)).$(ABI_VERSION)
+
+ifneq ($(COND_DARWIN),)
+  $(LIB_TARGET_SO_FULL): LDFLAGS += -dynamiclib -flat_namespace -fPIC
+else
+  $(LIB_TARGET_SO_FULL): LDFLAGS += -shared $(LD_DEFAULT_SYMVER) -fPIC -Wl,-soname,$(notdir $(LIB_TARGET_SO_BARE)).$(ABI_VERSION)
+endif
+
 
 
 $(LIB_TARGET_SO_BARE) $(LIB_TARGET_SO_ABI): $(LIB_TARGET_SO_FULL)
@@ -342,8 +352,15 @@ SPACE := $(SPACE) $(SPACE)
 dirs_to_dotdot = $(subst $(SPACE),/,$(patsubst %,..,$(subst /, ,$1)))
 get_parentdir_relative_to_childdir = /$(call dirs_to_dotdot,$(patsubst $1%,%,$2))
 
+
+ifneq ($(COND_DARWIN),)
+RPATH=$(abspath .)
+else
+RPATH='$$ORIGIN'$(call get_parentdir_relative_to_childdir,$(abspath .),$(dir $(abspath $@)))
+endif
+
 $(BIN_TARGETS): %: %.o
-	$(CC_LINKER) -Wl,-rpath='$$ORIGIN'$(call get_parentdir_relative_to_childdir,$(abspath .),$(dir $(abspath $@))) $(LDFLAGS) $(filter %.o, $^) $(filter-out $(LIB_TARGET_SO_ABI),$(filter-out %.o, $^)) $(LDLIBS) -o $@
+	$(CC_LINKER) -Wl,-rpath=$(RPATH) $(LDFLAGS) $(filter %.o, $^) $(filter-out $(LIB_TARGET_SO_ABI),$(filter-out %.o, $^)) $(LDLIBS) -o $@
 
 # The binaries link with the DSO, if there is one. I need the libxxx.so to build
 # the binary, and I need the libxxx.so.abi to run it.
@@ -353,7 +370,7 @@ $(BIN_TARGETS): $(if $(strip $(LIB_SOURCES)),$(LIB_TARGET_SO_BARE) $(LIB_TARGET_
 
 
 clean:
-	rm -rf $(foreach d,$(SOURCE_DIRS),$(addprefix $d,*.a *.o *.so *.so.* *.d moc_* ui_*.h*)) $(BIN_TARGETS) $(foreach s,.c .h,$(addsuffix $s,$(basename $(shell find . -name '*.ggo')))) $(EXTRA_CLEAN)
+	rm -rf $(foreach d,$(SOURCE_DIRS),$(addprefix $d,*.a *.o *.${SO} *.${SO}.* *.d moc_* ui_*.h*)) $(BIN_TARGETS) $(foreach s,.c .h,$(addsuffix $s,$(basename $(shell find . -name '*.ggo')))) $(EXTRA_CLEAN)
 distclean: clean
 
 .PHONY: distclean clean
@@ -468,7 +485,7 @@ endif
 ifneq ($(strip $(DIST_BIN)),)
 	chrpath -d $(DESTDIR)/usr/bin/* 2>/dev/null || true
 endif
-	find $(DESTDIR) -name '*.so' | xargs chrpath -d
+	find $(DESTDIR) -name '*.${SO}' | xargs chrpath -d
 
         # Any perl programs need their binary path stuff stripped out. This
         # exists to let these run in-tree, but needs to be removed at
