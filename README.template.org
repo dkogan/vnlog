@@ -4,12 +4,15 @@ I just gave a talk about this at [[https://www.socallinuxexpo.org/scale/17x][SCa
 
 * Summary
 
-Vnlog (pronounced "vanillog") is a trivially-simple log format:
+Vnlog (pronounced "vanillog") is a toolkit for manipulating tabular ASCII data
+with labelled fields using normal UNIX tools. The log format is trivially
+simple:
 
 - A whitespace-separated table of ASCII human-readable text
 - Lines beginning with =#= are comments
 - The first line that begins with a single =#= (not =##= or =#!=) is a /legend/,
-  naming each column
+  naming each column. This is required, and the field names that appear here are
+  referenced by all the tools.
 - Empty fields reported as =-=
 
 Example:
