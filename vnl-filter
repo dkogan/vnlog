@@ -920,20 +920,20 @@ sub expr_subst_col_names
         $dupindex //= 0;
 
 
+        my $colidx = $colindices_input{$key}[$dupindex];
         if ( $language eq 'perl' )
         {
-            my $found = $out =~ s/$re/\$fields[$colindices_input{$key}[$dupindex]]/g;
+            my $found = $out =~ s/$re/\$fields[$colidx]/g;
 
-            if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
+            if($found && $colidx > $colidx_needed_max_here)
             {
-                $colidx_needed_max_here = $colindices_input{$key}[$dupindex];
+                $colidx_needed_max_here = $colidx;
             }
         }
         elsif( $language eq 'awk' )
         {
-            # column index that awk knows about
-            my $colidx = $colindices_input{$key}[$dupindex] + 1;
-
+            # column index that awk knows about. awk indexes from 1
+            $colidx++;
             my $found = $out =~ s/$re/\$$colidx/g;
 
             if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
