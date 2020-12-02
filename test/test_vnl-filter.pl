@@ -1221,6 +1221,21 @@ EOF
 # EOF
 
 
+# check with column names 0,1,2,3... vnl-filter had a bug where these confused
+# things
+my $data_simple_colnames = <<'EOF';
+# aaa 0 1 2 3 bbb
+ 1  2  3  4  5  6
+11 12 13 14 15 16
+EOF
+
+check( <<'EOF', qw(-p aaa,bbb), {data => $data_simple_colnames});
+# aaa bbb
+1 6
+11 16
+EOF
+
+
 
 
 
