@@ -893,58 +893,57 @@ sub expr_subst_col_names
     # the risk of ambiguous matches, I try to match longer strings first
     my ($language, $out, $dupindex) = @_;
 
+    # This looks odd. Mostly, $bound0 = $bound1 = '\b'. This would work to
+    # Find "normal" alphanumeric keys in the string. But my keys may have
+    # special characters in them. For instance, if I grab keys from the
+    # 'top' command, it'll produce a legend including keys '%CPU', 'TIME+',
+    # and the point before the '%' or after the '+' would not match \b. I
+    # thus expand the regex at the boundary. I match EITHER the normal \b
+    # meaning for a word-nonword transition OR a whitespace-nonword
+    # transition. This means that whitespace becomes important: '1+%CPU'
+    # will not be parsed as expected (but that's the RIGHT behavior here),
+    # but '1+ %CPU' will be parsed correctly
+    my $bound0 = '(?:(?<!\w)(?=\w)|(?:^|(?<=\s))(?!\w))';
+    my $bound1 = '(?:(?<=\w)(?!\w)|(?<!\w)(?:(?=\s)|$))';
+
+    my $keys = join('|', map( quotemeta, sort keys %colindices_input));
+    my $re = qr/$bound0(?:$keys)$bound1/;
+
     my $colidx_needed_max_here = -1;
 
-    for my $key(reverse sort {length($a) <=> length($b)} keys %colindices_input)
+    if ( $language eq 'awk' )
     {
-        # This looks odd. Mostly, $bound0 = $bound1 = '\b'. This would work to
-        # Find "normal" alphanumeric keys in the string. But my keys may have
-        # special characters in them. For instance, if I grab keys from the
-        # 'top' command, it'll produce a legend including keys '%CPU', 'TIME+',
-        # and the point before the '%' or after the '+' would not match \b. I
-        # thus expand the regex at the boundary. I match EITHER the normal \b
-        # meaning for a word-nonword transition OR a whitespace-nonword
-        # transition. This means that whitespace becomes important: '1+%CPU'
-        # will not be parsed as expected (but that's the RIGHT behavior here),
-        # but '1+ %CPU' will be parsed correctly
-        my $bound0 = qr/(?:(?<!\w)(?=\w)|(?:^|(?<=\s))(?!\w))/;
-        my $bound1 = qr/(?:(?<=\w)(?!\w)|(?<!\w)(?:(?=\s)|$))/;
-        my $re = qr/$bound0\Q$key\E$bound1/;
-
-        next unless $out =~ /$re/;
-
-        if (!defined $dupindex && 1 != @{$colindices_input{$key}})
-        {
-            die "Asked to operate on key '$key', but this isn't unique";
-        }
-        $dupindex //= 0;
-
-
-        my $colidx = $colindices_input{$key}[$dupindex];
-        if ( $language eq 'perl' )
-        {
-            my $found = $out =~ s/$re/\$fields[$colidx]/g;
-
-            if($found && $colidx > $colidx_needed_max_here)
+        $out =~ s{$re}{
+            my $key = ${^MATCH};
+            if (!defined $dupindex && 1 != @{$colindices_input{$key}})
             {
-                $colidx_needed_max_here = $colidx;
+                die "Asked to operate on key '$key', but this isn't unique";
             }
-        }
-        elsif( $language eq 'awk' )
-        {
-            # column index that awk knows about. awk indexes from 1
+            my $colidx = $colindices_input{$key}[$dupindex // 0];
+            $colidx_needed_max_here = $colidx if $colidx_needed_max_here < $colidx;
+
+            # awk indexes from 1
             $colidx++;
-            my $found = $out =~ s/$re/\$$colidx/g;
-
-            if($found && $colindices_input{$key}[$dupindex] > $colidx_needed_max_here)
+            "\$$colidx";
+        }gep;
+    }
+    elsif ( $language eq 'perl' )
+    {
+        $out =~ s{$re}{
+            my $key = ${^MATCH};
+            if (!defined $dupindex && 1 != @{$colindices_input{$key}})
             {
-                $colidx_needed_max_here = $colindices_input{$key}[$dupindex];
+                die "Asked to operate on key '$key', but this isn't unique";
             }
-        }
-        else
-        {
-            die "Unknown language '$language";
-        }
+            my $colidx = $colindices_input{$key}[$dupindex // 0];
+            $colidx_needed_max_here = $colidx if $colidx_needed_max_here < $colidx;
+
+            "\$fields[$colidx]";
+        }gep;
+    }
+    else
+    {
+        die "Unknown language '$language";
     }
 
     while(my $what = find_outer_specialop($out))
