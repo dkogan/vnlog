@@ -1229,7 +1229,7 @@ my $data_simple_colnames = <<'EOF';
 11 12 13 14 15 16
 EOF
 
-check( <<'EOF', qw(-p aaa,bbb), {data => $data_simple_colnames});
+check( <<'EOF', "-p", "aaa,bbb", {data => $data_simple_colnames});
 # aaa bbb
 1 6
 11 16
