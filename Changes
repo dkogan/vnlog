@@ -1,9 +1,16 @@
+vnlog (1.31)
+
+  * vnl-filter: correct behavior with field names containing small
+    integers
+
+ -- Dima Kogan <dkogan@debian.org>  Thu, 03 Dec 2020 16:57:25 -0800
+
 vnlog (1.30)
 
   * vnl-align: empty lines are treated like comments, and are preserved
   * vnl-filter bug fix: --perl puts () around each "match" expression
 
- -- Dima Kogan <dkogan@debian.org>  Mon, 03 Aug 2020 02:12:23 -0700
+ -- Dima Kogan <dkogan@debian.org>  Thu, 03 Dec 2020 16:56:01 -0800
 
 vnlog (1.29)
 
