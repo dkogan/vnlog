@@ -21,17 +21,16 @@ Example:
 #!/usr/bin/whatever
 # a b c
 1 2 3
-## another comment
+## comment
 4 5 6
 #+END_EXAMPLE
 
-Such data works very nicely with normal UNIX tools (=awk=, =sort=, =join=), can
-be easily read by fancier tools (=numpy=, =matlab=, =excel=, etc), and can be
-plotted with =feedgnuplot=. This tookit provides some tools to manipulate
-=vnlog= data and a few libraries to read/write it. The core philosophy is to
-avoid creating new knowledge as much as possible. Consequently, the toolkit
-relies /heavily/ on existing (and familiar!) tools and workflows. As such,
-the toolkit is small, light, and has a /very/ friendly learning curve.
+Such data can be processed directly with almost any existing tool, and /this/
+toolkit allows the user to manipulate this data in a nicer way by relying on
+standard UNIX tools. The core philosophy is to avoid creating new knowledge as
+much as possible. Consequently, the vnlog toolkit relies /heavily/ on existing
+(and familiar!) tools and workflows. As such, the toolkit is small, light, and
+has a /very/ friendly learning curve.
 
 * Synopsis
 
