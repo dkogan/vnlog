@@ -338,9 +338,10 @@ application invokes =printf()= for either diagnostics or logging, consider
 writing out vnlog-formatted data. You retain human readability, but gain the
 power all the =vnl-...= tools provide.
 
-Vnlog tools are designed to be very simple and light. There exist a number of
-other tools that do vaguely the same thing. Some of these:
+Vnlog tools are designed to be very simple and light. There's an ever-growing
+list of other tools that do vaguely the same thing. Some of these:
 
+- https://www.visidata.org/
 - https://www.gnu.org/software/datamash/
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
