@@ -1,6 +1,8 @@
 * Talk
 
-I just gave a talk about this at [[https://www.socallinuxexpo.org/scale/17x][SCaLE 17x]]. Presentation lives [[https://github.com/dkogan/talk-feedgnuplot-vnlog/blob/master/feedgnuplot-vnlog.org][here]].
+I just gave a talk about this at [[https://www.socallinuxexpo.org/scale/17x][SCaLE 17x]]. Here are the [[https://www.youtube.com/watch?v=Qvb_uNkFGNQ&t=12830s][video of the talk]] and
+the [[https://github.com/dkogan/talk-feedgnuplot-vnlog/blob/master/feedgnuplot-vnlog.org]["slides"]].
+
 
 * Summary
 
