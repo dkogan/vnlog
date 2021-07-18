@@ -36,7 +36,7 @@ has a /very/ friendly learning curve.
 
 * Synopsis
 
-I have two sets of historical stock data, from the start of 2018 until now
+I have [[https://raw.githubusercontent.com/dkogan/vnlog/master/dji-tsla.tar.gz][two sets of historical stock data]], from the start of 2018 until now
 (2018/11):
 
 #+BEGIN_EXAMPLE
