@@ -39,17 +39,15 @@ has a /very/ friendly learning curve.
 I have [[https://raw.githubusercontent.com/dkogan/vnlog/master/dji-tsla.tar.gz][two sets of historical stock data]], from the start of 2018 until now
 (2018/11):
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl head -n 4
 #+END_SRC
 
 #+RESULTS:
-:results:
-# Date Open High Low Close AdjClose Volume
-2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
-2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
-2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
-:end:
+: # Date Open High Low Close AdjClose Volume
+: 2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
+: 2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
+: 2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
 
 #+BEGIN_SRC sh :results output drawer :exports both
 < tsla.vnl head -n 4
