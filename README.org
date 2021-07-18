@@ -83,11 +83,9 @@ And I can plot them:
 #+RESULTS:
 [[file:guide-1.svg]]
 
-For this documentation I'm plotting in ascii ("dumb" terminal). Normally you'd
-use the default terminal (by omitting =--terminal ...=), and you'd get
-interactive, graphical plots. Here I kept /only/ the closing price column, so
-the x-axis is just the row index. The data was in reverse chronological order,
-so this plot is also in reverse chronological order. Let's fix that:
+Here I kept /only/ the closing price column, so the x-axis is just the row
+index. The data was in reverse chronological order, so this plot is also in
+reverse chronological order. Let's fix that:
 
 #+BEGIN_SRC sh :results file link :exports both
 < dji.vnl vnl-sort -k Date |
@@ -99,7 +97,7 @@ so this plot is also in reverse chronological order. Let's fix that:
 [[file:guide-2.svg]]
 
 This is in the correct order, but it'd be nice to see the actual dates on the
-x-axis:
+x-axis. And let's label the axes too:
 
 #+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p Date,Close | head -n4
@@ -114,7 +112,8 @@ x-axis:
 #+BEGIN_SRC sh :results file link :exports both
 < dji.vnl vnl-sort -k Date |
   vnl-filter -p Date,Close |
-  feedgnuplot --lines --unset grid --timefmt %Y-%m-%d --domain
+  feedgnuplot --lines --unset grid --timefmt %Y-%m-%d --domain \
+              --xlabel 'Date' --ylabel 'Price ($)'
 #+END_SRC
 
 #+RESULTS:
@@ -137,7 +136,8 @@ Alrighty. Looks like the high was in October. Let's zoom in on that month:
 #+BEGIN_SRC sh :results file link :exports both
 < dji.vnl vnl-sort -k Date |
   vnl-filter 'Date ~ /2018-10/' -p Date,Close |
-  feedgnuplot --lines --unset grid --timefmt %Y-%m-%d --domain
+  feedgnuplot --lines --unset grid --timefmt %Y-%m-%d --domain \
+              --xlabel 'Date' --ylabel 'Price ($)'
 #+END_SRC
 
 #+RESULTS:
@@ -214,7 +214,8 @@ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
 #+BEGIN_SRC sh :results file link :exports both
 vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
   vnl-filter -p '^Close' |
-  feedgnuplot --domain --points --unset grid 
+  feedgnuplot --domain --points --unset grid \
+              --xlabel 'DJI price ($)' --ylabel 'TSLA price ($)'
 #+END_SRC
 
 #+RESULTS:
