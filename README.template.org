@@ -39,43 +39,39 @@ has a /very/ friendly learning curve.
 I have [[https://raw.githubusercontent.com/dkogan/vnlog/master/dji-tsla.tar.gz][two sets of historical stock data]], from the start of 2018 until now
 (2018/11):
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl head -n 4
 #+END_SRC
 
 #+RESULTS:
-:results:
-# Date Open High Low Close AdjClose Volume
-2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
-2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
-2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
-:end:
+: # Date Open High Low Close AdjClose Volume
+: 2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
+: 2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
+: 2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
 
-#+BEGIN_SRC sh :results output drawer :exports both
+And
+
+#+BEGIN_SRC sh :results output :exports both
 < tsla.vnl head -n 4
 #+END_SRC
 
 #+RESULTS:
-:results:
-# Date Open High Low Close AdjClose Volume
-2018-11-15 342.33 348.58 339.04 348.44 348.44 4486339
-2018-11-14 342.70 347.11 337.15 344.00 344.00 5036300
-2018-11-13 333.16 344.70 332.20 338.73 338.73 5448600
-:end:
+: # Date Open High Low Close AdjClose Volume
+: 2018-11-15 342.33 348.58 339.04 348.44 348.44 4486339
+: 2018-11-14 342.70 347.11 337.15 344.00 344.00 5036300
+: 2018-11-13 333.16 344.70 332.20 338.73 338.73 5448600
 
 I can pull out the closing prices:
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p Close | head -n4
 #+END_SRC
 
 #+RESULTS:
-:results:
-# Close
-25289.27
-25080.50
-25286.49
-:end:
+: # Close
+: 25289.27
+: 25080.50
+: 25286.49
 
 And I can plot them:
 
@@ -105,17 +101,15 @@ so this plot is also in reverse chronological order. Let's fix that:
 This is in the correct order, but it'd be nice to see the actual dates on the
 x-axis:
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p Date,Close | head -n4
 #+END_SRC
 
 #+RESULTS:
-:results:
-# Date Close
-2018-11-15 25289.27
-2018-11-14 25080.50
-2018-11-13 25286.49
-:end:
+: # Date Close
+: 2018-11-15 25289.27
+: 2018-11-14 25080.50
+: 2018-11-13 25286.49
 
 #+BEGIN_SRC sh :results file link :exports both
 < dji.vnl vnl-sort -k Date |
@@ -128,17 +122,15 @@ x-axis:
 
 What was the highest value of the Dow-Jones index, and when did it happen?
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-sort -rgk Close |
   head -n2 |
   vnl-align
 #+END_SRC
 
 #+RESULTS:
-:results:
-#  Date      Open     High      Low     Close  AdjClose   Volume 
-2018-10-03 26833.47 26951.81 26789.08 26828.39 26828.39 280130000
-:end:
+: #  Date      Open     High      Low     Close  AdjClose   Volume 
+: 2018-10-03 26833.47 26951.81 26789.08 26828.39 26828.39 280130000
 
 Alrighty. Looks like the high was in October. Let's zoom in on that month:
 
@@ -153,21 +145,19 @@ Alrighty. Looks like the high was in October. Let's zoom in on that month:
 
 OK. Is this thing volatile? What was the largest single-day gain?
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p '.,d=diff(Close)' |
   head -n4 |
   vnl-align
 #+END_SRC
 
 #+RESULTS:
-:results:
-#  Date      Open     High      Low     Close  AdjClose   Volume     d   
-2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840 -      
-2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000 -208.77
-2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000  205.99
-:end:
+: #  Date      Open     High      Low     Close  AdjClose   Volume     d   
+: 2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840 -      
+: 2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000 -208.77
+: 2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000  205.99
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p '.,d=diff(Close)' |
   vnl-sort -rgk d |
   head -n2 |
@@ -175,16 +165,14 @@ OK. Is this thing volatile? What was the largest single-day gain?
 #+END_SRC
 
 #+RESULTS:
-:results:
-#  Date      Open     High      Low     Close  AdjClose   Volume     d   
-2018-02-02 26061.79 26061.79 25490.66 25520.96 25520.96 522880000 1175.21
-:end:
+: #  Date      Open     High      Low     Close  AdjClose   Volume     d   
+: 2018-02-02 26061.79 26061.79 25490.66 25520.96 25520.96 522880000 1175.21
 
 Whoa. So the best single-gain day was 2018-02-02: the dow gained 1175.21 points
 between closing on Feb 1 and Feb 2. But it actually lost ground that day! What
 if I looked at the difference between the opening and closing in a single day?
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p '.,d=Close-Open' |
   vnl-sort -rgk d |
   head -n2 |
@@ -192,29 +180,25 @@ if I looked at the difference between the opening and closing in a single day?
 #+END_SRC
 
 #+RESULTS:
-:results:
-#  Date      Open     High      Low     Close  AdjClose   Volume    d  
-2018-02-06 24085.17 24946.23 23778.74 24912.77 24912.77 823940000 827.6
-:end:
+: #  Date      Open     High      Low     Close  AdjClose   Volume    d  
+: 2018-02-06 24085.17 24946.23 23778.74 24912.77 24912.77 823940000 827.6
 
 I guess by that metric 2018-02-06 was better. Let's join the Dow-jones index
 data and the TSLA data, and let's look at them together:
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
   head -n4 |
   vnl-align
 #+END_SRC
 
 #+RESULTS:
-:results:
-#  Date    Open_dji High_dji  Low_dji Close_dji AdjClose_dji Volume_dji Open_tsla High_tsla Low_tsla Close_tsla AdjClose_tsla Volume_tsla
-2018-11-15 25061.48 25354.56 24787.79 25289.27  25289.27     383292840  342.33    348.58    339.04   348.44     348.44        4486339    
-2018-11-14 25388.08 25501.29 24935.82 25080.50  25080.50     384240000  342.70    347.11    337.15   344.00     344.00        5036300    
-2018-11-13 25321.21 25511.03 25193.78 25286.49  25286.49     339690000  333.16    344.70    332.20   338.73     338.73        5448600    
-:end:
+: #  Date    Open_dji High_dji  Low_dji Close_dji AdjClose_dji Volume_dji Open_tsla High_tsla Low_tsla Close_tsla AdjClose_tsla Volume_tsla
+: 2018-11-15 25061.48 25354.56 24787.79 25289.27  25289.27     383292840  342.33    348.58    339.04   348.44     348.44        4486339    
+: 2018-11-14 25388.08 25501.29 24935.82 25080.50  25080.50     384240000  342.70    347.11    337.15   344.00     344.00        5036300    
+: 2018-11-13 25321.21 25511.03 25193.78 25286.49  25286.49     339690000  333.16    344.70    332.20   338.73     338.73        5448600    
 
-#+BEGIN_SRC sh :results output drawer :exports both
+#+BEGIN_SRC sh :results output :exports both
 vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
   vnl-filter -p '^Close' |
   head -n4 |
@@ -222,12 +206,10 @@ vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
 #+END_SRC
 
 #+RESULTS:
-:results:
-# Close_dji Close_tsla
-25289.27    348.44    
-25080.50    344.00    
-25286.49    338.73    
-:end:
+: # Close_dji Close_tsla
+: 25289.27    348.44    
+: 25080.50    344.00    
+: 25286.49    338.73    
 
 #+BEGIN_SRC sh :results file link :exports both
 vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
