@@ -298,8 +298,8 @@ vnl-filter --eval '{s += x} END {print s}'
   as it is written into the log (just like =tail -f=, but handling the legend
   properly). And you already know how to use these tools without even reading
   the manpages! Note: I use the Linux kernel and the tools from GNU Coreutils
-  exclusively, but this all has been successfully tested on FreBSD and OSX also.
-  Please let me know if something doesn't work.
+  exclusively, but this all has been successfully tested on FreeBSD and OSX
+  also. Please let me know if something doesn't work.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
