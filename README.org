@@ -3,7 +3,6 @@
 I just gave a talk about this at [[https://www.socallinuxexpo.org/scale/17x][SCaLE 17x]]. Here are the [[https://www.youtube.com/watch?v=Qvb_uNkFGNQ&t=12830s][video of the talk]] and
 the [[https://github.com/dkogan/talk-feedgnuplot-vnlog/blob/master/feedgnuplot-vnlog.org]["slides"]].
 
-
 * Summary
 
 Vnlog (pronounced "vanillog") is a toolkit for manipulating tabular ASCII data
@@ -73,7 +72,8 @@ I can pull out the closing prices:
 : 25080.50
 : 25286.49
 
-And I can plot them:
+=vnl-filter= is primarily a wrapper around =awk= or =perl=, allowing the user to
+reference columns by name. I can then plot the closing prices:
 
 #+BEGIN_SRC sh :results file link :exports both
 < dji.vnl vnl-filter -p Close |
@@ -96,8 +96,13 @@ reverse chronological order. Let's fix that:
 #+RESULTS:
 [[file:guide-2.svg]]
 
-This is in the correct order, but it'd be nice to see the actual dates on the
-x-axis. And let's label the axes too:
+The =vnl-sort= tool (and most of the other =vnl-xxx= tools) are wrappers around
+the core tools already available on the system (such as =sort=, in this case).
+With the primary difference being reading/writing vnlog, and referring to
+columns by name.
+
+We now have the data in the correct order, but it'd be nice to see the actual
+dates on the x-axis. While we're at it, let's label the axes too:
 
 #+BEGIN_SRC sh :results output :exports both
 < dji.vnl vnl-filter -p Date,Close | head -n4
@@ -226,7 +231,6 @@ Dow-Jones closing prices. And we saw that with just a few shell commands,
 without dropping down into a dedicated analysis system.
 
 * Description
-
 Vnlog data is nicely readable by both humans and machines. Any time your
 application invokes =printf()= for either diagnostics or logging, consider
 writing out vnlog-formatted data. You retain human readability, but gain the
@@ -346,234 +350,6 @@ $ cat /tmp/x.matrix
 
 All the tools have manpages that contain more detail. And more tools will
 probably be added with time.
-
-** C interface
-*** Basic usage
-
-For most uses, these logfiles are simple enough to be generated with plain
-prints. But then each print statement has to know which numeric column we're
-populating, which becomes effortful with many columns. In my usage it's common
-to have a large parallelized C program that's writing logs with hundreds of
-columns where any one record would contain only a subset of the columns. In such
-a case, it's helpful to have a library that can output the log files. This is
-available. Basic usage looks like this:
-
-In a shell:
-
-#+BEGIN_SRC sh :results none :exports code
-vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' 'void* binary' > vnlog_fields_generated.h
-#+END_SRC
-
-#+RESULTS:
-
-In a C program test.c:
-
-#+BEGIN_SRC C
-#include "vnlog_fields_generated.h"
-
-int main()
-{
-    vnlog_emit_legend();
-
-    vnlog_set_field_value__w(-10);
-    vnlog_set_field_value__x(40);
-    vnlog_set_field_value__y("asdf");
-    vnlog_emit_record();
-
-    vnlog_set_field_value__z(0.3);
-    vnlog_set_field_value__x(50);
-    vnlog_set_field_value__w(-20);
-    vnlog_set_field_value__binary("\x01\x02\x03", 3);
-    vnlog_emit_record();
-
-    vnlog_set_field_value__w(-30);
-    vnlog_set_field_value__x(10);
-    vnlog_set_field_value__y("whoa");
-    vnlog_set_field_value__z(0.5);
-    vnlog_emit_record();
-
-    return 0;
-}
-#+END_SRC
-
-Then we build and run, and we get
-
-#+BEGIN_EXAMPLE
-$ cc -o test test.c -lvnlog
-
-$ ./test
-
-# w x y z binary
--10 40 asdf - -
--20 50 - 0.2999999999999999889 AQID
--30 10 whoa 0.5 -
-#+END_EXAMPLE
-
-The binary field in base64-encoded. This is a rarely-used feature, but sometimes
-you really need to log binary data for later processing, and this makes it
-possible.
-
-So you
-
-1. Generate the header to define your columns
-
-2. Call =vnlog_emit_legend()=
-
-3. Call =vnlog_set_field_value__...()= for each field you want to set in that
-   row.
-
-4. Call =vnlog_emit_record()= to write the row and to reset all fields for the
-   next row. Any fields unset with a =vnlog_set_field_value__...()= call are
-   written as null: =-=
-
-This is enough for 99% of the use cases. Things get a bit more complex if we
-have have threading or if we have multiple vnlog ouput streams in the same
-program. For both of these we use vnlog /contexts/.
-
-*** Contexts
-
-To support independent writing into the same vnlog (possibly by multiple
-threads; this is reentrant), each log-writer should create a context, and use it
-when talking to vnlog. The context functions will make sure that the fields in
-each context are independent and that the output records won't clobber each
-other:
-
-#+BEGIN_SRC C
-void child_writer( // the parent context also writes to this vnlog. Pass NULL to
-                   // use the global one
-                   struct vnlog_context_t* ctx_parent )
-{
-    struct vnlog_context_t ctx;
-    vnlog_init_child_ctx(&ctx, ctx_parent);
-
-    while(records)
-    {
-        vnlog_set_field_value_ctx__xxx(&ctx, ...);
-        vnlog_set_field_value_ctx__yyy(&ctx, ...);
-        vnlog_set_field_value_ctx__zzz(&ctx, ...);
-        vnlog_emit_record_ctx(&ctx);
-    }
-
-    vnlog_free_ctx(&ctx); // required only if we have any binary fields
-}
-#+END_SRC
-
-If we want to have multiple independent vnlog writers to /different/ streams
-(with different columns and legends), we do this instead:
-
-=file1.c=:
-#+BEGIN_SRC C
-#include "vnlog_fields_generated1.h"
-
-void f(void)
-{
-    // Write some data out to the default context and default output (STDOUT)
-    vnlog_emit_legend();
-    ...
-    vnlog_set_field_value__xxx(...);
-    vnlog_set_field_value__yyy(...);
-    ...
-    vnlog_emit_record();
-}
-#+END_SRC
-
-=file2.c=:
-#+BEGIN_SRC C
-#include "vnlog_fields_generated2.h"
-
-void g(void)
-{
-    // Make a new session context, send output to a different file, write
-    // out legend, and send out the data
-    struct vnlog_context_t ctx;
-    vnlog_init_session_ctx(&ctx);
-    FILE* fp = fopen(...);
-    vnlog_set_output_FILE(&ctx, fp);
-    vnlog_emit_legend_ctx(&ctx);
-    ...
-    vnlog_set_field_value__a(...);
-    vnlog_set_field_value__b(...);
-    ...
-    vnlog_free_ctx(&ctx); // required only if we have any binary fields
-    vnlog_emit_record();
-}
-#+END_SRC
-
-Note that it's the user's responsibility to make sure the new sessions go to a
-different =FILE= by invoking =vnlog_set_output_FILE()=. Furthermore, note that
-the included =vnlog_fields_....h= file defines the fields we're writing to; and
-if we have multiple different vnlog field definitions in the same program (as in
-this example), then the different writers /must/ live in different source files.
-The compiler will barf if you try to =#include= two different
-=vnlog_fields_....h= files in the same source.
-
-*** Remaining APIs
-
-- =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
-=printf()= does. This exists primarily for comments.
-
-- =vnlog_clear_fields_ctx(ctx, do_free_binary)= clears out the data in a context
-and makes it ready to be used for the next record. It is rare for the user to
-have to call this manually. The most common case is handled automatically
-(clearing out a context after emitting a record). One area where this is useful
-is when making a copy of a context:
-
-#+BEGIN_SRC C
-struct vnlog_context_t ctx1;
-// .... do stuff with ctx1 ... add data to it ...
-
-struct vnlog_context_t ctx2 = ctx1;
-// ctx1 and ctx2 now both have the same data, and the same pointers to
-// binary data. I need to get rid of the pointer references in ctx1
-
-vnlog_clear_fields_ctx(&ctx1, false);
-#+END_SRC
-
-- =vnlog_free_ctx(ctx)= frees memory for an vnlog context. Do this before
-throwing the context away. Currently this is only needed for context that have
-binary fields, but this should be called for all contexts anyway, in case this
-changes in a later revision
-
-*** Base64 interface
-The C interface supports writing base64-encoded binary data using Chris Venter's
-libb64. The base64-encoder used here was slightly modified: the output appears
-all on one line, making is suitable to appear in a vnlog field. If we're writing
-a vnlog with =printf()= directly without using the =vnlog.h= interface described
-above, we allow this modified base64 encoder to be invoked by itself. Usage:
-
-#+BEGIN_SRC C
-void* binary_buffer     = ...;
-int   binary_buffer_len = ...;
-
-char base64_buffer[vnlog_base64_dstlen_to_encode(binary_buffer_len)];
-vnlog_base64_encode( base64_buffer, sizeof(base64_buffer),
-                     binary_buffer, binary_buffer_len );
-#+END_SRC
-
-Clearly the above example allocates the base64 buffer on the stack, so it's only
-suitable for small-ish data chunks. But if you have lots and lots of data,
-probably writing it as base64 into a vnlog isn't the best thing to do.
-
-** numpy interface
-
-The built-in =numpy.loadtxt= =numpy.savetxt= functions work well to read and
-write these files. For example to write to standard output a vnlog with fields
-=a=, =b= and =c=:
-
-#+BEGIN_SRC python
-numpy.savetxt(sys.stdout, array, fmt="%g", header="a b c")
-#+END_SRC
-
-Note that numpy automatically adds the =#= to the header. To read a vnlog from a
-file on disk, do something like
-
-#+BEGIN_SRC python
-array = numpy.loadtxt('data.vnl')
-#+END_SRC
-
-These functions know that =#= lines are comments, but don't interpret anything
-as field headers. That's easy to do, so I'm not providing any helper libraries.
-I might do that at some point, but in the meantime, patches are welcome.
 
 * Workflows and recipes
 ** Storing disjoint data
@@ -797,6 +573,275 @@ README.org          69789
 With a bit of shell manipulation, these tools can be applied to a whole lot of
 different data streams that know nothing of vnlog.
 
+* C interface
+** Basic usage
+For most uses, vnlog files are simple enough to be generated with plain prints.
+But then each print statement has to know which numeric column we're populating,
+which becomes effortful with many columns. In my usage it's common to have a
+large parallelized C program that's writing logs with hundreds of columns where
+any one record would contain only a subset of the columns. In such a case, it's
+helpful to have a library that can output the log files. This is available.
+Basic usage looks like this:
+
+In a shell:
+
+#+BEGIN_SRC sh :results none :exports code
+vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' 'void* binary' > vnlog_fields_generated.h
+#+END_SRC
+
+#+RESULTS:
+
+In a C program test.c:
+
+#+BEGIN_SRC C
+#include "vnlog_fields_generated.h"
+
+int main()
+{
+    vnlog_emit_legend();
+
+    vnlog_set_field_value__w(-10);
+    vnlog_set_field_value__x(40);
+    vnlog_set_field_value__y("asdf");
+    vnlog_emit_record();
+
+    vnlog_set_field_value__z(0.3);
+    vnlog_set_field_value__x(50);
+    vnlog_set_field_value__w(-20);
+    vnlog_set_field_value__binary("\x01\x02\x03", 3);
+    vnlog_emit_record();
+
+    vnlog_set_field_value__w(-30);
+    vnlog_set_field_value__x(10);
+    vnlog_set_field_value__y("whoa");
+    vnlog_set_field_value__z(0.5);
+    vnlog_emit_record();
+
+    return 0;
+}
+#+END_SRC
+
+Then we build and run, and we get
+
+#+BEGIN_EXAMPLE
+$ cc -o test test.c -lvnlog
+
+$ ./test
+
+# w x y z binary
+-10 40 asdf - -
+-20 50 - 0.2999999999999999889 AQID
+-30 10 whoa 0.5 -
+#+END_EXAMPLE
+
+The binary field in base64-encoded. This is a rarely-used feature, but sometimes
+you really need to log binary data for later processing, and this makes it
+possible.
+
+So you
+
+1. Generate the header to define your columns
+
+2. Call =vnlog_emit_legend()=
+
+3. Call =vnlog_set_field_value__...()= for each field you want to set in that
+   row.
+
+4. Call =vnlog_emit_record()= to write the row and to reset all fields for the
+   next row. Any fields unset with a =vnlog_set_field_value__...()= call are
+   written as null: =-=
+
+This is enough for 99% of the use cases. Things get a bit more complex if we
+have have threading or if we have multiple vnlog ouput streams in the same
+program. For both of these we use vnlog /contexts/.
+
+** Contexts
+
+To support independent writing into the same vnlog (possibly by multiple
+threads; this is reentrant), each log-writer should create a context, and use it
+when talking to vnlog. The context functions will make sure that the fields in
+each context are independent and that the output records won't clobber each
+other:
+
+#+BEGIN_SRC C
+void child_writer( // the parent context also writes to this vnlog. Pass NULL to
+                   // use the global one
+                   struct vnlog_context_t* ctx_parent )
+{
+    struct vnlog_context_t ctx;
+    vnlog_init_child_ctx(&ctx, ctx_parent);
+
+    while(records)
+    {
+        vnlog_set_field_value_ctx__xxx(&ctx, ...);
+        vnlog_set_field_value_ctx__yyy(&ctx, ...);
+        vnlog_set_field_value_ctx__zzz(&ctx, ...);
+        vnlog_emit_record_ctx(&ctx);
+    }
+
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
+}
+#+END_SRC
+
+If we want to have multiple independent vnlog writers to /different/ streams
+(with different columns and legends), we do this instead:
+
+=file1.c=:
+#+BEGIN_SRC C
+#include "vnlog_fields_generated1.h"
+
+void f(void)
+{
+    // Write some data out to the default context and default output (STDOUT)
+    vnlog_emit_legend();
+    ...
+    vnlog_set_field_value__xxx(...);
+    vnlog_set_field_value__yyy(...);
+    ...
+    vnlog_emit_record();
+}
+#+END_SRC
+
+=file2.c=:
+#+BEGIN_SRC C
+#include "vnlog_fields_generated2.h"
+
+void g(void)
+{
+    // Make a new session context, send output to a different file, write
+    // out legend, and send out the data
+    struct vnlog_context_t ctx;
+    vnlog_init_session_ctx(&ctx);
+    FILE* fp = fopen(...);
+    vnlog_set_output_FILE(&ctx, fp);
+    vnlog_emit_legend_ctx(&ctx);
+    ...
+    vnlog_set_field_value__a(...);
+    vnlog_set_field_value__b(...);
+    ...
+    vnlog_free_ctx(&ctx); // required only if we have any binary fields
+    vnlog_emit_record();
+}
+#+END_SRC
+
+Note that it's the user's responsibility to make sure the new sessions go to a
+different =FILE= by invoking =vnlog_set_output_FILE()=. Furthermore, note that
+the included =vnlog_fields_....h= file defines the fields we're writing to; and
+if we have multiple different vnlog field definitions in the same program (as in
+this example), then the different writers /must/ live in different source files.
+The compiler will barf if you try to =#include= two different
+=vnlog_fields_....h= files in the same source.
+
+** Remaining APIs
+
+- =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
+=printf()= does. This exists primarily for comments.
+
+- =vnlog_clear_fields_ctx(ctx, do_free_binary)= clears out the data in a context
+and makes it ready to be used for the next record. It is rare for the user to
+have to call this manually. The most common case is handled automatically
+(clearing out a context after emitting a record). One area where this is useful
+is when making a copy of a context:
+
+#+BEGIN_SRC C
+struct vnlog_context_t ctx1;
+// .... do stuff with ctx1 ... add data to it ...
+
+struct vnlog_context_t ctx2 = ctx1;
+// ctx1 and ctx2 now both have the same data, and the same pointers to
+// binary data. I need to get rid of the pointer references in ctx1
+
+vnlog_clear_fields_ctx(&ctx1, false);
+#+END_SRC
+
+- =vnlog_free_ctx(ctx)= frees memory for an vnlog context. Do this before
+throwing the context away. Currently this is only needed for context that have
+binary fields, but this should be called for all contexts anyway, in case this
+changes in a later revision
+
+** Base64 interface
+The C interface supports writing base64-encoded binary data using Chris Venter's
+libb64. The base64-encoder used here was slightly modified: the output appears
+all on one line, making is suitable to appear in a vnlog field. If we're writing
+a vnlog with =printf()= directly without using the =vnlog.h= interface described
+above, we allow this modified base64 encoder to be invoked by itself. Usage:
+
+#+BEGIN_SRC C
+void* binary_buffer     = ...;
+int   binary_buffer_len = ...;
+
+char base64_buffer[vnlog_base64_dstlen_to_encode(binary_buffer_len)];
+vnlog_base64_encode( base64_buffer, sizeof(base64_buffer),
+                     binary_buffer, binary_buffer_len );
+#+END_SRC
+
+Clearly the above example allocates the base64 buffer on the stack, so it's only
+suitable for small-ish data chunks. But if you have lots and lots of data,
+probably writing it as base64 into a vnlog isn't the best thing to do.
+* Python interface
+Reading vnlog data into a python program is simple. The =vnlog= Python module
+provides three different ways to do that:
+
+1. slurp the whole thing into a numpy array using the =slurp()= function. Basic
+   usage:
+
+   #+begin_src python
+import vnlog
+log_numpy_array,list_keys,dict_key_index = \
+    vnlog.slurp(filename_or_fileobject)
+   #+end_src
+
+   This parses out the legend, and then calls =numpy.loadtxt()=. Null data values
+   (=-=) are not supported
+
+2. Iterate through the records: =vnlog= class, used as an iterator. Basic usage:
+
+   #+begin_src python
+import vnlog
+for d in vnlog.vnlog(filename_or_fileobject):
+    print(d['time'],d['height'])
+   #+end_src
+
+   Null data values are represented as =None=
+
+3. Parse incoming lines individually: =vnlog= class, using the =parse()= method.
+   Basic usage:
+
+   #+begin_src python
+import vnlog
+parser = vnlog.vnlog()
+for l in file:
+    parser.parse(l)
+    d = parser.values_dict()
+    if not d:
+        continue
+    print(d['time'],d['height'])
+   #+end_src
+
+Most of the time you'd use options 1 or 2 above. Option 3 is the most general,
+but also the most verbose
+
+* numpy interface
+If we need to read data into numpy specifically, nicer tools are available than
+the generic =vnlog= Python module. The built-in =numpy.loadtxt= =numpy.savetxt=
+functions work well. For example to write to standard output a vnlog with fields
+=a=, =b= and =c=:
+
+#+BEGIN_SRC python
+numpy.savetxt(sys.stdout, array, fmt="%g", header="a b c")
+#+END_SRC
+
+Note that numpy automatically adds the =#= to the header. To read a vnlog from a
+file on disk, do something like
+
+#+BEGIN_SRC python
+array = numpy.loadtxt('data.vnl')
+#+END_SRC
+
+These functions know that =#= lines are comments, but don't interpret anything
+as field headers. That's easy to do, so I'm not providing any helper libraries.
+I might do that at some point, but in the meantime, patches are welcome.
+
 * Compatibility
 
 I use GNU/Linux-based systems exclusively, but everything has been tested
@@ -842,7 +887,6 @@ $ sudo apt install vnlog libvnlog-dev libvnlog-perl python3-vnlog
 
 to get the binary tools, the C API, the perl and python3 interfaces
 respectively.
-
 
 * Manpages
 ** vnl-filter
@@ -1517,76 +1561,6 @@ SEE ALSO
 
 #+END_EXAMPLE
 
-** vnl-uniq
-#+BEGIN_EXAMPLE
-NAME
-    vnl-uniq - uniq a log file, preserving the legend
-
-SYNOPSIS
-     $ cat colors.vnl
-     # color
-     blue
-     yellow
-     yellow
-     blue
-     yellow
-     orange
-     orange
-
-     $ < colors.vnl | vnl-sort | vnl-uniq -c
-     # count color
-           2 blue
-           2 orange
-           3 yellow
-
-DESCRIPTION
-      Usage: vnl-uniq [options] < logfile
-
-    This tool runs "uniq" on a given vnlog dataset. "vnl-uniq" is a wrapper
-    around the GNU coreutils "uniq" tool. Since this is a wrapper, most
-    commandline options and behaviors of the "uniq" tool are present;
-    consult the uniq(1) manpage for detail. The differences from GNU
-    coreutils "uniq" are
-
-    *   The input and output to this tool are vnlog files, complete with a
-        legend
-
-    *   "--zero-terminated" is not supported because vnlog assumes
-        newline-separated records
-
-    *   Only *one* input is supported (a file on the cmdline or data on
-        standard input), and the output *always* goes to standard output.
-        Specifying the output as a file on the commandline is not supported.
-
-    *   "--vnl-count NAME" can be given to name the "count" column. "-c" is
-        still supported to add the default new column named "count", but if
-        another name is wanted, "--vnl-count" does that. "--vnl-count"
-        implies "-c"
-
-    *   In addition to the normal behavior of skipping fields at the start,
-        "-f" and "--skip-fields" can take a negative argument to skip the
-        *all but the last* N fields. For instance, to use only the one last
-        field, pass "-f -1" or "--skip-fields=-1".
-
-    *   By default we call the "uniq" tool to do the actual work. If the
-        underlying tool has a different name or lives in an odd path, this
-        can be specified by passing "--vnl-tool TOOL"
-
-    Past that, everything "uniq" does is supported, so see that man page for
-    detailed documentation.
-
-COMPATIBILITY
-    I use GNU/Linux-based systems exclusively, but everything has been
-    tested functional on FreeBSD and OSX in addition to Debian, Ubuntu and
-    CentOS. I can imagine there's something I missed when testing on
-    non-Linux systems, so please let me know if you find any issues.
-
-SEE ALSO
-    uniq(1)
-
-
-#+END_EXAMPLE
-
 ** vnl-join
 #+BEGIN_EXAMPLE
 NAME
@@ -2007,6 +1981,167 @@ COMPATIBILITY
 
 SEE ALSO
     ts(1)
+
+
+#+END_EXAMPLE
+
+** vnl-uniq
+#+BEGIN_EXAMPLE
+NAME
+    vnl-uniq - uniq a log file, preserving the legend
+
+SYNOPSIS
+     $ cat colors.vnl
+     # color
+     blue
+     yellow
+     yellow
+     blue
+     yellow
+     orange
+     orange
+
+     $ < colors.vnl | vnl-sort | vnl-uniq -c
+     # count color
+           2 blue
+           2 orange
+           3 yellow
+
+DESCRIPTION
+      Usage: vnl-uniq [options] < logfile
+
+    This tool runs "uniq" on a given vnlog dataset. "vnl-uniq" is a wrapper
+    around the GNU coreutils "uniq" tool. Since this is a wrapper, most
+    commandline options and behaviors of the "uniq" tool are present;
+    consult the uniq(1) manpage for detail. The differences from GNU
+    coreutils "uniq" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   "--zero-terminated" is not supported because vnlog assumes
+        newline-separated records
+
+    *   Only *one* input is supported (a file on the cmdline or data on
+        standard input), and the output *always* goes to standard output.
+        Specifying the output as a file on the commandline is not supported.
+
+    *   "--vnl-count NAME" can be given to name the "count" column. "-c" is
+        still supported to add the default new column named "count", but if
+        another name is wanted, "--vnl-count" does that. "--vnl-count"
+        implies "-c"
+
+    *   In addition to the normal behavior of skipping fields at the start,
+        "-f" and "--skip-fields" can take a negative argument to skip the
+        *all but the last* N fields. For instance, to use only the one last
+        field, pass "-f -1" or "--skip-fields=-1".
+
+    *   By default we call the "uniq" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
+
+    Past that, everything "uniq" does is supported, so see that man page for
+    detailed documentation.
+
+COMPATIBILITY
+    I use GNU/Linux-based systems exclusively, but everything has been
+    tested functional on FreeBSD and OSX in addition to Debian, Ubuntu and
+    CentOS. I can imagine there's something I missed when testing on
+    non-Linux systems, so please let me know if you find any issues.
+
+SEE ALSO
+    uniq(1)
+
+
+#+END_EXAMPLE
+
+** vnl-gen-header
+#+BEGIN_EXAMPLE
+NAME
+    vnl-gen-header - create definition for vnlog output from C
+
+SYNOPSIS
+     $ vnl-gen-header 'int w' 'uint8_t x' 'char* y' 'double z' > vnlog_fields_generated.h
+
+DESCRIPTION
+    We provide a simple C library to produce vnlog output. The fields this
+    library outputs must be known at compile time, and are specified in a
+    header created by this tool. Please see the vnlog documentation for
+    instructions on how to use the library
+
+ARGUMENTS
+    This tool needs to be given a list of field definitions. First we look
+    at the commandline, and if the definitions are not available there, we
+    look on STDIN. Each definition is a string "type name" (one def per
+    argument on the commandline or per line on STDIN). If reading from
+    STDIN, we ignore blank lines, and treat any line starting with "#" as a
+    comment.
+
+    Each def represents a single output field. Each such field spec in a
+    C-style variable declaration with a type followed by a name. Note that
+    these field specs contain whitespace, so each one must be quoted before
+    being passed to the shell.
+
+    The types can be basic scalars, possibly with set widths ("char",
+    "double", "int", "uint32_t", "unsigned int", ...), a NULL-terminated
+    string ("char*") or a generic chunk of binary data ("void*").
+
+    The names must consist entirely of letters, numbers or "_", like
+    variables in C.
+
+
+#+END_EXAMPLE
+
+** vnl-make-matrix
+#+BEGIN_EXAMPLE
+NAME
+    vnl-make-matrix - create a matrix from a one-point-per-record vnlog
+
+SYNOPSIS
+     $ cat /tmp/dat.vnl
+     # i j x
+     0 0 1
+     0 1 2
+     0 2 3
+     1 0 4
+     1 1 5
+     1 2 6
+     2 0 7
+     2 1 8
+     2 2 9
+     3 0 10
+     3 1 11
+     3 2 12
+
+     $ </tmp/dat.vnl vnl-filter -p i,x | vnl-make-matrix --outdir /tmp --prefix test_
+     Writing to '/tmp/test_x.matrix'
+
+     $ cat /tmp/test_x.matrix
+     1 2 3
+     4 5 6
+     7 8 9
+     10 11 12
+
+DESCRIPTION
+    Vnlog represents each "data item" as a line of text. This is very often
+    what one wants, but at times it isn't. One example of this is matrix
+    data: we want each line to contain a whole row of a matrix. This script
+    exists for convenience, to bridge this gap.
+
+    The input is an vnlog, coming in on STDIN and/or in files given on the
+    commandline. This vnlog must have at least two fields: the
+    least-significant (slowest-changing) index of each point (must be the
+    *first* field), and as many value fields as desired. These points must
+    be written out in order, and it is assumed that all entries in the
+    matrix are specified. The output is a set of (non-vnlog) matrix files in
+    the directory given in the "--outdir" argument. These files are named
+    "PREFIX_XXX.matrix" where "PREFIX" comes from --prefix (or empty) and
+    "XXX" is the field name. These matrices can be loaded into any analysis
+    tool (numpy for instance), or plotted directly with gnuplot:
+
+     set size ratio -1
+     plot "/tmp/test_x.matrix" matrix with image
+     pause -1
 
 
 #+END_EXAMPLE
