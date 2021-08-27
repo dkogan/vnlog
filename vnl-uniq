@@ -4,8 +4,8 @@ use warnings;
 use feature 'say';
 use autodie;
 
-use FindBin '$Bin';
-use lib "$Bin/lib";
+use FindBin '$RealBin';
+use lib "$RealBin/lib";
 
 use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command);
 

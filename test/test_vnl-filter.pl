@@ -6,7 +6,7 @@ use feature ':5.10';
 use IPC::Run 'run';
 use Text::Diff 'diff';
 use Carp qw(cluck confess);
-use FindBin '$Bin';
+use FindBin '$RealBin';
 
 use Term::ANSIColor;
 my $Nfailed = 0;
@@ -1304,7 +1304,7 @@ sub check
             $out = '';
             my $result =
               run( ["perl",
-                    "$Bin/../vnl-filter", @args_here], \$in, \$out, \$err );
+                    "$RealBin/../vnl-filter", @args_here], \$in, \$out, \$err );
             $in = $out;
 
             if($expected ne 'ERROR' && !$result)

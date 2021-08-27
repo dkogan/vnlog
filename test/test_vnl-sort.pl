@@ -4,8 +4,8 @@ use warnings;
 
 use feature ':5.10';
 
-use FindBin '$Bin';
-use lib $Bin;
+use FindBin '$RealBin';
+use lib $RealBin;
 
 use TestHelpers qw(test_init check);
 

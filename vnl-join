@@ -4,8 +4,8 @@ use warnings;
 use feature 'say';
 use autodie;
 
-use FindBin '$Bin';
-use lib "$Bin/lib";
+use FindBin '$RealBin';
+use lib "$RealBin/lib";
 
 # Non-ancient perls have this in List::Util, but I want to support ancient ones too
 use List::MoreUtils 'all';
@@ -559,7 +559,7 @@ sub get_sort_prefilter
     # We sort with the default order (lexicographical) since that's what join
     # wants. We'll re-sort the output by the desired order again
     my $key = $options->{j};
-    my $input_filter = [$Config{perlpath}, "$Bin/vnl-sort", "-s", "-k", "$key"];
+    my $input_filter = [$Config{perlpath}, "$RealBin/vnl-sort", "-s", "-k", "$key"];
     if ($options->{'ignore-case'})
     {
         push @$input_filter, '-f';
@@ -587,7 +587,7 @@ sub post_sort
         }
 
         my $order = $options->{'vnl-sort'};
-        exec $Config{perlpath}, "$Bin/vnl-sort", "-k", $join_key, "-$order";
+        exec $Config{perlpath}, "$RealBin/vnl-sort", "-k", $join_key, "-$order";
     }
 
     my $childpid_join = fork();
