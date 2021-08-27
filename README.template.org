@@ -843,7 +843,6 @@ $ sudo apt install vnlog libvnlog-dev libvnlog-perl python3-vnlog
 to get the binary tools, the C API, the perl and python3 interfaces
 respectively.
 
-
 * Manpages
 ** vnl-filter
 #+BEGIN_EXAMPLE
@@ -860,11 +859,6 @@ xxx-manpage-vnl-align-xxx
 xxx-manpage-vnl-sort-xxx
 #+END_EXAMPLE
 
-** vnl-uniq
-#+BEGIN_EXAMPLE
-xxx-manpage-vnl-uniq-xxx
-#+END_EXAMPLE
-
 ** vnl-join
 #+BEGIN_EXAMPLE
 xxx-manpage-vnl-join-xxx
@@ -878,6 +872,21 @@ xxx-manpage-vnl-tail-xxx
 ** vnl-ts
 #+BEGIN_EXAMPLE
 xxx-manpage-vnl-ts-xxx
+#+END_EXAMPLE
+
+** vnl-uniq
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-uniq-xxx
+#+END_EXAMPLE
+
+** vnl-gen-header
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-gen-header-xxx
+#+END_EXAMPLE
+
+** vnl-make-matrix
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-make-matrix-xxx
 #+END_EXAMPLE
 
 * Repository
