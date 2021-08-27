@@ -33,8 +33,9 @@ inputstring = '''#! zxcv
 1 2
  ## ff
 3 4
+
 # - 10
-- 5
+- 5 # abc
 6 -
 - -
 7 8
@@ -83,7 +84,7 @@ inputstring_noundef = r'''#! zxcv
 # time height
 ## qewr
 1 2
-3 4
+3 4 #fff
 # - 10
 7 8
 '''

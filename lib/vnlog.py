@@ -148,8 +148,15 @@ class vnlog:
             # Not comment, not empty line, but no legend yet. Barf
             raise Exception("Got dataline before legend")
 
+        # string trailing comments
+        i = l.find('#')
+        if i >= 0:
+            l = l[:i]
+
         # strip leading, trailing whitespace
         l = l.strip()
+        if len(l) == 0:
+            return True
 
         self._values = [ None if x == '-' else x for x in l.split()]
         if len(self._values) != len(self._keys):
