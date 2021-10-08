@@ -233,6 +233,18 @@ def _slurp(f):
     '''
     import numpy as np
 
+
+    # Stripped down numpysane.atleast_dims(). I don't want to introduce that
+    # dependency
+    def atleast_dims(x, d):
+        if d >= 0: raise Exception("Requires d<0")
+        need_ndim = -d
+        if x.ndim >= need_ndim:
+            return x
+        num_new_axes = need_ndim-x.ndim
+        return x[ (np.newaxis,)*(num_new_axes) ]
+
+
     parser = vnlog()
 
     for l in f:
@@ -245,7 +257,10 @@ def _slurp(f):
     for i in range(len(keys)):
         dict_key_index[keys[i]] = i
 
-    return np.loadtxt(f),keys,dict_key_index
+    return                               \
+        atleast_dims(np.loadtxt(f), -2), \
+        keys,                            \
+        dict_key_index
 
 
 def slurp(f):
