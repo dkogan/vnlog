@@ -824,8 +824,10 @@ but also the most verbose
 * numpy interface
 If we need to read data into numpy specifically, nicer tools are available than
 the generic =vnlog= Python module. The built-in =numpy.loadtxt= =numpy.savetxt=
-functions work well. For example to write to standard output a vnlog with fields
-=a=, =b= and =c=:
+functions work well (with the caveat that =numpy.loadtxt()= should be followed
+by =numpysane.atleast_dims(..., -2)= to make sure that a data array of shape
+=(Nrows,Ncols)= is returned even if =Nrows==1=. For example to write to standard
+output a vnlog with fields =a=, =b= and =c=:
 
 #+BEGIN_SRC python
 numpy.savetxt(sys.stdout, array, fmt="%g", header="a b c")
@@ -835,7 +837,7 @@ Note that numpy automatically adds the =#= to the header. To read a vnlog from a
 file on disk, do something like
 
 #+BEGIN_SRC python
-array = numpy.loadtxt('data.vnl')
+array = numpysane.atleast_dims(numpy.loadtxt('data.vnl'), -2)
 #+END_SRC
 
 These functions know that =#= lines are comments, but don't interpret anything
