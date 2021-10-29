@@ -1088,7 +1088,8 @@ DESCRIPTION
          2 9
 
     *   diff(x) returns the difference between the current value of "x" and
-        the previous value of "x". The first row will always be -. Example:
+        the previous value of "x". The first row will always be "-".
+        Example:
 
          $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
@@ -1102,7 +1103,7 @@ DESCRIPTION
     *   sum(x) returns the cumulative sum of "x". As diff(x) can be thought
         of as a derivative, sum(x) can be thought of as an integral. So
         "diff(sum(x))" would return the same value as "x" (except for the
-        first row; "diff()" always returns - for the first row).
+        first row; "diff()" always returns "-" for the first row).
 
         Example:
 
@@ -1117,6 +1118,9 @@ DESCRIPTION
 
     *   prev(x) returns the previous value of "x". One could construct
         "sum()" and "rel()" using this, if they weren't already available.
+
+    *   latestdefined(x) returns the most recent value of "x" that isn't
+        "-". If "x" isn't "-", this simply returns "x".
 
 ARGUMENTS
   -p|--print|--pick expr
