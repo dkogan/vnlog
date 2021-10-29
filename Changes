@@ -1,3 +1,13 @@
+vnlog (1.32)
+
+  * Python parser can handle trailing comments
+  * Bug fix: symlinked binaries work (Thanks to Jim Radford for the
+    report)
+  * Python vnlog.slurp() always returns 2D arrays
+  * added latestdefined() to vnl-filter
+
+ -- Dima Kogan <dkogan@debian.org>  Fri, 29 Oct 2021 14:06:21 -0700
+
 vnlog (1.31)
 
   * vnl-filter: correct behavior with field names containing small
