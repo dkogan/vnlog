@@ -200,7 +200,7 @@ my $colidx_needed_max = -1;
 my @langspecific_output_fields;
 
 # How many rel(),diff(),... calls we have. I generate code based on this
-my @all_specialops = qw(rel diff sum prev);
+my @all_specialops = qw(rel diff sum prev latestdefined);
 my %specialops;
 for my $what (@all_specialops)
 {
@@ -703,6 +703,10 @@ sub makeAwkProgram
     {
         $awkprogram_reldiff .= "function prev$i(x) { __prev = length(__state_prev$i) ? __state_prev$i : \"-\"; __state_prev$i = x; return __prev; } ";
     }
+    for my $i (0..$specialops{latestdefined}{N}-1)
+    {
+        $awkprogram_reldiff .= "function latestdefined$i(x) { if( x != \"-\" ) { __state_latestdefined$i = x; } return length(__state_latestdefined$i) ? __state_latestdefined$i : \"-\"; }";
+    }
 
     my $awkprogram = $functions . $awkprogram_reldiff . $awkprogram_preamble;
     if(length($outer_expr))
@@ -1015,6 +1019,15 @@ if( $i < $specialops{prev}{N} )
     $evalstr = "sub prev$i" . '{ my ($x) = @_; state $state=undef; my $prev = $state; $state = $x; return $prev; } ' . $evalstr;
     $i++;
     goto EVAL_PREV_FUNC;
+}
+
+$i = 0;
+EVAL_LATESTDEFINED_FUNC:
+if( $i < $specialops{latestdefined}{N} )
+{
+    $evalstr = "sub latestdefined$i" . '{ my ($x) = @_; state $state=undef; $state = $x if defined $x; return $state; } ' . $evalstr;
+    $i++;
+    goto EVAL_LATESTDEFINED_FUNC;
 }
 
 
@@ -1383,7 +1396,7 @@ relative to some absolute beginning. Example:
 =item *
 
 C<diff(x)> returns the difference between the current value of C<x> and the
-previous value of C<x>. The first row will always be -. Example:
+previous value of C<x>. The first row will always be C<->. Example:
 
  $ <tst.vnl vnl-filter -p x,'d1=diff(x),d2=diff(diff(x))' | vnl-align
 
@@ -1399,7 +1412,7 @@ previous value of C<x>. The first row will always be -. Example:
 C<sum(x)> returns the cumulative sum of C<x>. As C<diff(x)> can be thought of as
 a derivative, C<sum(x)> can be thought of as an integral. So C<diff(sum(x))>
 would return the same value as C<x> (except for the first row; C<diff()> always
-returns - for the first row).
+returns C<-> for the first row).
 
 Example:
 
@@ -1416,6 +1429,11 @@ Example:
 
 C<prev(x)> returns the previous value of C<x>. One could construct C<sum()> and
 C<rel()> using this, if they weren't already available.
+
+=item *
+
+C<latestdefined(x)> returns the most recent value of C<x> that isn't C<->. If
+C<x> isn't C<->, this simply returns C<x>.
 
 =back
 

@@ -353,13 +353,13 @@ check( 'ERROR', '-p', 'a,+[bc]' );
 
 check( 'ERROR', '-p', '+.' );
 
-check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c --noskipempty));
+check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c -p pdb=latestdefined(b) --noskipempty));
 #!/bin/xxx
-# d s pa b c
-0 1 - 2 3
-3 5 1 - 6
-6 12 4 9 -
-9 22 7 11 12
+# d s pa b c pdb
+0 1 - 2 3 2
+3 5 1 - 6 2
+6 12 4 9 - 9
+9 22 7 11 12 11
 EOF
 
 check( <<'EOF', qw(rel(a)>6 -p . -p d=rel(a) -p s=sum(a)));
@@ -1120,6 +1120,67 @@ check( <<'EOF', ['-C1', '-p', 'p=prev(b)', '--noskipempty', 'a!=4'], {data => $d
 -
 9
 EOF
+
+##########################################
+# latestdefined()
+my $data_latestdefined = <<'EOF';
+#!/bin/xxx
+# a b c
+1 2 -
+4 - 6
+5 - 9
+8 - 7
+4 - 6
+7 9 -
+10 11 12
+EOF
+
+
+# Baselines:
+check( <<'EOF', ['-p', 'p=latestdefined(b)', '--noskipempty'], {data => $data_latestdefined});
+#!/bin/xxx
+# p
+2
+2
+2
+2
+2
+9
+11
+EOF
+check( <<'EOF', ['-p', 'p=latestdefined(c)', '--noskipempty'], {data => $data_latestdefined});
+#!/bin/xxx
+# p
+-
+6
+9
+7
+6
+6
+12
+EOF
+check( <<'EOF', ['-p', 'p=latestdefined(b)'], {data => $data_latestdefined});
+#!/bin/xxx
+# p
+2
+2
+2
+2
+2
+9
+11
+EOF
+check( <<'EOF', ['-p', 'p=latestdefined(c)'], {data => $data_latestdefined});
+#!/bin/xxx
+# p
+6
+9
+7
+6
+6
+12
+EOF
+
 
 # check funny whitespace behavior
 my $data_funny_whitespace = <<'EOF';
