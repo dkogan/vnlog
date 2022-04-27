@@ -353,6 +353,26 @@ check( 'ERROR', '-p', 'a,+[bc]' );
 
 check( 'ERROR', '-p', '+.' );
 
+check( <<'EOF', qw(--BEGIN x=5 --END), 'print 100', qw(-p s=a+x), {language => 'AWK'} );
+#!/bin/xxx
+# s
+6
+9
+12
+15
+100
+EOF
+
+check( <<'EOF', qw(--BEGIN $x=5 --END), 'say 100', qw(-p s=a+$x), {language => 'perl'} );
+#!/bin/xxx
+# s
+6
+9
+12
+15
+100
+EOF
+
 check( <<'EOF', qw(-p d=rel(a) -p s=sum(a) -p pa=prev(a) -p b -p c -p pdb=latestdefined(b) --noskipempty));
 #!/bin/xxx
 # d s pa b c pdb

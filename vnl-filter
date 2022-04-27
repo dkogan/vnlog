@@ -17,7 +17,9 @@ $0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [ma
 
     Other available options:
       --function 'f(x) { .... return ... }'
-      --eval expr
+      --eval  expr
+      --begin expr
+      --end   expr
       --noskipempty
       --skipcomments
       --dumpexprs
@@ -71,6 +73,8 @@ GetOptions(\%options,
            "before-context|B=i",
            "context|C=i",
            "function|sub=s@",
+           "begin|BEGIN=s",
+           "end|END=s",
            "skipempty!",
            "skipcomments!",
            "dumpexprs!",
@@ -534,18 +538,19 @@ sub makeAwkProgram
 
     my $awkprogram_preamble = '';
 
+    my $BEGIN = $options{begin} // '';
+    my $END   = $options{end}   // '';
 
     if($any_context_stuff)
     {
         # context-handling stuff. This is a mirror of the perl implementation
         # below. See the comments there for a description
-        $awkprogram_preamble .= 'BEGIN {' .
+        $BEGIN .= ' ; ' .
           '__i1_contextbuffer       = 0; ' .
           '__N_contextbuffer        = 0; ' .
           '__N_printafter           = 0; ' .
           '__just_skipped_something = 0; ' .
-          '__printed_something_ever = 0; ' .
-          '} ';
+          '__printed_something_ever = 0; ';
 
         $awkprogram_preamble .= 'function __contextbuffer_output_and_clear() { ' .
           "__i0_contextbuffer = __i1_contextbuffer - __N_contextbuffer; " .
@@ -565,6 +570,8 @@ sub makeAwkProgram
           "if(__N_contextbuffer  != $NcontextBefore) {__N_contextbuffer++} " .
           "} ";
     }
+
+    $awkprogram_preamble = "BEGIN { $BEGIN } END { $END } $awkprogram_preamble";
 
     # Deal with comments. If printing, these do not count towards the context
     # stuff (-A/-B/-C)
@@ -959,7 +966,9 @@ sub expr_subst_col_names
 
 
 
-my $evalstr = join('', map { my ($sub) = expr_subst_col_names('perl', $_); "sub $sub\n"} @{$options{function}});
+my $BEGIN = $options{begin} // '';
+
+my $evalstr = $BEGIN . '; ' . join('', map { my ($sub) = expr_subst_col_names('perl', $_); "sub $sub\n"} @{$options{function}});
 
 my $must_match_expr =
   join ' && ',
@@ -1179,6 +1188,19 @@ while(<STDIN>)
     flush STDOUT if $options{unbuffered};
 }
 
+if(defined $options{end})
+{
+    my $evalstr = "$options{end} ;";
+    no strict;
+    no warnings;
+    eval $evalstr;
+    if ( $@ )
+    {
+        die "Error evaluating expression '$evalstr':\n$@";
+    }
+    use strict;
+    use warnings;
+}
 
 
 
@@ -1621,6 +1643,16 @@ trivially be written as a simple expression. For instance:
 
 See the L<CAVEATS> section below if you're doing something
 sufficiently-complicated where you need this.
+
+=head2 --begin|--BEGIN
+
+Evaluates the given expression in the BEGIN {} block of the generated awk (or
+perl) program.
+
+=head2 --end|--END
+
+Evaluates the given expression in the END {} block of the generated awk (or
+perl) program.
 
 =head2 --[no]skipempty
 
