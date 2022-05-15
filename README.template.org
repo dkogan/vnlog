@@ -229,6 +229,42 @@ Huh. Apparently there's no obvious, strong correlation between TSLA and
 Dow-Jones closing prices. And we saw that with just a few shell commands,
 without dropping down into a dedicated analysis system.
 
+* Build and installation
+vnlog is a part of Debian/buster and Ubuntu/cosmic (18.10) and later. On those
+boxes you can simply
+
+#+BEGIN_EXAMPLE
+$ sudo apt install vnlog libvnlog-dev libvnlog-perl python3-vnlog
+#+END_EXAMPLE
+
+to get the binary tools, the C API, the perl and python3 interfaces
+respectively.
+
+** Install on non-Debian boxes
+Most of this is written in an interpreted language, so there's nothing to build
+or install, and you can run the tools directly from the source tree:
+
+#+BEGIN_EXAMPLE
+$ git clone https://github.com/dkogan/vnlog.git
+$ cd vnlog
+$ ./vnl-filter .....
+#+END_EXAMPLE
+
+The python and perl libraries can be run from the tree by setting the
+=PYTHONPATH= and =PERL5LIB= environment variables respectively. For the C
+library, you should =make=, and then point your =CFLAGS= and =LDLIBS= and
+=LD_LIBRARY_PATH= to the local tree.
+
+If you do want to install to some arbitrary location to simplify the paths, do
+this:
+
+#+BEGIN_EXAMPLE
+$ make
+$ PREFIX=/usr/local make install
+#+END_EXAMPLE
+
+This will install /all/ the components into =/usr/local=.
+
 * Description
 Vnlog data is nicely readable by both humans and machines. Any time your
 application invokes =printf()= for either diagnostics or logging, consider
@@ -856,38 +892,6 @@ These tools are meant to be simple, so some things are hard requirements. A big
 one is that columns are whitespace-separated. There is /no/ mechanism for
 escaping or quoting whitespace into a single field. I think supporting something
 like that is more trouble than it's worth.
-
-* Build and installation
-Most of this is written in an interpreted language, so there's nothing to build
-or install, and you can run the tools directly from the source tree:
-
-#+BEGIN_EXAMPLE
-$ git clone https://github.com/dkogan/vnlog.git
-$ cd vnlog
-$ ./vnl-filter .....
-#+END_EXAMPLE
-
-If you /do/ want to install to some arbitrary location, do this:
-
-#+BEGIN_EXAMPLE
-$ make
-$ PREFIX=/usr/local make install
-#+END_EXAMPLE
-
-The C API is the one component that does require compilation, which can be done
-by running =make=. Note: this requires GNU Make and the =chrpath= tool, which
-are available in most package repositories.
-
-** Installation on Debian-based boxes
-vnlog is a part of Debian/buster and Ubuntu/cosmic (18.10) and later. On those
-boxes you can simply
-
-#+BEGIN_EXAMPLE
-$ sudo apt install vnlog libvnlog-dev libvnlog-perl python3-vnlog
-#+END_EXAMPLE
-
-to get the binary tools, the C API, the perl and python3 interfaces
-respectively.
 
 * Manpages
 ** vnl-filter
