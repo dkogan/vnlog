@@ -1,14 +1,18 @@
 #compdef vnl-filter
 
-_arguments -S                                                                                     \
-    '*--has[list of fields that must be non-null to be selected for output]:has-list:'            \
-    '(--eval)*'{--pick,--print,-p}'[list of fields and field expressions to be output]:pick-list:'\
-    '(--pick --print -p)--eval[instead of filtering, evaluate this perl/awk script]:eval-script:' \
-    '*--function[define a function to be available in the expressions]:function-expression:'      \
-    '(--eval)--noskipempty[DO output records where every field is null]'                          \
-    '(--eval)--skipcomments[Do NOT output non-legend comments]'                                   \
-    '--dumpexprs[Report the expressions we would use for processing, and exit]'                   \
-    '--perl[Use perl for all the expressions instead of awk]'                                     \
-    '--stream[Flush the output pipe with every record]'                                           \
-    '--help'                                                                                      \
+_arguments -S                                                                                        \
+    '*--has[list of fields that must be non-null to be selected for output]:has-list:'               \
+    '(--eval)*'{--pick,--print,-p}'[list of fields and field expressions to be output]:pick-list:'   \
+    {--list-columns,-l}'[list available comments]'                                                   \
+    '(--pick --print -p)--eval[instead of filtering, evaluate this perl/awk script]:eval-script:'    \
+    '(--pick --print -p)--begin[evaluate expression in a BEGIN block]:begin-script:'                 \
+    '(--pick --print -p)--end[evaluate expression in an END block]:end-script:'                      \
+    '*{--function,--sub}[define a function to be available in the expressions]:function-expression:' \
+    {--function-abs,--sub-abs}'[define abs() function for awk expressions]'                          \
+    '(--eval)--noskipempty[DO output records where every field is null]'                             \
+    '(--eval)--skipcomments[Do NOT output non-legend comments]'                                      \
+    '--dumpexprs[Report the expressions we would use for processing, and exit]'                      \
+    '--perl[Use perl for all the expressions instead of awk]'                                        \
+    '--stream[Flush the output pipe with every record]'                                              \
+    '--help'                                                                                         \
     '*: :_guard "^-*" "Expression that must evaluate to true for a record to be selected for output"'

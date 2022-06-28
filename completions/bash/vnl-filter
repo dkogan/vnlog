@@ -1,8 +1,13 @@
 complete -W '         \
     --has             \
     --pick --print -p \
+    --list-columns -l \
     --eval            \
+    --begin --end     \
     --function        \
+    --sub             \
+    --function-abs    \
+    --sub-abs         \
     --noskipempty     \
     --skipcomments    \
     --dumpexprs       \
