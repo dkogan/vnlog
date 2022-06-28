@@ -5,11 +5,17 @@ the [[https://github.com/dkogan/talk-feedgnuplot-vnlog/blob/master/feedgnuplot-v
 
 * Summary
 
-Vnlog ("vanillog") is a toolkit for manipulating tabular ASCII data with
-labelled fields using normal UNIX tools. The log format is trivially simple:
+Vnlog ("vanilla-log") is a toolkit for manipulating tabular ASCII data with
+labelled fields using normal UNIX tools. If you regularly use =awk= and =sort=
+and =uniq= and others, these tools will make you infinitely more powerful. The
+vnlog tools /extend/, rather than replace the standard tooling, so minimal
+effort is required to learn and use these tools.
+
+Everything assumes a trivially simple log format:
 
 - A whitespace-separated table of ASCII human-readable text
-- Lines beginning with =#= are comments
+- A =#= character starts a comment that runs to the end of the line (like in
+  many scripting languages)
 - The first line that begins with a single =#= (not =##= or =#!=) is a /legend/,
   naming each column. This is required, and the field names that appear here are
   referenced by all the tools.
