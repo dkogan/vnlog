@@ -7,7 +7,7 @@ _arguments -S                                                                   
     '(--pick --print -p)--eval[instead of filtering, evaluate this perl/awk script]:eval-script:'    \
     '(--pick --print -p)--begin[evaluate expression in a BEGIN block]:begin-script:'                 \
     '(--pick --print -p)--end[evaluate expression in an END block]:end-script:'                      \
-    '*{--function,--sub}[define a function to be available in the expressions]:function-expression:' \
+    '*'{--function,--sub}'[define a function to be available in the expressions]:function-expression:' \
     {--function-abs,--sub-abs}'[define abs() function for awk expressions]'                          \
     '(--eval)--noskipempty[DO output records where every field is null]'                             \
     '(--eval)--skipcomments[Do NOT output non-legend comments]'                                      \
