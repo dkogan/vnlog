@@ -1469,6 +1469,26 @@ C<x> isn't C<->, this simply returns C<x>.
 
 =head1 ARGUMENTS
 
+=head2 Matches expressions
+
+Anything on the commandline not attached to any C<--xxx> option is a I<matches>
+expression. These are used to select particular records (rows) in a data file.
+For each row, we evaluate all the expressions. If I<all> the expressions
+evaluate to true, that row is output. This expression is passed directly to the
+awk (or perl) backend.
+
+Example: to select all rows that have valid data in column C<a> I<or> column
+C<b> I<or> column C<c> you can
+
+ vnl-filter 'a != "-" || b != "-" || c != "-"'
+
+or
+
+ vnl-filter --perl 'defined a || defined b || defined c'
+
+As with the named expressions given to C<-p> (described above), these are passed
+directly to awk, so anything that can be done with awk is supported here.
+
 =head2 -p|--print|--pick expr
 
 These option provide the mechanism to select specific columns for output. For
@@ -1564,26 +1584,6 @@ is equivalent to
 Note that just like the column specifications in C<-p> the columns given to
 C<--has> must match exactly I<or> as a regex. In either case, a unique matching
 column must be found.
-
-=head2 Matches expressions
-
-Anything on the commandline not attached to any C<--xxx> option is a I<matches>
-expression. These are used to select particular records (rows) in a data file.
-For each row, we evaluate all the expressions. If I<all> the expressions
-evaluate to true, that row is output. This expression is passed directly to the
-awk (or perl) backend.
-
-Example: to select all rows that have valid data in column C<a> I<or> column
-C<b> I<or> column C<c> you can
-
- vnl-filter 'a != "-" || b != "-" || c != "-"'
-
-or
-
- vnl-filter --perl 'defined a || defined b || defined c'
-
-As with the named expressions given to C<-p> (described above), these are passed
-directly to awk, so anything that can be done with awk is supported here.
 
 =head2 -A N|--after-context N
 
