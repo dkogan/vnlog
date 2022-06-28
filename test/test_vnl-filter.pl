@@ -349,6 +349,15 @@ check( <<'EOF', '-p', 'a,[bc]' );
 10 11 12
 EOF
 
+check( <<'EOF', '--sub-abs', '-p', 'x=abs(a-5)' );
+#!/bin/xxx
+# x
+4
+1
+2
+5
+EOF
+
 check( 'ERROR', '-p', 'a,+[bc]' );
 
 check( 'ERROR', '-p', '+.' );

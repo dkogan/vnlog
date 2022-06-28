@@ -1,3 +1,9 @@
+vnlog (1.33)
+
+  * vnl-filter: added --begin, --end and --sub-abs
+
+ -- Dima Kogan <dkogan@debian.org>  Tue, 28 Jun 2022 12:22:47 -0700
+
 vnlog (1.32)
 
   * Python parser can handle trailing comments

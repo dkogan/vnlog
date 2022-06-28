@@ -16,7 +16,8 @@ my $usage =  <<EOF;
 $0 [--has c0,c1,...] [-p c3,+c4,sum=c5+c6,rel(c7)] [match_expr] [match_expr] ...
 
     Other available options:
-      --function 'f(x) { .... return ... }'
+      --sub 'f(x) { .... return ... }'
+      --sub-abs
       --eval  expr
       --begin expr
       --end   expr
@@ -73,6 +74,7 @@ GetOptions(\%options,
            "before-context|B=i",
            "context|C=i",
            "function|sub=s@",
+           "function-abs|sub-abs",
            "begin|BEGIN=s",
            "end|END=s",
            "skipempty!",
@@ -534,7 +536,13 @@ sub makeAwkProgram
     # The awk program I generate here is analogous to the logic in the data
     # while() loop above
 
-    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @{$options{function}});
+    my $function_arguments = $options{function} // [];
+    if( $options{'function-abs'} )
+    {
+        push @$function_arguments, 'abs(___x___) { if(___x___ >= 0) { return ___x___;} return -___x___;}';
+    }
+
+    my $functions = join('', map { my ($sub) = expr_subst_col_names('awk', $_); "function $sub " } @$function_arguments);
 
     my $awkprogram_preamble = '';
 
@@ -1643,6 +1651,12 @@ trivially be written as a simple expression. For instance:
 
 See the L<CAVEATS> section below if you're doing something
 sufficiently-complicated where you need this.
+
+=head2 --function-abs|--sub-abs
+
+Convenience option to add an absolute-value C<abs()> function. This is only
+useful for awk programs (the default, no C<--perl> given) since perl already
+provides C<abs()> by default.
 
 =head2 --begin|--BEGIN
 
