@@ -33,6 +33,12 @@ check( <<'EOF', qw(-p s=b) );
 11
 EOF
 
+check( <<'EOF', qw(-l) );
+a
+b
+c
+EOF
+
 check( <<'EOF', qw(-p s=b --noskipempty) );
 #!/bin/xxx
 # s

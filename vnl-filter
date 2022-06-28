@@ -16,6 +16,7 @@ my $usage =  <<EOF;
 $0 [--has c0,c1,...] [-p c3,+c4,sum=c5+c6,rel(c7)] [match_expr] [match_expr] ...
 
     Other available options:
+      --list-columns
       --sub 'f(x) { .... return ... }'
       --sub-abs
       --eval  expr
@@ -67,6 +68,7 @@ if(! @ARGV)
 # by default we do skip empty records
 my %options = (skipempty => 1);
 GetOptions(\%options,
+           "list-columns|l",
            "has=s@",
            "pick|print|p=s@",
            "eval=s",
@@ -155,6 +157,7 @@ my @must_have_col_indices_input;
 
 # if no columns requested, just print everything
 if( !@picked_exprs_named  &&
+    !$options{'list-columns'} &&
     !@must_have_col_names &&
     !@{$options{matches}} &&
     !defined $options{eval} )
@@ -229,7 +232,7 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
     # empty lines and # comments without anything else.
     if(/^\s*(?:#[#!]|#\s*$|$)/p)
     {
-        if(!$options{skipcomments} && !$options{dumpexprs})
+        if(!$options{skipcomments} && !$options{dumpexprs} && !$options{'list-columns'})
         {
             print;
             flush STDOUT if $options{unbuffered};
@@ -243,6 +246,17 @@ while(defined ($_ = get_unbuffered_line(*STDIN)))
 
         # we got a legend line
         my @cols_all_legend_input = split ' ', ${^POSTMATCH}; # split the field names (sans the #)
+
+        if($options{'list-columns'})
+        {
+            for my $c (@cols_all_legend_input)
+            {
+                say $c;
+            }
+            exit 0;
+        }
+
+
         foreach my $idx (0..$#cols_all_legend_input)
         {
             $colindices_input{$cols_all_legend_input[$idx]} //= [];
@@ -1584,6 +1598,11 @@ is equivalent to
 Note that just like the column specifications in C<-p> the columns given to
 C<--has> must match exactly I<or> as a regex. In either case, a unique matching
 column must be found.
+
+=head2 -l|list-columns
+
+Instead of doing any processing, parse the input to get the available columns,
+print those out, and exit
 
 =head2 -A N|--after-context N
 

@@ -1,6 +1,6 @@
 vnlog (1.33)
 
-  * vnl-filter: added --begin, --end and --sub-abs
+  * vnl-filter: added --begin, --end, --sub-abs, -l
 
  -- Dima Kogan <dkogan@debian.org>  Tue, 28 Jun 2022 12:22:47 -0700
 
