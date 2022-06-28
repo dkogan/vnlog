@@ -1641,10 +1641,15 @@ values in the C<a> column
 
 In perl the arbitrary expression fits in like this:
 
+ sub evalexpr
+ {
+   eval expression;     # evaluate the arbitrary expression
+ }
  while(<>) # read each line
  {
+   chomp;
    next unless matches; # skip non-matching lines
-   eval expression;     # evaluate the arbitrary expression
+   evalexpr();
  }
 
 =head2 --function|--sub
