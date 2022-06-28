@@ -1126,6 +1126,26 @@ DESCRIPTION
         "-". If "x" isn't "-", this simply returns "x".
 
 ARGUMENTS
+  Matches expressions
+    Anything on the commandline not attached to any "--xxx" option is a
+    *matches* expression. These are used to select particular records (rows)
+    in a data file. For each row, we evaluate all the expressions. If *all*
+    the expressions evaluate to true, that row is output. This expression is
+    passed directly to the awk (or perl) backend.
+
+    Example: to select all rows that have valid data in column "a" *or*
+    column "b" *or* column "c" you can
+
+     vnl-filter 'a != "-" || b != "-" || c != "-"'
+
+    or
+
+     vnl-filter --perl 'defined a || defined b || defined c'
+
+    As with the named expressions given to "-p" (described above), these are
+    passed directly to awk, so anything that can be done with awk is
+    supported here.
+
   -p|--print|--pick expr
     These option provide the mechanism to select specific columns for
     output. For instance to pull out columns called "lat", "lon", and any
@@ -1211,25 +1231,9 @@ ARGUMENTS
     to "--has" must match exactly *or* as a regex. In either case, a unique
     matching column must be found.
 
-  Matches expressions
-    Anything on the commandline not attached to any "--xxx" option is a
-    *matches* expression. These are used to select particular records (rows)
-    in a data file. For each row, we evaluate all the expressions. If *all*
-    the expressions evaluate to true, that row is output. This expression is
-    passed directly to the awk (or perl) backend.
-
-    Example: to select all rows that have valid data in column "a" *or*
-    column "b" *or* column "c" you can
-
-     vnl-filter 'a != "-" || b != "-" || c != "-"'
-
-    or
-
-     vnl-filter --perl 'defined a || defined b || defined c'
-
-    As with the named expressions given to "-p" (described above), these are
-    passed directly to awk, so anything that can be done with awk is
-    supported here.
+  -l|list-columns
+    Instead of doing any processing, parse the input to get the available
+    columns, print those out, and exit
 
   -A N|--after-context N
     Output N lines following each *matches* expression, even those lines
@@ -1265,10 +1269,15 @@ ARGUMENTS
 
     In perl the arbitrary expression fits in like this:
 
+     sub evalexpr
+     {
+       eval expression;     # evaluate the arbitrary expression
+     }
      while(<>) # read each line
      {
+       chomp;
        next unless matches; # skip non-matching lines
-       eval expression;     # evaluate the arbitrary expression
+       evalexpr();
      }
 
   --function|--sub
@@ -1293,6 +1302,11 @@ ARGUMENTS
 
     See the CAVEATS section below if you're doing something
     sufficiently-complicated where you need this.
+
+  --function-abs|--sub-abs
+    Convenience option to add an absolute-value "abs()" function. This is
+    only useful for awk programs (the default, no "--perl" given) since perl
+    already provides "abs()" by default.
 
   --begin|--BEGIN
     Evaluates the given expression in the BEGIN {} block of the generated
