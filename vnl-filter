@@ -13,7 +13,7 @@ use feature qw(say state);
 
 
 my $usage =  <<EOF;
-$0 [--has c0,c1,...] [--has c2] [--print|--pick|-p c3,+c4,sum=c5+c6,rel(c7)] [match_expr] [match_expr] ...
+$0 [--has c0,c1,...] [-p c3,+c4,sum=c5+c6,rel(c7)] [match_expr] [match_expr] ...
 
     Other available options:
       --function 'f(x) { .... return ... }'
