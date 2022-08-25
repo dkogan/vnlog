@@ -280,18 +280,18 @@ power all the =vnl-...= tools provide.
 Vnlog tools are designed to be very simple and light. There's an ever-growing
 list of other tools that do vaguely the same thing. Some of these:
 
-- https://www.visidata.org/
-- https://www.gnu.org/software/datamash/
+- https://github.com/BurntSushi/xsv
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
 - https://github.com/eBay/tsv-utils-dlang
-- http://harelba.github.io/q/
-- https://github.com/BatchLabs/charlatan
-- https://github.com/dinedal/textql
-- https://github.com/BurntSushi/xsv
-- https://github.com/dbohdan/sqawk
+- https://www.gnu.org/software/datamash/
 - https://stedolan.github.io/jq/
 - https://github.com/benbernard/RecordStream
+- https://github.com/dinedal/textql
+- https://www.visidata.org/
+- http://harelba.github.io/q/
+- https://github.com/BatchLabs/charlatan
+- https://github.com/dbohdan/sqawk
 
 Many of these provide facilities to run various analyses, and others focus on
 data types that aren't just a table (json for instance). Vnlog by contrast
