@@ -13,12 +13,13 @@ effort is required to learn and use these tools.
 
 Everything assumes a trivially simple log format:
 
-- A whitespace-separated table of ASCII human-readable text
+- A whitespace-separated table of ASCII human-readable text (leading and
+  trailing whitespace is ignored, as are empty lines)
 - A =#= character starts a comment that runs to the end of the line (like in
-  many scripting languages)
-- The first line that begins with a single =#= (not =##= or =#!=) is a /legend/,
-  naming each column. This is required, and the field names that appear here are
-  referenced by all the tools.
+  many scripting languages), but not in the /legend/.
+- The first line that begins with a single =#= (not =##= or =#!=) and contains
+  a field name is a /legend/, naming each column. This is required, and the
+  field names that appear here are referenced by all the tools.
 - Empty fields reported as =-=
 
 Example:
