@@ -21,7 +21,7 @@ Everything assumes a trivially simple log format:
   referenced by all the tools.
 - Empty fields reported as =-=
 
-This describes 99% of the format, with some extra details [[*Format details][below]]. Example:
+This describes 99% of the format, with some extra details [[#format-details][below]]. Example:
 
 #+BEGIN_EXAMPLE
 #!/usr/bin/whatever
@@ -393,7 +393,7 @@ All the tools have manpages that contain more detail. And more tools will
 probably be added with time.
 
 * Format details
-The high-level description of the vnlog format from [[*Summary][above]] is sufficient to
+The high-level description of the vnlog format from [[#Summary][above]] is sufficient to
 read/write "normal" vnlog data, but there are some corner cases that should be
 mentioned. A copy of the format description from above:
 
