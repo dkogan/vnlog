@@ -21,7 +21,7 @@ Everything assumes a trivially simple log format:
   referenced by all the tools.
 - Empty fields reported as =-=
 
-Example:
+This describes 99% of the format, with some extra details [[*Format details][below]]. Example:
 
 #+BEGIN_EXAMPLE
 #!/usr/bin/whatever
@@ -280,18 +280,18 @@ power all the =vnl-...= tools provide.
 Vnlog tools are designed to be very simple and light. There's an ever-growing
 list of other tools that do vaguely the same thing. Some of these:
 
-- https://www.visidata.org/
-- https://www.gnu.org/software/datamash/
+- https://github.com/BurntSushi/xsv
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
 - https://github.com/eBay/tsv-utils-dlang
-- http://harelba.github.io/q/
-- https://github.com/BatchLabs/charlatan
-- https://github.com/dinedal/textql
-- https://github.com/BurntSushi/xsv
-- https://github.com/dbohdan/sqawk
+- https://www.gnu.org/software/datamash/
 - https://stedolan.github.io/jq/
 - https://github.com/benbernard/RecordStream
+- https://github.com/dinedal/textql
+- https://www.visidata.org/
+- http://harelba.github.io/q/
+- https://github.com/BatchLabs/charlatan
+- https://github.com/dbohdan/sqawk
 
 Many of these provide facilities to run various analyses, and others focus on
 data types that aren't just a table (json for instance). Vnlog by contrast
@@ -391,6 +391,87 @@ $ cat /tmp/x.matrix
 
 All the tools have manpages that contain more detail. And more tools will
 probably be added with time.
+
+* Format details
+The high-level description of the vnlog format from [[*Summary][above]] is sufficient to
+read/write "normal" vnlog data, but there are some corner cases that should be
+mentioned. A copy of the format description from above:
+
+- A whitespace-separated table of ASCII human-readable text
+- A =#= character starts a comment that runs to the end of the line (like in
+  many scripting languages)
+- The first line that begins with a single =#= (not =##= or =#!=) is a /legend/,
+  naming each column. This is required, and the field names that appear here are
+  referenced by all the tools.
+- Empty fields reported as =-=
+
+For a few years now I've been using these tools myself, and supporting others as
+they were passing vnlog data around. In the process I've encountered some
+slightly-weird data, and patched the tools to accept it. So today the included
+vnlog tools are /very/ permissive, and any vnlog data that can be accepted is
+accepted. Tools that read vnlog data that are written by others and /not/
+distributed in the vnlog project itself may not be quite as permissive, and may
+not be able to interpret "weird" data. Points of note, describing the included
+vnlog tools:
+
+- Leading and trailing whitespace is ignored. Everywhere. So this data file will
+  be read properly, with the =x= column containing 1 and 3:
+
+  #+begin_example
+ # x y
+1 2
+  3 4
+  #+end_example
+
+- Empty (or whitespace-only) lines anywhere are ignored, and treated as a
+  comment
+- An initial =#= comment without field names is treated as a comment, and we
+  continue looking for the legend in the following lines. So this data file will
+  be read properly:
+
+  #+begin_example
+## comment
+#
+# x y
+1 2
+3 4
+  #+end_example
+
+- Trailing comments are supported, like in most scripting languages. So this
+  data file will be read properly:
+
+  #+begin_example
+# x y
+1 2 # comment
+3 4
+  #+end_example
+
+- Field names are /very/ permissive: anything that isn't whitespace is
+  supported. So this data file will be read properly:
+
+  #+begin_example
+# x y  # 1+  -
+1   2  3  4  5
+11 12 13 14 15
+  #+end_example
+
+  We can pull out the =#= and =1+= and =-= columns: =vnl-filter -p '#,1+,-'=.
+  And we can even operate on them, if we use whitespace to indicate field
+  boundaries: =vnl-filter -p 'x=1+ + 5'=. Note that this implies that trailing
+  comments in a legend line are /not/ supported: the extra =#= characters will
+  be used for field names.
+
+- Duplicated labels are supported whenever possible. So
+
+  #+begin_example
+# x y  z  z
+1   2  3  4
+11 12 13 14
+   #+end_example
+
+  will work just fine, unless we're operating on =z=. =vnl-filter -p x= works.
+  =vnl-filter -p z= works too: both =z= columns are selected. But =vnl-filter -p
+  s=z+1= does not work. And =vnl-sort -k z= does not work either.
 
 * Workflows and recipes
 ** Storing disjoint data
