@@ -370,14 +370,16 @@ sub get_key_index
 
         if (defined $index)
         {
-            confess "File '$input->{filename}' contains key '$key' more than once!";
+            my $key_list = '(' . join(' ', @$keys) . ')';
+            confess "File '$input->{filename}' contains requested key '$key' more than once. Available keys: $key_list";
         }
         $index = $i + 1;        # keys are indexed from 1
     }
 
     if (!defined $index)
     {
-        confess "File '$input->{filename}' does not contain key '$key'!";
+        my $key_list = '(' . join(' ', @$keys) . ')';
+        confess "File '$input->{filename}' does not contain key '$key'. Available keys: $key_list";
     }
 
     return $index;
