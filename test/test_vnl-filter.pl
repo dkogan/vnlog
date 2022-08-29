@@ -669,6 +669,20 @@ my $data_specialchars = <<'EOF';
     1 root 20 0   219992  4708  3088 S 0.0  0.2  1:04.41 systemd      4       a       b
 EOF
 
+# special characters and trailing comments and leading and trailing whitespace
+# and empty lines and and empty comments and duplicated fields
+my $data_funky = <<'EOF';
+## test
+ # 
+ # x y # z z - 1+
+## whoa
+
+bar	5 1 2 22 10 18 # comment
+## comment
+  bbb	4 7 8 88 11 2   
+EOF
+
+
 check(<<'EOF', '-p', 'M,aaa=bbb,aaa=USER,ccc', {data => $data_specialchars});
 #!/bin/xxx
 # %MEM TIME+ COMMAND aaa=bbb aaa ccc=ddd ccc=ddd
@@ -688,6 +702,53 @@ check(<<'EOF', '-p', q{s=1 + %CPU,s2=%CPU + 2,s3=TIME+ + 1,s4=1 + TIME+}, {data 
 6.9 7.9 1 1
 1 2 2 2
 EOF
+
+check(<<'EOF', '-p', '-,#,1+', {data => $data_funky});
+## test
+ # 
+# - # 1+
+## whoa
+
+10 1 18
+## comment
+11 7 2
+EOF
+
+check(<<'EOF', '-p', 'x', {data => $data_funky});
+## test
+ # 
+# x
+## whoa
+
+bar
+## comment
+bbb
+EOF
+
+check(<<'EOF', '-p', 'z', {data => $data_funky});
+## test
+ # 
+# z z
+## whoa
+
+2 22
+## comment
+8 88
+EOF
+
+check(<<'EOF', '-p', 'x=1+ + 5', {data => $data_funky});
+## test
+ # 
+# x
+## whoa
+
+23
+## comment
+7
+EOF
+
+check('ERROR', '-p', 's=z+1', {data => $data_funky});
+
 
 # A log with duplicated columns should generally behave normally, if we aren't
 # explicitly touching the duplicate columns

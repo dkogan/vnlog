@@ -69,6 +69,19 @@ my $data_int_dup = <<'EOF';
 3 12 C
 EOF
 
+# special characters and trailing comments and leading and trailing whitespace
+# and empty lines and and empty comments and duplicated fields
+my $data_funky = <<'EOF';
+## test
+ # 
+ # x y # z z - 1+
+## whoa
+
+bar	5 1 2 22 10 18 # comment
+## comment
+  bbb	4 7 8 88 11 2   
+EOF
+
 
 
 
@@ -77,7 +90,8 @@ test_init('vnl-sort', \$Nfailed,
           '$data2'       => $data2,
           '$data3'       => $data3,
           '$data_int_dup'=> $data_int_dup,
-          '$data_not_ab' => $data_not_ab);
+          '$data_not_ab' => $data_not_ab,
+          '$data_funky'  => $data_funky);
 
 
 
@@ -288,6 +302,15 @@ EOF
 
 # But that relevant dups do
 check( 'ERROR', qw(-k c), '$data_int_dup' );
+
+# funky data works
+check( <<'EOF', '-nk', '1+', '$data_funky' );
+# x y # z z - 1+
+bbb	4 7 8 88 11 2
+bar	5 1 2 22 10 18
+EOF
+
+check( 'ERROR', qw(-nk z), '$data_funky' );
 
 
 
