@@ -468,7 +468,11 @@ vnl-filter -p 'x=1+ + 5'
   #+end_src
 
   Note that this implies that trailing comments in a legend line are /not/
-  supported: the extra =#= characters will be used for field names.
+  supported: the extra =#= characters will be used for field names. Field names
+  containing =,= or === are currently not accepted by =vnl-filter=, but /are/
+  accepted by the other tools (=vnl-sort= and such). I'll make =vnl-filter= able
+  to work with those field names too, eventually, but as a user, the simplest
+  thing to do is to not pass around data with such field names.
 
 - Duplicated labels are supported whenever possible. So
 
