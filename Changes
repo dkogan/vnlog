@@ -2,6 +2,7 @@ vnlog (1.34)
 
   * Minor improvements to the tab-completions
   * Minor improvements to error reporting
+  * Removed python2 support from the Makefile, test suite
 
  -- Dima Kogan <dkogan@debian.org>  Fri, 13 Jan 2023 12:11:06 -0800
 
