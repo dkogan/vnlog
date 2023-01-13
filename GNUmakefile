@@ -81,7 +81,6 @@ test check:					\
    test/test_vnl-uniq.pl.RUN			\
    test/test_c_api.sh.RUN			\
    test/test_perl_parser.pl.RUN			\
-   test/test_python2_parser.sh.RUN              \
    test/test_python3_parser.sh.RUN
 	@echo "All tests in the test suite passed!"
 .PHONY: test check
@@ -94,7 +93,6 @@ EXTRA_CLEAN += test/testdata_*
 DIST_INCLUDE      := vnlog*.h
 DIST_BIN          := $(TOOLS)
 DIST_PERL_MODULES := lib/Vnlog
-DIST_PY2_MODULES  := lib/vnlog.py
 DIST_PY3_MODULES  := lib/vnlog.py
 
 install: doc
@@ -369,11 +367,6 @@ ifneq (,$(filter install,$(MAKECMDGOALS)))
 What are you trying to do?)
   endif
 
-ifneq (,$(strip $(DIST_PY2_MODULES)))
-PY2_MODULE_PATH := $(shell python2  -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
-$(if $(PY2_MODULE_PATH),,$(error "Couldn't find the python2 module path!"))
-endif
-
 ifneq (,$(strip $(DIST_PY3_MODULES)))
 PY3_MODULE_PATH := $(shell python3  -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
 $(if $(PY3_MODULE_PATH),,$(error "Couldn't find the python3 module path!"))
@@ -453,7 +446,6 @@ endif
 
 	$(call install_rule,DIST_DATA,        $(DESTDIR)/usr/share/$(PROJECT_NAME))
 	$(call install_rule,DIST_PERL_MODULES,$(DESTDIR)/usr/share/perl5)
-	$(call install_rule,DIST_PY2_MODULES, $(DESTDIR)/$(PY2_MODULE_PATH))
 	$(call install_rule,DIST_PY3_MODULES, $(DESTDIR)/$(PY3_MODULE_PATH))
 
         # In filenames I rename __colon__ -> :
