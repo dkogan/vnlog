@@ -64,7 +64,7 @@ man3/Vnlog$(coloncolon)%.3pm: lib/Vnlog/%.pm | man3/
 	pod2man -r '' --section 3pm --center "vnlog" $< $@
 EXTRA_CLEAN += man1 man3
 
-CFLAGS := -I. -std=gnu99 -Wno-missing-field-initializers
+CFLAGS += -I. -std=gnu99 -Wno-missing-field-initializers
 
 test/test1: test/test2.o
 test/test1.o: test/vnlog_fields_generated1.h
