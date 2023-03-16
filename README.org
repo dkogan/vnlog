@@ -65,6 +65,18 @@ And
 : 2018-11-14 342.70 347.11 337.15 344.00 344.00 5036300
 : 2018-11-13 333.16 344.70 332.20 338.73 338.73 5448600
 
+I can add whitespace to make the headers more legible by humans:
+
+#+BEGIN_SRC sh :results output :exports both
+< dji.vnl head -n 4 | vnl-align
+#+END_SRC
+
+#+RESULTS:
+: #  Date      Open     High      Low     Close  AdjClose   Volume 
+: 2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840
+: 2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000
+: 2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000
+
 I can pull out the closing prices:
 
 #+BEGIN_SRC sh :results output :exports both
