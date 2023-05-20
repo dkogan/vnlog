@@ -29,7 +29,8 @@ int main(int argc, char* argv[])
     if(VNL_OK != vnlog_parser_init(&ctx, fp))
         return 1;
 
-    while(VNL_OK == vnlog_parser_read_record(&ctx, fp))
+    vnlog_parser_result_t result;
+    while(VNL_OK == (result = vnlog_parser_read_record(&ctx, fp)))
     {
         printf("======\n");
         for(int i=0; i<ctx.Ncolumns; i++)
@@ -38,5 +39,5 @@ int main(int argc, char* argv[])
         }
     }
 
-    return 0;
+    return (result == VNL_OK || result == VNL_EOF) ? 0 : 1;
 }
