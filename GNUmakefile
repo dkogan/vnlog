@@ -4,7 +4,7 @@ ABI_VERSION  := 0
 TAIL_VERSION := 1
 
 LIB_SOURCES := *.c*
-BIN_SOURCES := test/test1.c
+BIN_SOURCES := test/test1.c test/test-parser.c
 
 TOOLS :=					\
   vnl-filter					\
@@ -86,7 +86,7 @@ test check:					\
 .PHONY: test check
 %.RUN: %
 	$<
-test/test_c_api.sh.RUN: test/test1
+test/test_c_api.sh.RUN: test/test1 test/test-parser
 EXTRA_CLEAN += test/testdata_*
 
 
