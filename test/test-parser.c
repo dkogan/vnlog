@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../vnlog-parser.h"
 
@@ -15,8 +16,8 @@ int main(int argc, char* argv[])
     }
 
     const char* filename = argv[1];
-
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = (0 == strcmp(filename,"-")) ?
+        stdin : fopen(filename, "r");
     if(fp == NULL)
     {
         MSG("Couldn't open '%s'", filename);
