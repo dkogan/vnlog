@@ -137,7 +137,7 @@ my $NcontextAfter  = ($options{'after-context'}  || $options{'context'}) // 0;
 
 # parse the , in $options{has} and $options{pick}. In --pick use the fancy
 # ()-respecting version of split
-@{$options{has}} = map split(/,/, $_), @{$options{has}};
+@{$options{has}}  = map split_on_comma               ($_), @{$options{has} };
 @{$options{pick}} = map split_on_comma_respect_parens($_), @{$options{pick}};
 
 # any requested columns preceded with '+' go into --has. And I strip out the '+'
@@ -744,6 +744,23 @@ sub makeAwkProgram
     }
     $awkprogram .= $awkprogram_matches . $awkprogram_print;
     return $awkprogram;
+}
+
+# like a basic split-on-comma: split(/,/, $s) BUT
+#
+# - if we have a leading or trailing "," we take the whole field. Used to accept 
+
+# incomplete logic to support fields with "," in them. This isn't done yet. The
+# below logic is meant to support fields like ",". But it won't work with a
+# field like "a,b". I should parse the available field names first, and then
+# match against those
+sub split_on_comma
+{
+    my ($s) = @_;
+
+    return $s if( $s =~ /^, | ,$/x );
+
+    return map s/^\s+|\s+$//r, split(/,/, $s)
 }
 
 # line split(',', $s), but respects (). I.e. splitting "a,b,f(c,d)" produces 3

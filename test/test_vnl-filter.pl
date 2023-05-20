@@ -674,12 +674,12 @@ EOF
 my $data_funky = <<'EOF';
 ## test
  # 
- # x y # z z - 1+
+ # x y # z z - 1+ ,,
 ## whoa
 
-bar	5 1 2 22 10 18 # comment
+bar	5 1 2 22 10 18 20 # comment
 ## comment
-  bbb	4 7 8 88 11 2   
+  bbb	4 7 8 88 11 2 12  
 EOF
 
 
@@ -703,15 +703,15 @@ check(<<'EOF', '-p', q{s=1 + %CPU,s2=%CPU + 2,s3=TIME+ + 1,s4=1 + TIME+}, {data 
 1 2 2 2
 EOF
 
-check(<<'EOF', '-p', '-,#,1+', {data => $data_funky});
+check(<<'EOF', '-p', ',,', '-p', '-,#,1+', {data => $data_funky});
 ## test
  # 
-# - # 1+
+# ,, - # 1+
 ## whoa
 
-10 1 18
+20 10 1 18
 ## comment
-11 7 2
+12 11 7 2
 EOF
 
 check(<<'EOF', '-p', 'x', {data => $data_funky});
