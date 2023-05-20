@@ -12,7 +12,7 @@
 static
 bool add_to_legend(// out
                    int* Ncolumns_allocated,
-                   int* Ncolumns,
+                   int* i_col,
                    keyvalue_t** record,
 
                    // in
@@ -22,7 +22,7 @@ bool add_to_legend(// out
         // Empty string. Nothing to do
         return true;
 
-    if(*Ncolumns_allocated <= *Ncolumns)
+    if(*Ncolumns_allocated <= *i_col)
     {
         (*Ncolumns_allocated) += 1;
         (*Ncolumns_allocated) *= 2;
@@ -36,12 +36,12 @@ bool add_to_legend(// out
         }
     }
 
-    (*record)[*Ncolumns].value = NULL;
-    (*record)[*Ncolumns].key   = strdup(str);
-    if((*record)[*Ncolumns].key == NULL)
+    (*record)[*i_col].value = NULL;
+    (*record)[*i_col].key   = strdup(str);
+    if((*record)[*i_col].key == NULL)
         return false;
 
-    (*Ncolumns)++;
+    (*i_col)++;
     return true;
 }
 
@@ -121,7 +121,7 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
                 // This is the start of the legend. Parse all the columns
                 parsing_legend_now = true;
                 if(!add_to_legend(&Ncolumns_allocated,
-                                  &ctx->Ncolumns,
+                                  &i_col,
                                   &ctx->record,
                                   &token[1]))
                         return VNL_ERROR;
@@ -133,7 +133,7 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
             if(parsing_legend_now)
             {
                 if(!add_to_legend(&Ncolumns_allocated,
-                                  &ctx->Ncolumns,
+                                  &i_col,
                                   &ctx->record,
                                   token))
                     return VNL_ERROR;
