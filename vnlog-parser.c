@@ -149,18 +149,16 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
         }
 
         // Finished line
-        if(parsing_legend_now && ctx->Ncolumns == 0)
+        if(i_col == 0)
         {
-            // Empty legend line. Wasn't really a legend. Get another.
+            // Empty line. Get another.
             parsing_legend_now = false;
             continue;
         }
-        if(i_col == 0)
-            // Empty line. Get another one
-            continue;
 
-        if(!parsing_legend_now &&
-           i_col != ctx->Ncolumns)
+        if(parsing_legend_now)
+            ctx->Ncolumns = i_col;
+        else if(i_col != ctx->Ncolumns)
         {
             MSG("Legend has %d columns, but just saw a data line of %d columns",
                 ctx->Ncolumns, i_col);
