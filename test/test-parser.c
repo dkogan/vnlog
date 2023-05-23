@@ -9,9 +9,9 @@
 
 int main(int argc, char* argv[])
 {
-    if(argc != 2)
+    if(argc != 3)
     {
-        fprintf(stderr, "Usage: %s input.vnl\n", argv[0]);
+        fprintf(stderr, "Usage: %s input.vnl query-key\n", argv[0]);
         return 1;
     }
 
@@ -24,10 +24,14 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    const char* querykey = argv[2];
+
 
     vnlog_parser_t ctx;
     if(VNL_OK != vnlog_parser_init(&ctx, fp))
         return 1;
+
+    const char*const* queryvalue = vnlog_parser_record_from_key(&ctx, querykey);
 
     vnlog_parser_result_t result;
     while(VNL_OK == (result = vnlog_parser_read_record(&ctx, fp)))
@@ -37,6 +41,9 @@ int main(int argc, char* argv[])
         {
             printf("%s = %s\n", ctx.record[i].key, ctx.record[i].value);
         }
+        printf("query: %s = %s\n",
+               querykey,
+               queryvalue != NULL ? *queryvalue : "NOT FOUND");
     }
 
     return (result == VNL_OK || result == VNL_EOF) ? 0 : 1;

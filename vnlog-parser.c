@@ -1,8 +1,12 @@
+#define _GNU_SOURCE // for tdestroy()
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
+
+#include <search.h>
 
 #include "vnlog-parser.h"
 
@@ -173,6 +177,15 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
     return VNL_ERROR;
 }
 
+static
+int compare_record(const keyvalue_t* a, const keyvalue_t* b)
+{
+    return strcmp(a->key, b->key);
+}
+static void noop_free(void*)
+{
+}
+
 vnlog_parser_result_t vnlog_parser_init(vnlog_parser_t* ctx, FILE* fp)
 {
     *ctx = (vnlog_parser_t){};
@@ -180,8 +193,25 @@ vnlog_parser_result_t vnlog_parser_init(vnlog_parser_t* ctx, FILE* fp)
     vnlog_parser_result_t result = read_line(ctx, fp);
 
     if(result != VNL_OK)
+    {
         vnlog_parser_free(ctx);
-    return result;
+        return result;
+    }
+
+    // Parsed the legend. Now create a tree to make it easy to look up the
+    // specific column by key name. Probably these will be called once per run,
+    // so it could be a simple linear search, but a binary tree is easy-enough
+    // to use, so I do that
+    for(int i=0; i<ctx->Ncolumns; i++)
+    {
+        if(NULL ==
+           tsearch( (const void*)&ctx->record[i],
+                    &ctx->_dict_key_index,
+                    (int(*)(const void*,const void*))compare_record))
+            return VNL_ERROR;
+    }
+
+    return VNL_OK;
 }
 
 void vnlog_parser_free(vnlog_parser_t* ctx)
@@ -196,6 +226,7 @@ void vnlog_parser_free(vnlog_parser_t* ctx)
                 free(ctx->record[i].key);
         }
         free(ctx->record);
+        tdestroy(ctx->_dict_key_index, &noop_free);
     }
     *ctx = (vnlog_parser_t){};
 }
@@ -213,4 +244,18 @@ vnlog_parser_result_t vnlog_parser_read_record(vnlog_parser_t* ctx, FILE* fp)
     if(result != VNL_OK)
         vnlog_parser_free(ctx);
     return result;
+}
+
+// pointer to the pointer to the string that will contain the
+// most-recently-parsed value for the given key
+const char*const* vnlog_parser_record_from_key(vnlog_parser_t* ctx, const char* key)
+{
+    const keyvalue_t*const* keyvalue =
+        tfind( (const void*)&(const keyvalue_t){.key = (char*)key},
+               &ctx->_dict_key_index,
+               (int(*)(const void*,const void*))compare_record);
+    if(keyvalue == NULL)
+        return NULL;
+
+    return (const char*const*)&(*keyvalue)->value;
 }
