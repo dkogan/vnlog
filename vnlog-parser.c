@@ -86,7 +86,7 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
     {
         if(0 > getline(&ctx->_line, &ctx->_n, fp))
         {
-            if(errno == 0)
+            if(feof(fp))
                 // done reading file
                 return VNL_EOF;
 
