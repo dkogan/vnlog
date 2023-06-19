@@ -62,12 +62,12 @@ bool accumulate_legend(// out
 }
 
 static
-bool add_to_row(// out
-                vnlog_keyvalue_t* record,
-                int*              i_col,
-                // in
-                int   Ncolumns,
-                char* str)
+bool accumulate_data_row(// out
+                         vnlog_keyvalue_t* record,
+                         int*              i_col,
+                         // in
+                         int   Ncolumns,
+                         char* str)
 {
     if(*str == '\0')
         // Empty string. Nothing to do
@@ -159,10 +159,10 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
             }
 
             // Data token
-            if(!add_to_row(ctx->record,
-                           &i_col,
-                           ctx->Ncolumns,
-                           token))
+            if(!accumulate_data_row(ctx->record,
+                                    &i_col,
+                                    ctx->Ncolumns,
+                                    token))
                 return VNL_ERROR;
         }
 
