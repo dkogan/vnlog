@@ -4,12 +4,12 @@ typedef struct
 {
     char* key;
     char* value;
-} keyvalue_t;
+} vnlog_keyvalue_t;
 
 typedef struct
 {
-    int         Ncolumns;
-    keyvalue_t* record;
+    int               Ncolumns;
+    vnlog_keyvalue_t* record;
 
     // This is aliased to vnlog_parser_internal_t.
     //

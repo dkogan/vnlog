@@ -29,7 +29,7 @@ static
 bool add_to_legend(// out
                    int* Ncolumns_allocated,
                    int* i_col,
-                   keyvalue_t** record,
+                   vnlog_keyvalue_t** record,
 
                    // in
                    char* str)
@@ -43,8 +43,8 @@ bool add_to_legend(// out
         (*Ncolumns_allocated) += 1;
         (*Ncolumns_allocated) *= 2;
 
-        *record = (keyvalue_t*)realloc(*record,
-                                       (*Ncolumns_allocated) * sizeof((*record)[0]));
+        *record = (vnlog_keyvalue_t*)realloc(*record,
+                                             (*Ncolumns_allocated) * sizeof((*record)[0]));
         if(*record == NULL)
         {
             MSG("Couldn't allocate record");
@@ -63,8 +63,8 @@ bool add_to_legend(// out
 
 static
 bool add_to_row(// out
-                keyvalue_t* record,
-                int*        i_col,
+                vnlog_keyvalue_t* record,
+                int*              i_col,
                 // in
                 int   Ncolumns,
                 char* str)
@@ -192,7 +192,7 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
 }
 
 static
-int compare_record(const keyvalue_t* a, const keyvalue_t* b)
+int compare_record(const vnlog_keyvalue_t* a, const vnlog_keyvalue_t* b)
 {
     return strcmp(a->key, b->key);
 }
@@ -270,8 +270,8 @@ const char*const* vnlog_parser_record_from_key(vnlog_parser_t* ctx, const char* 
 {
     vnlog_parser_internal_t* internal = (vnlog_parser_internal_t*)ctx->_internal;
 
-    const keyvalue_t*const* keyvalue =
-        tfind( (const void*)&(const keyvalue_t){.key = (char*)key},
+    const vnlog_keyvalue_t*const* keyvalue =
+        tfind( (const void*)&(const vnlog_keyvalue_t){.key = (char*)key},
                &internal->dict_key_index,
                (int(*)(const void*,const void*))compare_record);
     if(keyvalue == NULL)
