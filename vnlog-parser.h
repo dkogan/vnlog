@@ -11,10 +11,11 @@ typedef struct
     int         Ncolumns;
     keyvalue_t* record;
 
-    // internal
-    char*  _line;
-    size_t _n;
-    void* _dict_key_index;
+    // This is aliased to vnlog_parser_internal_t.
+    //
+    // More space than needed today. For future binary compatibility. I ask for
+    // this structure to create an aligned buffer
+    struct {size_t a; int* b;} _internal[8];
 
 } vnlog_parser_t;
 

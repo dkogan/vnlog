@@ -5,13 +5,25 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
-
+#include <stddef.h>
 #include <search.h>
 
 #include "vnlog-parser.h"
 
 #define MSG(fmt, ...) \
     fprintf(stderr, "%s:%d " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+
+typedef struct
+{
+    // internal
+    char*  line;
+    size_t n;
+    void*  dict_key_index;
+} vnlog_parser_internal_t;
+
+_Static_assert( sizeof(vnlog_parser_internal_t) <=
+                sizeof(vnlog_parser_t) - offsetof(vnlog_parser_t, _internal),
+                "vnlog_parser_internal_t must fit in the allotted space");
 
 static
 bool add_to_legend(// out
@@ -82,9 +94,11 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
 {
     int Ncolumns_allocated = 0;
 
+    vnlog_parser_internal_t* internal = (vnlog_parser_internal_t*)ctx->_internal;
+
     while(true)
     {
-        if(0 > getline(&ctx->_line, &ctx->_n, fp))
+        if(0 > getline(&internal->line, &internal->n, fp))
         {
             if(feof(fp))
                 // done reading file
@@ -96,7 +110,7 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
 
         // Have one line. Parse it.
         char* token;
-        char* string_to_tokenize = ctx->_line;
+        char* string_to_tokenize = internal->line;
         int i_col = 0;
 
         const bool legend_is_done = (ctx->record != NULL);
@@ -182,7 +196,7 @@ int compare_record(const keyvalue_t* a, const keyvalue_t* b)
 {
     return strcmp(a->key, b->key);
 }
-static void noop_free(void*)
+static void noop_free(void* _dummy __attribute__((unused)) )
 {
 }
 
@@ -198,6 +212,8 @@ vnlog_parser_result_t vnlog_parser_init(vnlog_parser_t* ctx, FILE* fp)
         return result;
     }
 
+    vnlog_parser_internal_t* internal = (vnlog_parser_internal_t*)ctx->_internal;
+
     // Parsed the legend. Now create a tree to make it easy to look up the
     // specific column by key name. Probably these will be called once per run,
     // so it could be a simple linear search, but a binary tree is easy-enough
@@ -206,7 +222,7 @@ vnlog_parser_result_t vnlog_parser_init(vnlog_parser_t* ctx, FILE* fp)
     {
         if(NULL ==
            tsearch( (const void*)&ctx->record[i],
-                    &ctx->_dict_key_index,
+                    &internal->dict_key_index,
                     (int(*)(const void*,const void*))compare_record))
             return VNL_ERROR;
     }
@@ -218,7 +234,9 @@ void vnlog_parser_free(vnlog_parser_t* ctx)
 {
     if(ctx != NULL)
     {
-        free(ctx->_line);
+        vnlog_parser_internal_t* internal = (vnlog_parser_internal_t*)ctx->_internal;
+
+        free(internal->line);
 
         if(ctx->record != NULL)
         {
@@ -226,7 +244,7 @@ void vnlog_parser_free(vnlog_parser_t* ctx)
                 free(ctx->record[i].key);
         }
         free(ctx->record);
-        tdestroy(ctx->_dict_key_index, &noop_free);
+        tdestroy(internal->dict_key_index, &noop_free);
     }
     *ctx = (vnlog_parser_t){};
 }
@@ -250,9 +268,11 @@ vnlog_parser_result_t vnlog_parser_read_record(vnlog_parser_t* ctx, FILE* fp)
 // most-recently-parsed value for the given key
 const char*const* vnlog_parser_record_from_key(vnlog_parser_t* ctx, const char* key)
 {
+    vnlog_parser_internal_t* internal = (vnlog_parser_internal_t*)ctx->_internal;
+
     const keyvalue_t*const* keyvalue =
         tfind( (const void*)&(const keyvalue_t){.key = (char*)key},
-               &ctx->_dict_key_index,
+               &internal->dict_key_index,
                (int(*)(const void*,const void*))compare_record);
     if(keyvalue == NULL)
         return NULL;
