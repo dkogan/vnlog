@@ -1,3 +1,11 @@
+vnlog (1.35)
+
+  * Build system uses packaged mrbuild. I no longer ship a copy of mrbuild
+    with these source
+  * vnlog parser in C included
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 19 Jun 2023 12:45:49 -0700
+
 vnlog (1.34)
 
   * Minor improvements to the tab-completions
