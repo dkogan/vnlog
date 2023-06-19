@@ -94,6 +94,7 @@ echo '
 0 abc 1 5 3 # 115 113
 ## zxvvvv
 1 def 11 25 53
+
 ' | ./test-parser - y 2>/dev/null > test-parser.got || { echo "LINE $LINENO: FAILED!"; exit 1; }
 
 diff -q test-parser.got <(echo "$ref_y") >&/dev/null || { echo "LINE $LINENO: mismatched output!"; exit 1; }
@@ -101,8 +102,9 @@ diff -q test-parser.got <(echo "$ref_y") >&/dev/null || { echo "LINE $LINENO: mi
 echo '
 # time id x y z # asdf err
 0 abc 1 - - # 115 113
-## zxvvvv
+
 1 def 11 25 53
+# qwer
 ' | ./test-parser - y 2>/dev/null > test-parser.got || { echo "LINE $LINENO: FAILED!"; exit 1; }
 
 diff -q test-parser.got <(echo "$ref_y_gap_first_row") >&/dev/null || { echo "LINE $LINENO: mismatched output!"; exit 1; }
