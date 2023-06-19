@@ -26,13 +26,13 @@ _Static_assert( sizeof(vnlog_parser_internal_t) <=
                 "vnlog_parser_internal_t must fit in the allotted space");
 
 static
-bool add_to_legend(// out
-                   int* Ncolumns_allocated,
-                   int* i_col,
-                   vnlog_keyvalue_t** record,
+bool accumulate_legend(// out
+                       int* Ncolumns_allocated,
+                       int* i_col,
+                       vnlog_keyvalue_t** record,
 
-                   // in
-                   char* str)
+                       // in
+                       char* str)
 {
     if(*str == '\0')
         // Empty string. Nothing to do
@@ -138,10 +138,10 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
 
                 // This is the start of the legend. Parse all the columns
                 parsing_legend_now = true;
-                if(!add_to_legend(&Ncolumns_allocated,
-                                  &i_col,
-                                  &ctx->record,
-                                  &token[1]))
+                if(!accumulate_legend(&Ncolumns_allocated,
+                                      &i_col,
+                                      &ctx->record,
+                                      &token[1]))
                         return VNL_ERROR;
 
                 // grab next token from this line
@@ -150,10 +150,10 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
 
             if(parsing_legend_now)
             {
-                if(!add_to_legend(&Ncolumns_allocated,
-                                  &i_col,
-                                  &ctx->record,
-                                  token))
+                if(!accumulate_legend(&Ncolumns_allocated,
+                                      &i_col,
+                                      &ctx->record,
+                                      token))
                     return VNL_ERROR;
                 continue;
             }
