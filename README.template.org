@@ -366,11 +366,11 @@ vnl-filter --eval '{s += x} END {print s}'
 - =vnlog= is a simple python library to read a vnlog. Both python2 and python3
   are supported
 
-- =libvnlog= is a C library to simplify writing a vnlog. Clearly all you
-  /really/ need is =printf()=, but this is useful if we have lots of columns,
-  many containing null values in any given row, and/or if we have parallel
-  threads writing to a log. In my usage I have hundreds of columns of sparse
-  data, so this is handy
+- =libvnlog= is a C library to simplify reading and writing a vnlog. Clearly all
+  you /really/ need for writing is =printf()=, but this is useful if we have
+  lots of columns, many containing null values in any given row, and/or if we
+  have parallel threads writing to a log. In my usage I have hundreds of columns
+  of sparse data, so this is handy
 
 - =vnl-make-matrix= converts a one-point-per-line vnlog to a matrix of data.
   I.e.
@@ -733,7 +733,8 @@ With a bit of shell manipulation, these tools can be applied to a whole lot of
 different data streams that know nothing of vnlog.
 
 * C interface
-** Basic usage
+** Writing vnlog files
+*** Basic usage
 For most uses, vnlog files are simple enough to be generated with plain prints.
 But then each print statement has to know which numeric column we're populating,
 which becomes effortful with many columns. In my usage it's common to have a
@@ -814,7 +815,7 @@ This is enough for 99% of the use cases. Things get a bit more complex if we
 have have threading or if we have multiple vnlog ouput streams in the same
 program. For both of these we use vnlog /contexts/.
 
-** Contexts
+*** Contexts
 
 To support independent writing into the same vnlog (possibly by multiple
 threads; this is reentrant), each log-writer should create a context, and use it
@@ -891,7 +892,7 @@ this example), then the different writers /must/ live in different source files.
 The compiler will barf if you try to =#include= two different
 =vnlog_fields_....h= files in the same source.
 
-** Remaining APIs
+*** Remaining APIs
 
 - =vnlog_printf(...)= and =vnlog_printf_ctx(ctx, ...)= write to a pipe like
 =printf()= does. This exists primarily for comments.
@@ -917,6 +918,51 @@ vnlog_clear_fields_ctx(&ctx1, false);
 throwing the context away. Currently this is only needed for context that have
 binary fields, but this should be called for all contexts anyway, in case this
 changes in a later revision
+
+** Reading vnlog files
+The basic usage goes like this:
+
+#+begin_src c
+#include <stdio.h>
+#include <stdbool.h>
+#include <vnlog/vnlog-parser.h>
+bool parse_vnlog(const char* filename)
+{
+    FILE* fp = fopen(filename);
+    if(fp == NULL)
+        return false;
+
+    vnlog_parser_t ctx;
+    if(VNL_OK != vnlog_parser_init(&ctx, fp))
+        return false;
+
+    // String in the "time" column for the most-recently-parsed row
+    const char*const* time_record = vnlog_parser_record_from_key(&ctx, "time");
+    if(time_record == NULL)
+    {
+        vnlog_parser_free(&ctx);
+        return false;
+    }
+
+    int i_record = 0;
+    vnlog_parser_result_t result;
+    while(VNL_OK == (result = vnlog_parser_read_record(&ctx, fp)))
+    {
+        for(int i=0; i<ctx.Ncolumns; i++)
+            printf("Record %d: %s = %s\n",
+                   i_record,
+                   ctx.record[i].key, ctx.record[i].value);
+        printf("Record %d: time = %s\n",
+               i_record, *time_record);
+        i_record++;
+    }
+
+    vnlog_parser_free(&ctx);
+    return true;
+}
+#+end_src
+
+The usage should be clear from this example. See =vnlog-parser.h= for details.
 
 ** Base64 interface
 The C interface supports writing base64-encoded binary data using Chris Venter's
