@@ -271,8 +271,5 @@ void _vnlog_emit_record(struct vnlog_context_t* ctx, int Nfields)
     }
     funlockfile(ctx->root->_fp);
 
-    // I want to be able to process streaming data, so I flush the buffer now
-    flush(ctx);
-
     _vnlog_clear_fields_ctx(ctx, Nfields, true);
 }
