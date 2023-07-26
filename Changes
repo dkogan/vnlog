@@ -1,3 +1,12 @@
+vnlog (1.36)
+
+  * C API: I don't fflush() with each record
+
+    The standard C library will already do this for line-buffered output (for
+    humans) and will NOT do this when writing to files (for efficiency). And there's
+    a standard way to force one or the other behavior (stdbuf).
+ --
+
 vnlog (1.35)
 
   * Build system uses packaged mrbuild. I no longer ship a copy of mrbuild
