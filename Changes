@@ -5,7 +5,8 @@ vnlog (1.36)
     The standard C library will already do this for line-buffered output (for
     humans) and will NOT do this when writing to files (for efficiency). And there's
     a standard way to force one or the other behavior (stdbuf).
- --
+
+ -- Dima Kogan <dkogan@debian.org>  Tue, 25 Jul 2023 23:39:34 -0700
 
 vnlog (1.35)
 
