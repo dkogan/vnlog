@@ -247,11 +247,14 @@ def _slurp(f):
 
     parser = vnlog()
 
-    for l in f:
-        parser.parse(l)
+    keys = None
+    for line in f:
+        parser.parse(line)
         keys = parser.keys()
         if keys is not None:
             break
+    else:
+        raise Exception("vnlog parser did not find a legend line")
 
     dict_key_index = {}
     for i in range(len(keys)):
