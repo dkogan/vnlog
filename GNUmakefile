@@ -88,7 +88,7 @@ test check:					\
    test/test_vnl-uniq.pl.RUN			\
    test/test_c_api.sh.RUN			\
    test/test_perl_parser.pl.RUN			\
-   test/test_python3_parser.sh.RUN
+   test/test_python_parser.py.RUN
 	@echo "All tests in the test suite passed!"
 .PHONY: test check
 %.RUN: %

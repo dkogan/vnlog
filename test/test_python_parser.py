@@ -1,9 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 r'''Tests the python parser
 
-This is intended to work with both python2 and python3. test_python2_parser.sh
-and test_python3_parser.sh invoke this script with their respective interpreters
+This is intended to work with both python2 and python3.
 
 '''
 
