@@ -166,7 +166,7 @@ sub substitute_field_keys
     for my $i_keyoption (0..$Nkeyoptions-1)
     {
         $options->{key}[$i_keyoption] =~ /^([^\.]+)(?:\.([bdfgiMhnRrV]+?))?$/
-          or die "Couldn't parse '$_' as a sort KEYDEF";
+          or die "Couldn't parse '$_' as a sort KEYDEF. Excepted FIELDNAME or FIELDNAME.SORTOPTIONS";
 
         my $key  = get_key_index($inputs, $1);
         my $opts = $2 // '';
