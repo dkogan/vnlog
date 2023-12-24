@@ -295,6 +295,8 @@ list of other tools that do vaguely the same thing. Some of these:
 - https://github.com/BurntSushi/xsv
 - https://csvkit.readthedocs.io/
 - https://github.com/johnkerl/miller
+- https://github.com/jqnatividad/qsv
+- https://github.com/greymd/teip
 - https://github.com/eBay/tsv-utils-dlang
 - https://www.gnu.org/software/datamash/
 - https://stedolan.github.io/jq/
