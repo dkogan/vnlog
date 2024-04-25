@@ -124,8 +124,8 @@ class vnlog:
         self._values_dict = None
 
         if not hasattr(self, 're_hard_comment'):
-            self.re_hard_comment = re.compile('^\s*(?:#[#!]|#\s*$|$)')
-            self.re_soft_comment = re.compile('^\s*#\s*(.*?)\s*$')
+            self.re_hard_comment = re.compile(r'^\s*(?:#[#!]|#\s*$|$)')
+            self.re_soft_comment = re.compile(r'^\s*#\s*(.*?)\s*$')
 
         if self.re_hard_comment.match(l):
             # empty line or hard comment.
