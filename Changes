@@ -1,3 +1,17 @@
+vnlog (1.37)
+
+  * Fixed vnl-filter --perl --stream --eval
+
+    The --stream option means "flush after each print". But the code was
+    calling flush() explicitly, so --eval would break the --stream: it
+    would be the user's job to add their own flush(). This patch adds
+    "$|=1" to the preamble in this case, so the language would add their
+    own implicit flush().
+
+    The equivalent was already being done in awk
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 27 May 2024 10:23:15 -0700
+
 vnlog (1.36)
 
   * C API: I don't fflush() with each record
