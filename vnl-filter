@@ -988,9 +988,10 @@ sub expr_subst_col_names
 
 
 
-my $BEGIN = $options{begin} // '';
+my $autoflushstr = $options{eval} && $options{unbuffered} ? '$| = 1; ' : '';
+my $BEGIN        = $options{begin} // '';
 
-my $evalstr = $BEGIN . '; ' . join('', map { my ($sub) = expr_subst_col_names('perl', $_); "sub $sub\n"} @{$options{function}});
+my $evalstr = $autoflushstr . $BEGIN . '; ' . join('', map { my ($sub) = expr_subst_col_names('perl', $_); "sub $sub\n"} @{$options{function}});
 
 my $must_match_expr =
   join ' && ',
