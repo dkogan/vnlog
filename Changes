@@ -1,3 +1,10 @@
+vnlog (1.38)
+
+  * Python vnlog.slurp() can accept a structured dtype, so it can now read
+    non-numerical data
+
+ -- Dima Kogan <dkogan@debian.org>  Tue, 02 Jul 2024 09:15:59 -0700
+
 vnlog (1.37)
 
   * Fixed vnl-filter --perl --stream --eval
