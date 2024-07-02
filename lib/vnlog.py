@@ -223,7 +223,10 @@ class vnlog:
     next = __next__
 
 
-def _slurp(f):
+def _slurp(f,
+           *,
+           dtype   = None,
+           usecols = None):
     r'''Reads a whole vnlog into memory
 
     This is an internal function. The argument is a file object, not a filename.
@@ -244,6 +247,37 @@ def _slurp(f):
         num_new_axes = need_ndim-x.ndim
         return x[ (np.newaxis,)*(num_new_axes) ]
 
+    # Expands the fields in a dtype into a flat list of names. This is an analogue
+    # of field_type_grow_recursive() in
+    # https://github.com/numpy/numpy/blob/9815c16f449e12915ef35a8255329ba26dacd5c0/numpy/core/src/multiarray/textreading/field_types.c#L95
+    def field_names_in_dtype(dtype,
+                             name0 = '',
+                             *,
+                             toplevel_names_only = False):
+        def join(a,b):
+            if a == '': return b
+            if toplevel_names_only or a is None:
+                return None
+            return f"{a}.{b}"
+
+        if dtype.subdtype is not None:
+            size = np.prod(dtype.shape)
+            for i in range(size):
+                yield join(name0,i)
+            return
+
+        if dtype.fields is not None:
+            for name1 in dtype.names:
+                tup = dtype.fields[name1]
+                field_descr = tup[0]
+                yield from field_names_in_dtype(field_descr, join(name0,name1),
+                                                toplevel_names_only = toplevel_names_only)
+            return
+
+        if name0 == '': raise Exception("Unnamed field. This is probably a bug")
+        yield name0
+
+
 
     parser = vnlog()
 
@@ -260,9 +294,62 @@ def _slurp(f):
     for i in range(len(keys)):
         dict_key_index[keys[i]] = i
 
-    return                               \
-        atleast_dims(np.loadtxt(f), -2), \
-        keys,                            \
+
+    if dtype is None:
+        x = np.loadtxt(f,
+                       usecols = usecols)
+    else:
+
+        names_dtype_full = list(field_names_in_dtype(dtype, toplevel_names_only = False))
+        names_dtype      = list(field_names_in_dtype(dtype, toplevel_names_only = True))
+
+        # We have input fields in the vnl represented in:
+        # - keys
+        # - dict_key_index
+        #
+        # We have output fields represented in:
+        # - usecols
+        # - names_dtype
+        #
+        # 'usecols' and 'names_dtype' have the same number of elements: one describing
+        # each field. 'usecols' are integers indexing the input fields in 'keys'.
+        # 'names_dtype' are names of these input fields, which must match the input
+        # names given in 'keys'. Compound fields in the names_dtype are None (an 'xyz'
+        # field will appear as (None,None,None)), and will match any field name in
+        # 'keys'. A None field in usecols will be auto-filled-in from 'dict_key_index'
+        if len(names_dtype) != len(usecols):
+            raise Exception(f"Have {len(names_dtype)} names in the given dtype and {len(usecols)} columns in usecols. These MUST match")
+
+        Ncols_output = len(usecols)
+
+        usecols_expanded = list(usecols) # make a modifiable copy
+
+        for i_out in range(Ncols_output):
+            name_dtype = names_dtype[i_out]
+            if name_dtype is None:
+                if usecols_expanded[i_out] is None:
+                    raise Exception(f'Output field {i_out=} is in a compound type "{names_dtype_full[i_out]}", so its input column MUST be given in usecols, but it is None')
+                continue
+
+            try:
+                i_in = dict_key_index[name_dtype]
+            except:
+                raise Exception(f"The given dtype has {name_dtype=} but this doesn't appear in the vnlog columns {keys=}")
+
+            if usecols_expanded[i_out] is None:
+                usecols_expanded[i_out] = i_in
+            else:
+                if usecols_expanded[i_out] != i_in:
+                    raise Exception(f"The given dtype has {name_dtype=}, which appears in the input vnlog column {i_in=}, but usecols has it in column {usecols_expanded[i_out]}. These must match. Or leave the usecols entry as None to auto-fill")
+
+
+        x = np.loadtxt(f,
+                       dtype   = dtype,
+                       usecols = usecols_expanded)
+
+    return                   \
+        atleast_dims(x, -2), \
+        keys,                \
         dict_key_index
 
 
