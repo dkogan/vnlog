@@ -225,8 +225,7 @@ class vnlog:
 
 def _slurp(f,
            *,
-           dtype   = None,
-           usecols = None):
+           dtype = None):
     r'''Reads a whole vnlog into memory
 
     This is an internal function. The argument is a file object, not a filename.
@@ -247,35 +246,43 @@ def _slurp(f,
         num_new_axes = need_ndim-x.ndim
         return x[ (np.newaxis,)*(num_new_axes) ]
 
-    # Expands the fields in a dtype into a flat list of names. This is an analogue
-    # of field_type_grow_recursive() in
+    # Expands the fields in a dtype into a flat list of names. For vnlog
+    # purposes this doesn't support multiple levels of fields and it doesn't
+    # support unnamed fields. It DOES support (require!) compound elements with
+    # whitespace-separated field names, such as 'x y z' for a shape-(3,) field.
+    #
+    # This function is an analogue of field_type_grow_recursive() in
     # https://github.com/numpy/numpy/blob/9815c16f449e12915ef35a8255329ba26dacd5c0/numpy/core/src/multiarray/textreading/field_types.c#L95
     def field_names_in_dtype(dtype,
-                             name0 = '',
-                             *,
-                             toplevel_names_only = False):
-        def join(a,b):
-            if a == '': return b
-            if toplevel_names_only or a is None:
-                return None
-            return f"{a}.{b}"
+                             split_name = None,
+                             name       = None):
 
         if dtype.subdtype is not None:
+            if split_name is None:
+                raise Exception("only structured dtypes with named fields are supported")
             size = np.prod(dtype.shape)
-            for i in range(size):
-                yield join(name0,i)
+            if size != len(split_name):
+                raise Exception(f'Field "{name}" has {len(split_name)} elements, but the dtype has it associated with a field of shape {dtype.shape} with {size} elements. The sizes MUST match')
+            yield from split_name
             return
 
         if dtype.fields is not None:
+            if split_name is not None:
+                raise("structured dtype with nested fields unsupported")
             for name1 in dtype.names:
                 tup = dtype.fields[name1]
                 field_descr = tup[0]
-                yield from field_names_in_dtype(field_descr, join(name0,name1),
-                                                toplevel_names_only = toplevel_names_only)
+
+                yield from field_names_in_dtype(field_descr,
+                                                name       = name1,
+                                                split_name = name1.split(),)
             return
 
-        if name0 == '': raise Exception("Unnamed field. This is probably a bug")
-        yield name0
+        if split_name is None:
+            raise Exception("structured dtype with unnamed fields unsupported")
+        if len(split_name) != 1:
+            raise Exception(f"Field '{name}' is a scalar so it may not contain whitespace in its name")
+        yield split_name[0]
 
 
 
@@ -295,65 +302,54 @@ def _slurp(f,
         dict_key_index[keys[i]] = i
 
 
-    if dtype is None:
-        x = np.loadtxt(f,
-                       usecols = usecols)
-    else:
-
-        names_dtype_full = list(field_names_in_dtype(dtype, toplevel_names_only = False))
-        names_dtype      = list(field_names_in_dtype(dtype, toplevel_names_only = True))
-
-        # We have input fields in the vnl represented in:
-        # - keys
-        # - dict_key_index
-        #
-        # We have output fields represented in:
-        # - usecols
-        # - names_dtype
-        #
-        # 'usecols' and 'names_dtype' have the same number of elements: one describing
-        # each field. 'usecols' are integers indexing the input fields in 'keys'.
-        # 'names_dtype' are names of these input fields, which must match the input
-        # names given in 'keys'. Compound fields in the names_dtype are None (an 'xyz'
-        # field will appear as (None,None,None)), and will match any field name in
-        # 'keys'. A None field in usecols will be auto-filled-in from 'dict_key_index'
-        if len(names_dtype) != len(usecols):
-            raise Exception(f"Have {len(names_dtype)} names in the given dtype and {len(usecols)} columns in usecols. These MUST match")
-
-        Ncols_output = len(usecols)
-
-        usecols_expanded = list(usecols) # make a modifiable copy
-
-        for i_out in range(Ncols_output):
-            name_dtype = names_dtype[i_out]
-            if name_dtype is None:
-                if usecols_expanded[i_out] is None:
-                    raise Exception(f'Output field {i_out=} is in a compound type "{names_dtype_full[i_out]}", so its input column MUST be given in usecols, but it is None')
-                continue
-
-            try:
-                i_in = dict_key_index[name_dtype]
-            except:
-                raise Exception(f"The given dtype has {name_dtype=} but this doesn't appear in the vnlog columns {keys=}")
-
-            if usecols_expanded[i_out] is None:
-                usecols_expanded[i_out] = i_in
-            else:
-                if usecols_expanded[i_out] != i_in:
-                    raise Exception(f"The given dtype has {name_dtype=}, which appears in the input vnlog column {i_in=}, but usecols has it in column {usecols_expanded[i_out]}. These must match. Or leave the usecols entry as None to auto-fill")
+    if dtype is None or \
+       not isinstance(dtype, np.dtype) or \
+       ( dtype.fields is None and \
+         dtype.subdtype is None ):
+        return \
+            ( atleast_dims(np.loadtxt(f, dtype=dtype), -2),
+              keys,
+              dict_key_index )
 
 
-        x = np.loadtxt(f,
-                       dtype   = dtype,
-                       usecols = usecols_expanded)
+    # We have a dtype. We parse out the field names from it, map those to
+    # columns in the input (from the vnl legend that we just parsed), and
+    # load everything with np.loadtxt()
 
-    return                   \
-        atleast_dims(x, -2), \
-        keys,                \
-        dict_key_index
+    names_dtype = list(field_names_in_dtype(dtype))
+
+    # We have input fields in the vnl represented in:
+    # - keys
+    # - dict_key_index
+    #
+    # We have output fields represented in:
+    # - names_dtype
+    #
+    # Each element of 'names_dtype' corresponds to each output field, in
+    # order. 'names_dtype' are names of these input fields, which must match
+    # the input names given in 'keys'.
+    Ncols_output = len(names_dtype)
+
+    usecols = [None] * Ncols_output
+
+    for i_out in range(Ncols_output):
+        name_dtype = names_dtype[i_out]
+        try:
+            i_in = dict_key_index[name_dtype]
+        except:
+            raise Exception(f"The given dtype contains field {name_dtype=} but this doesn't appear in the vnlog columns {keys=}")
+        usecols[i_out] = i_in
+
+    return \
+        np.loadtxt(f,
+                   dtype   = dtype,
+                   usecols = usecols)
 
 
-def slurp(f):
+
+def slurp(f,
+          *,
+          dtype = None):
     r'''Reads a whole vnlog into memory
 
     Synopsis:
@@ -371,9 +367,9 @@ def slurp(f):
 
     if type(f) is str:
         with open(f, 'r') as fh:
-            return _slurp(fh)
+            return _slurp(fh, dtype=dtype)
     else:
-        return _slurp(f)
+        return _slurp(f, dtype=dtype)
 
 
 

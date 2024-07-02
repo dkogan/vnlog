@@ -100,7 +100,104 @@ if len(dict_key_index) != 2 or dict_key_index['time'] != 0 or dict_key_index['he
     raise Exception("Key-dict mismatch: expected '{}' but got '{}". \
                    format({'time': 0, 'height': 1}, dict_key_index))
 
+# Slurping with simple dtypes
+f = StringIO(inputstring_noundef)
+arr = vnlog.slurp(f, dtype=int)[0]
+if arr.dtype != int: raise Exception("Unexpected dtype")
+if np.linalg.norm((ref_noundef - arr).ravel()) > 1e-8:
+    raise Exception("Array mismatch")
 
+f = StringIO(inputstring_noundef)
+arr = vnlog.slurp(f, dtype=float)[0]
+if arr.dtype != float: raise Exception("Unexpected dtype")
+if np.linalg.norm((ref_noundef - arr).ravel()) > 1e-8:
+    raise Exception("Array mismatch")
+
+f = StringIO(inputstring_noundef)
+arr = vnlog.slurp(f, dtype=np.dtype(float))[0]
+if arr.dtype != float: raise Exception("Unexpected dtype")
+if np.linalg.norm((ref_noundef - arr).ravel()) > 1e-8:
+    raise Exception("Array mismatch")
+
+
+
+# Slurping with structured dtypes
+inputstring = '''
+## asdf
+# x name y name2 z
+1 a 2 zz2 3
+4 fbb 5 qq2 6
+'''
+ref = np.array(((1,2,3),
+                (4,5,6),),)
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x y z', int, (3,)),
+                   ('name2', 'U16'), ])
+f = StringIO(inputstring)
+arr = vnlog.slurp(f, dtype=dtype)
+if arr.shape != (2,):           raise Exception("Unexpected structured array outer shape")
+if arr['name' ].shape != (2,):  raise Exception("Unexpected structured array inner shape")
+if arr['name2'].shape != (2,):  raise Exception("Unexpected structured array inner shape")
+if arr['x y z'].shape != (2,3): raise Exception("Unexpected structured array inner shape")
+if arr['x y z'].dtype != int:   raise Exception("Unexpected structured array inner dtype")
+if arr['name' ][0] != 'a':      raise Exception("mismatch")
+if arr['name2'][1] != 'qq2':    raise Exception("mismatch")
+if np.linalg.norm((ref - arr['x y z']).ravel()) > 1e-8:
+    raise Exception("Array mismatch")
+
+# selecting a subset of the data
+ref = np.array(((1,3),
+                (4,6),),)
+dtype = np.dtype([ ('name2', 'U16'),
+                   ('x z', int, (2,)) ])
+f = StringIO(inputstring)
+arr = vnlog.slurp(f, dtype=dtype)
+if arr['x z'].shape != (2,2): raise Exception("Unexpected structured array inner shape")
+if arr['x z'].dtype != int:   raise Exception("Unexpected structured array inner dtype")
+if arr['name2'][1] != 'qq2':    raise Exception("mismatch")
+if np.linalg.norm((ref - arr['x z']).ravel()) > 1e-8:
+    raise Exception("Array mismatch")
+
+
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x yz', int, (3,)),
+                   ('name2', 'U16'), ])
+f = StringIO(inputstring)
+try:    arr = vnlog.slurp(f, dtype=dtype)
+except: pass
+else:   raise Exception("Bad dtype wasn't flagged")
+
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x yz', int, (2,)),
+                   ('name2', 'U16'), ])
+f = StringIO(inputstring)
+try:    arr = vnlog.slurp(f, dtype=dtype)
+except: pass
+else:   raise Exception("Bad dtype wasn't flagged")
+
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x y z w', int, (4,)),
+                   ('name2', 'U16'), ])
+f = StringIO(inputstring)
+try:    arr = vnlog.slurp(f, dtype=dtype)
+except: pass
+else:   raise Exception("Bad dtype wasn't flagged")
+
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x y z', int, (2,)),
+                   ('name2', 'U16'), ])
+f = StringIO(inputstring)
+try:    arr = vnlog.slurp(f, dtype=dtype)
+except: pass
+else:   raise Exception("Bad dtype wasn't flagged")
+
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x y z', int, (3,)),
+                   ('name 2', 'U16'), ])
+f = StringIO(inputstring)
+try:    arr = vnlog.slurp(f, dtype=dtype)
+except: pass
+else:   raise Exception("Bad dtype wasn't flagged")
 
 print("Test passed")
 sys.exit(0);
