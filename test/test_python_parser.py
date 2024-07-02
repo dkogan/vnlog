@@ -121,6 +121,17 @@ if np.linalg.norm((ref_noundef - arr).ravel()) > 1e-8:
 
 
 
+# Slurping a single row should still produce a 2d result
+inputstring = '''
+## asdf
+# x name y name2 z
+1 2 3
+'''
+f = StringIO(inputstring)
+arr = vnlog.slurp(f)[0]
+if arr.shape != (1,3): raise Exception("Unexpected shape")
+
+
 # Slurping with structured dtypes
 inputstring = '''
 ## asdf
@@ -198,6 +209,23 @@ f = StringIO(inputstring)
 try:    arr = vnlog.slurp(f, dtype=dtype)
 except: pass
 else:   raise Exception("Bad dtype wasn't flagged")
+
+# Slurping a single row with a structured dtype
+inputstring = '''
+## asdf
+# x name y name2 z
+4 fbb 5 qq2 6
+'''
+dtype = np.dtype([ ('name',  'U16'),
+                   ('x y z', int, (3,)),
+                   ('name2', 'U16'), ])
+f = StringIO(inputstring)
+arr = vnlog.slurp(f, dtype=dtype)
+if arr.shape != (1,):           raise Exception("Unexpected structured array outer shape")
+if arr['name' ].shape != (1,):  raise Exception("Unexpected structured array inner shape")
+if arr['name2'].shape != (1,):  raise Exception("Unexpected structured array inner shape")
+if arr['x y z'].shape != (1,3): raise Exception("Unexpected structured array inner shape")
+
 
 print("Test passed")
 sys.exit(0);

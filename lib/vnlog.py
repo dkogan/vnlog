@@ -236,16 +236,6 @@ def _slurp(f,
     import numpy as np
 
 
-    # Stripped down numpysane.atleast_dims(). I don't want to introduce that
-    # dependency
-    def atleast_dims(x, d):
-        if d >= 0: raise Exception("Requires d<0")
-        need_ndim = -d
-        if x.ndim >= need_ndim:
-            return x
-        num_new_axes = need_ndim-x.ndim
-        return x[ (np.newaxis,)*(num_new_axes) ]
-
     # Expands the fields in a dtype into a flat list of names. For vnlog
     # purposes this doesn't support multiple levels of fields and it doesn't
     # support unnamed fields. It DOES support (require!) compound elements with
@@ -307,7 +297,7 @@ def _slurp(f,
        ( dtype.fields is None and \
          dtype.subdtype is None ):
         return \
-            ( atleast_dims(np.loadtxt(f, dtype=dtype), -2),
+            ( np.loadtxt(f, ndmin=2, dtype=dtype),
               keys,
               dict_key_index )
 
@@ -342,6 +332,7 @@ def _slurp(f,
 
     return \
         np.loadtxt(f,
+                   ndmin   = 1,
                    dtype   = dtype,
                    usecols = usecols)
 
