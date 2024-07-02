@@ -20,7 +20,7 @@ This module provides three different ways to parse vnlog
         vnlog.slurp(filename_or_fileobject)
 
    This parses out the legend, and then calls numpy.loadtxt(). Null data values
-   ('-') are not supported
+   ('-') and any non-numerical data is not supported
 
 2. Iterate through the records: vnlog class, used as an iterator. Basic usage:
 
