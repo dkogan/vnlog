@@ -16,7 +16,7 @@ This module provides three different ways to parse vnlog
 1. slurp the whole thing into a numpy array: the slurp() function. Basic usage:
 
    import vnlog
-   log_numpy_array,list_keys,dict_key_index = \
+   arr,list_keys,dict_key_index = \
         vnlog.slurp(filename_or_fileobject)
 
    This parses out the legend, and then calls numpy.loadtxt(). Null data values
@@ -231,7 +231,7 @@ def _slurp(f,
 
     This is an internal function. The argument is a file object, not a filename.
 
-    Returns a tuple (log_numpy_array, list_keys, dict_key_index)
+    Returns a tuple (arr, list_keys, dict_key_index)
 
     '''
     import numpy as np
@@ -359,13 +359,13 @@ def slurp(f):
     Synopsis:
 
         import vnlog
-        log_numpy_array,list_keys,dict_key_index = \
+        arr,list_keys,dict_key_index = \
              vnlog.slurp(filename_or_fileobject)
 
         This parses out the legend, and then calls numpy.loadtxt(). Null data
         values ('-') are not supported.
 
-    Returns a tuple (log_numpy_array, list_keys, dict_key_index)
+    Returns a tuple (arr, list_keys, dict_key_index)
 
     '''
 

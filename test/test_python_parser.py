@@ -89,10 +89,10 @@ inputstring_noundef = r'''#! zxcv
 '''
 ref_noundef = np.array(((1,2),(3,4),(7,8)))
 f = StringIO(inputstring_noundef)
-log_numpy_array,list_keys,dict_key_index = vnlog.slurp(f)
-if np.linalg.norm((ref_noundef - log_numpy_array).ravel()) > 1e-8:
+arr,list_keys,dict_key_index = vnlog.slurp(f)
+if np.linalg.norm((ref_noundef - arr).ravel()) > 1e-8:
     raise Exception("Array mismatch: expected '{}' but got '{}". \
-                    format(ref_noundef, log_numpy_array))
+                    format(ref_noundef, arr))
 if len(list_keys) != 2 or list_keys[0] != 'time' or list_keys[1] != 'height':
     raise Exception("Key mismatch: expected '{}' but got '{}". \
                     format(('time','height'), list_keys))
