@@ -994,7 +994,7 @@ provides three different ways to do that:
 
    #+begin_src python
 import vnlog
-log_numpy_array,list_keys,dict_key_index = \
+arr,list_keys,dict_key_index = \
     vnlog.slurp(filename_or_fileobject)
    #+end_src
 
@@ -1026,7 +1026,88 @@ for l in file:
    #+end_src
 
 Most of the time you'd use options 1 or 2 above. Option 3 is the most general,
-but also the most verbose
+but also the most verbose and slowest.
+
+** Structured dtypes in slurp()
+
+The =slurp()= example from above is simple: it doesn't specify a =dtype= (data
+type), so =float= (64-bit IEEE-754 float) is used by default, for /all/ the data
+in the array. You can specify another =dtype=, for instance:
+
+   #+begin_src python
+arr,list_keys,dict_key_index = \
+    vnlog.slurp(filename_or_fileobject,
+                dtype = int)
+   #+end_src
+
+You can also specify a [[https://numpy.org/doc/stable/user/basics.rec.html][/structured/ dtype]] to pull out different columns, with
+different individual dtypes. Most notably, this allows interpreting some columns
+as strings. Let's say you have a very common vnlog data, such as this "data.vnl":
+
+#+begin_example
+#  image   x y z temperature
+image1.png 1 2 5 34
+image2.png 3 4 1 35
+#+end_example
+
+Reading this with a simple =vnlog.slurp()= will fail: the filenames are not
+parseable as numerical values. We can instead do this:
+
+#+begin_src python
+dtype = np.dtype([ ('image',       'U16'),
+                   ('x y z',       int, (3,)),
+                   ('temperature', float), ])
+arr = vnlog.slurp("data.vnl", dtype=dtype)
+#+end_src
+
+This will read the image filename, the xyz points and the temperature into
+different sub-arrays, with different types each. Accessing the result looks
+like this:
+
+#+begin_example
+print(arr['image'])
+---> array(['image1.png', 'image2.png'], dtype='<U16')
+
+print(arr['x y z'])
+---> array([[1, 2, 5],
+            [3, 4, 1]])
+
+print(arr['temperature'])
+---> array([34., 35.])
+#+end_example
+
+Notes:
+
+- The given structured dtype defines both how to organize the data, and which
+  data to extract. So it can be used to read in only a subset of the available
+  columns. Here I could have omitted the 'temperature' column, for instance
+
+- Sub-arrays are allowed. In the example I could say either
+
+  #+begin_src python
+  dtype = np.dtype([ ('image',       'U16'),
+                     ('x y z',       int, (3,)),
+                     ('temperature', float), ])
+  #+end_src
+
+  or
+
+  #+begin_src python
+  dtype = np.dtype([ ('image',       'U16'),
+                     ('x',           int),
+                     ('y',           int),
+                     ('z',           int),
+                     ('temperature', float), ])
+  #+end_src
+
+  The latter would read =x=, =y=, =z= into separate, individual arrays. Sometime
+  we want this, sometimes not.
+
+- Nested structured dtypes are not allowed. Fields inside other fields are not
+  supported, since it's not clear how to map that to a flat vnlog legend
+
+- If a structured dtype is given, =slurp()= returns the array only, since the
+  field names are already available in the dtype
 
 * numpy interface
 If we need to read data into numpy specifically, nicer tools are available than

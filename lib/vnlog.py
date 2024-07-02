@@ -8,8 +8,8 @@ Synopsis:
     for d in vnlog.vnlog(f):
         print(d['time'],d['height'])
 
-Vnlog is simple, and you don't NEED a parser to read it, but this makes it a bit
-nicer.
+Vnlog is simple, and you don't NEED a parser to read it, but this library makes
+it a bit nicer.
 
 This module provides three different ways to parse vnlog
 
@@ -20,7 +20,8 @@ This module provides three different ways to parse vnlog
         vnlog.slurp(filename_or_fileobject)
 
    This parses out the legend, and then calls numpy.loadtxt(). Null data values
-   ('-') and any non-numerical data is not supported
+   ('-') are not supported at this time. A structured dtype can be passed-in to
+   read non-numerical data. See the docstring for vnlog.slurp() for details
 
 2. Iterate through the records: vnlog class, used as an iterator. Basic usage:
 
@@ -29,7 +30,6 @@ This module provides three different ways to parse vnlog
        print(d['time'],d['height'])
 
    Null data values are represented as None
-
 
 3. Parse incoming lines individually: vnlog class, using the parse() method.
    Basic usage:
@@ -230,7 +230,7 @@ def _slurp(f,
 
     This is an internal function. The argument is a file object, not a filename.
 
-    Returns a tuple (arr, list_keys, dict_key_index)
+    See the docs for slurp() for details
 
     '''
     import numpy as np
@@ -343,16 +343,88 @@ def slurp(f,
           dtype = None):
     r'''Reads a whole vnlog into memory
 
-    Synopsis:
+SYNOPSIS
 
-        import vnlog
-        arr,list_keys,dict_key_index = \
-             vnlog.slurp(filename_or_fileobject)
+    import vnlog
 
-        This parses out the legend, and then calls numpy.loadtxt(). Null data
-        values ('-') are not supported.
+    ### Read numerical data into arr
+    arr,list_keys,dict_key_index = \
+         vnlog.slurp(filename_or_fileobject)
 
-    Returns a tuple (arr, list_keys, dict_key_index)
+    ### Read disparate, partly-numerical data using a structured dtype
+    # Let's say "data.vnl" contains:
+
+      #  image   x y z temperature
+      image1.png 1 2 5 34
+      image2.png 3 4 1 35
+
+    dtype = np.dtype([ ('image',       'U16'),
+                       ('x y z',       int, (3,)),
+                       ('temperature', float), ])
+
+    arr = vnlog.slurp("data.vnl", dtype=dtype)
+
+    print(arr['image'])
+    ---> array(['image1.png', 'image2.png'], dtype='<U16')
+
+    print(arr['x y z'])
+    ---> array([[1, 2, 5],
+                [3, 4, 1]])
+
+    print(arr['temperature'])
+    ---> array([34., 35.])
+
+This function is primarily a wrapper around numpy.loadtxt(), which does most of
+the work. Null data values ('-') are not supported at this time.
+
+A dtype can be given in a keyword argument. If this is a base type (something
+like 'float' or 'np.int8'), the returned array will be composed entirely of
+values of that type.
+
+If this is a structured dtype (like the one in the SYNOPSIS above), a structured
+array will be returned. Some notes about this behavior:
+
+- The given structured dtype defines both how to organize the data, and which
+  data to extract. So it can be used to read in only a subset of the available
+  columns. In the sample above I could have omitted the 'temperature' column,
+  for instance
+
+- Sub-arrays are allowed. In the example I could say either
+
+    dtype = np.dtype([ ('image',       'U16'),
+                       ('x y z',       int, (3,)),
+                       ('temperature', float), ])
+
+  or
+
+    dtype = np.dtype([ ('image',       'U16'),
+                       ('x',           int),
+                       ('y',           int),
+                       ('z',           int),
+                       ('temperature', float), ])
+
+  The latter would read x,y,z into separate, individual arrays. Sometime we want
+  this, sometimes not.
+
+- Nested structured dtypes are not allowed. Fields inside other fields are not
+  supported, since it's not clear how to map that to a flat vnlog legend
+
+- If a structured dtype is given we return the array only, since the field names
+  are already available in the dtype
+
+ARGUMENTS
+
+- f: a filename or a readable Python "file" object. We read this until the end
+
+- dtype: an optional dtype for the ouput array. May be a structured dtype
+
+RETURN VALUE
+
+- If no dtype is given or a simple dtype is given:
+  Returns a tuple (arr, list_keys, dict_key_index)
+
+- If a structured dtype is given:
+  Returns arr
 
     '''
 
