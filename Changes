@@ -1,3 +1,9 @@
+vnlog (1.39)
+
+  * vnl-filter: pacified warning about duplicate begin/end options
+
+ -- Dima Kogan <dkogan@debian.org>  Wed, 29 Jan 2025 09:38:30 -0800
+
 vnlog (1.38)
 
   * Python vnlog.slurp() can accept a structured dtype, so it can now read
