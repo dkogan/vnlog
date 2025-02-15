@@ -50,7 +50,7 @@ my @specs = ( # options with no args
               "c|C",
 
               "vnl-tool=s",
-              "help|h");
+              "help");
 
 my %options_unsupported = ( 'files0-from' => <<'EOF',
 Support for this could be added but has not been (yet)
