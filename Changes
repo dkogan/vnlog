@@ -1,3 +1,9 @@
+vnlog (1.40)
+
+  * "vnl-sort -h" is no longer ambiguous
+
+ -- Dima Kogan <dkogan@debian.org>  Fri, 14 Feb 2025 19:48:26 -0800
+
 vnlog (1.39)
 
   * vnl-filter: pacified warning about duplicate begin/end options
