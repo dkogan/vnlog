@@ -29,7 +29,7 @@ my @specs = ( # options with no args
              "a=s@", "e=s", "1=s", "2=s", "j=s", "o=s", "t=s", "v=s@",
 
              "vnl-tool=s",
-             "help|h");
+             "help");
 
 @specs = (@specs,
           "vnl-prefix1=s",

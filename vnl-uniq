@@ -29,7 +29,7 @@ my @specs = ( # options with no args
              "vnl-count=s",
 
              "vnl-tool=s",
-             "help|h");
+             "help");
 
 
 my %options_unsupported = ( 'zero-terminated' => <<'EOF'

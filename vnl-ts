@@ -13,7 +13,7 @@ use Vnlog::Util qw(parse_options read_and_preparse_input ensure_all_legends_equi
 my @specs = ( qw(i s m r),
               "vnl-field=s",
               "vnl-tool=s",
-              "help|h");
+              "help");
 
 
 my ($filenames,$options,$nondash_options) = parse_options(\@ARGV, \@specs, 1, <<EOF);
