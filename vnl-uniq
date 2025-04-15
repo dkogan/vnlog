@@ -161,21 +161,33 @@ vnl-uniq - uniq a log file, preserving the legend
 
 =head1 SYNOPSIS
 
- $ cat colors.vnl
- # color
- blue
- yellow
- yellow
- blue
- yellow
- orange
- orange
+ $ cat sizes-colors.vnl
+ # size  color
+ 12     blue
+ 11     yellow
+ 13     yellow
+ 53     blue
+ 34     yellow
+ 22     orange
+ 11     orange
 
- $ < colors.vnl | vnl-sort | vnl-uniq -c
+ $ < sizes-colors.vnl | vnl-filter -p color | vnl-sort -k color | vnl-uniq -c
  # count color
        2 blue
        2 orange
        3 yellow
+
+ $ < sizes-colors.vnl | vnl-sort -k color | vnl-uniq --group -f -1
+ # size color
+ 12     blue
+ 53     blue
+
+ 11     orange
+ 22     orange
+
+ 11     yellow
+ 13     yellow
+ 34     yellow
 
 =head1 DESCRIPTION
 
