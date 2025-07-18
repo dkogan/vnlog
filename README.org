@@ -165,48 +165,92 @@ Alrighty. Looks like the high was in October. Let's zoom in on that month:
 #+RESULTS:
 [[file:guide-4.svg]]
 
-OK. Is this thing volatile? What was the largest single-day gain?
+OK. Is this thing volatile? What was the largest single-day gain, looking at
+differences in consecutive closing prices?
 
 #+BEGIN_SRC sh :results output :exports both
-< dji.vnl vnl-filter -p '.,d=diff(Close)' |
+< dji.vnl vnl-sort -k Date |
+  vnl-filter -p '.,d=diff(Close)' |
   head -n4 |
   vnl-align
 #+END_SRC
 
 #+RESULTS:
-: #  Date      Open     High      Low     Close  AdjClose   Volume     d   
-: 2018-11-15 25061.48 25354.56 24787.79 25289.27 25289.27 383292840 -      
-: 2018-11-14 25388.08 25501.29 24935.82 25080.50 25080.50 384240000 -208.77
-: 2018-11-13 25321.21 25511.03 25193.78 25286.49 25286.49 339690000  205.99
+: #  Date      Open     High      Low     Close  AdjClose   Volume     d  
+: 2018-01-02 24809.35 24864.19 24741.70 24824.01 24824.01 341130000 -     
+: 2018-01-03 24850.45 24941.92 24825.55 24922.68 24922.68 456790000  98.67
+: 2018-01-04 24964.86 25105.96 24963.27 25075.13 25075.13 403280000 152.45
 
 #+BEGIN_SRC sh :results output :exports both
-< dji.vnl vnl-filter -p '.,d=diff(Close)' |
-  vnl-sort -rgk d |
+< dji.vnl vnl-sort -k Date |
+  vnl-filter -p '.,gain_closeclose=diff(Close)',gain_openclose=Close-Open |
+  vnl-sort -rgk gain_closeclose |
   head -n2 |
+  vnl-filter -p Date,gain_ |
   vnl-align
 #+END_SRC
 
 #+RESULTS:
-: #  Date      Open     High      Low     Close  AdjClose   Volume     d   
-: 2018-02-02 26061.79 26061.79 25490.66 25520.96 25520.96 522880000 1175.21
+: #  Date    gain_closeclose gain_openclose
+: 2018-03-26 669.4           376.86        
 
-Whoa. So the best single-gain day was 2018-02-02: the dow gained 1175.21 points
-between closing on Feb 1 and Feb 2. But it actually lost ground that day! What
-if I looked at the difference between the opening and closing in a single day?
+So the best single-gain day was 2018-03-26: the dow gained 669.4 points between
+closing on the previous trading day and 2018-03-26. In that, 376.86 points were
+gained during trading on 2018-03-26 itself.
+
+What if I looked at maximum trading-day gains?
 
 #+BEGIN_SRC sh :results output :exports both
-< dji.vnl vnl-filter -p '.,d=Close-Open' |
-  vnl-sort -rgk d |
+< dji.vnl vnl-sort -k Date |
+  vnl-filter -p '.,gain_closeclose=diff(Close)',gain_openclose=Close-Open |
+  vnl-sort -rgk gain_openclose |
   head -n2 |
+  vnl-filter -p Date,gain_ |
   vnl-align
 #+END_SRC
 
 #+RESULTS:
-: #  Date      Open     High      Low     Close  AdjClose   Volume    d  
-: 2018-02-06 24085.17 24946.23 23778.74 24912.77 24912.77 823940000 827.6
+: #  Date    gain_closeclose gain_openclose
+: 2018-02-06 567.02          827.6         
 
-I guess by that metric 2018-02-06 was better. Let's join the Dow-jones index
-data and the TSLA data, and let's look at them together:
+By that metric 2018-02-06 was much better. Since vnlog is a trivially simple
+data format, we can use non-vnlog tools to compute statistics such as this. For
+instance, we can do the same thing with ministat:
+
+#+begin_src sh :results output :exports both
+< dji.vnl vnl-filter -p gain_openclose=Close-Open |
+  ministat -A
+#+end_src
+
+#+RESULTS:
+: x <stdin>
+:     N           Min           Max        Median           Avg        Stddev
+: x 222      -1041.84         827.6         20.04    -9.3664414     230.67518
+
+Or [[https://www.gnu.org/software/datamash/][datamash]]:
+
+#+begin_src sh :results output :exports both
+< dji.vnl vnl-filter -p gain_openclose=Close-Open |
+  datamash -CW max 1
+#+end_src
+
+#+RESULTS:
+: 827.6
+
+Datamash 1.9 knows about vnlog specifically, so we can do a bit better:
+
+#+begin_src sh :results output :exports both
+< dji.vnl vnl-filter -p gain_openclose=Close-Open |
+  datamash --vnlog max gain_openclose
+#+end_src
+
+#+RESULTS:
+: # max(gain_openclose)
+: 827.6
+
+
+Let's join the Dow-jones index data and the TSLA data, and let's look at them
+together:
 
 #+BEGIN_SRC sh :results output :exports both
 vnl-join --vnl-autosuffix dji.vnl tsla.vnl -j Date |
@@ -2275,21 +2319,33 @@ NAME
     vnl-uniq - uniq a log file, preserving the legend
 
 SYNOPSIS
-     $ cat colors.vnl
-     # color
-     blue
-     yellow
-     yellow
-     blue
-     yellow
-     orange
-     orange
+     $ cat sizes-colors.vnl
+     # size  color
+     12     blue
+     11     yellow
+     13     yellow
+     53     blue
+     34     yellow
+     22     orange
+     11     orange
 
-     $ < colors.vnl | vnl-sort | vnl-uniq -c
+     $ < sizes-colors.vnl | vnl-filter -p color | vnl-sort -k color | vnl-uniq -c
      # count color
            2 blue
            2 orange
            3 yellow
+
+     $ < sizes-colors.vnl | vnl-sort -k color | vnl-uniq --group -f -1
+     # size color
+     12     blue
+     53     blue
+
+     11     orange
+     22     orange
+
+     11     yellow
+     13     yellow
+     34     yellow
 
 DESCRIPTION
       Usage: vnl-uniq [options] < logfile
