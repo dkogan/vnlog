@@ -26,6 +26,7 @@ typedef enum
 
 vnlog_parser_result_t vnlog_parser_init(vnlog_parser_t* ctx, FILE* fp);
 
+// Call vnlog_parser_free() when done. Even if vnlog_parser_read_record() failed
 void vnlog_parser_free(vnlog_parser_t* ctx);
 
 vnlog_parser_result_t vnlog_parser_read_record(vnlog_parser_t* ctx, FILE* fp);

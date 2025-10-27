@@ -46,5 +46,6 @@ int main(int argc, char* argv[])
                queryvalue != NULL ? *queryvalue : "NOT FOUND");
     }
 
+    vnlog_parser_free(&ctx);
     return (result == VNL_OK || result == VNL_EOF) ? 0 : 1;
 }

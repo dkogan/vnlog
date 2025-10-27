@@ -257,11 +257,7 @@ vnlog_parser_result_t vnlog_parser_read_record(vnlog_parser_t* ctx, FILE* fp)
         return VNL_ERROR;
     }
 
-    vnlog_parser_result_t result = read_line(ctx, fp);
-
-    if(result != VNL_OK)
-        vnlog_parser_free(ctx);
-    return result;
+    return read_line(ctx, fp);
 }
 
 // pointer to the pointer to the string for the record corresponding to the
