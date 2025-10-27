@@ -235,16 +235,18 @@ void vnlog_parser_free(vnlog_parser_t* ctx)
     if(ctx != NULL)
     {
         vnlog_parser_internal_t* internal = (vnlog_parser_internal_t*)ctx->_internal;
-
-        free(internal->line);
+        if(internal != NULL)
+        {
+            free(internal->line);
+            tdestroy(internal->dict_key_index, &noop_free);
+        }
 
         if(ctx->record != NULL)
         {
             for(int i=0; i<ctx->Ncolumns; i++)
                 free(ctx->record[i].key);
+            free(ctx->record);
         }
-        free(ctx->record);
-        tdestroy(internal->dict_key_index, &noop_free);
     }
     *ctx = (vnlog_parser_t){};
 }
