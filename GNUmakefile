@@ -20,7 +20,8 @@ TOOLS :=					\
   vnl-join					\
   vnl-tail					\
   vnl-ts					\
-  vnl-uniq                                      \
+  vnl-uniq					\
+  vnl-tac					\
   vnl-gen-header				\
   vnl-make-matrix
 

@@ -1,3 +1,9 @@
+vnlog (1.41)
+
+  * Added "vnl-tac" tool
+
+ -- Dima Kogan <dkogan@debian.org>  Sun, 21 Dec 2025 20:28:38 -0800
+
 vnlog (1.40)
 
   * "vnl-sort -h" is no longer ambiguous

@@ -392,17 +392,17 @@ vnl-filter --eval '{s += x} END {print s}'
   you would hope they do: if the input has a column named =x=, this would
   produce the sum of all values in this column.
 
-- =vnl-sort=, =vnl-uniq=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around
-  the corresponding commandline tools. These work exactly as you would expect
-  also: the columns can be referenced by name, and the legend comment is handled
-  properly. These are wrappers, so all the commandline options those tools have
-  "just work" (except options that don't make sense in the context of vnlog). As
-  an example, =vnl-tail -f= will follow a log: data will be read by =vnl-tail=
-  as it is written into the log (just like =tail -f=, but handling the legend
-  properly). And you already know how to use these tools without even reading
-  the manpages! Note: I use the Linux kernel and the tools from GNU Coreutils
-  exclusively, but this all has been successfully tested on FreeBSD and OSX
-  also. Please let me know if something doesn't work.
+- =vnl-sort=, =vnl-uniq=, =vnl-join=, =vnl-tail=, =vnl-ts=, =vnl-tac= are
+  wrappers around the corresponding commandline tools. These work exactly as you
+  would expect also: the columns can be referenced by name, and the legend
+  comment is handled properly. These are wrappers, so all the commandline
+  options those tools have "just work" (except options that don't make sense in
+  the context of vnlog). As an example, =vnl-tail -f= will follow a log: data
+  will be read by =vnl-tail= as it is written into the log (just like =tail -f=,
+  but handling the legend properly). And you already know how to use these tools
+  without even reading the manpages! Note: I use the Linux kernel and the tools
+  from GNU Coreutils exclusively, but this all has been successfully tested on
+  FreeBSD and OSX also. Please let me know if something doesn't work.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
@@ -1224,6 +1224,11 @@ xxx-manpage-vnl-ts-xxx
 ** vnl-uniq
 #+BEGIN_EXAMPLE
 xxx-manpage-vnl-uniq-xxx
+#+END_EXAMPLE
+
+** vnl-tac
+#+BEGIN_EXAMPLE
+xxx-manpage-vnl-tac-xxx
 #+END_EXAMPLE
 
 ** vnl-gen-header
