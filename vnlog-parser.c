@@ -1,4 +1,5 @@
 #define _GNU_SOURCE // for tdestroy()
+#define _SEARCH_PRIVATE // for node_t, in absence of tdestroy
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -190,6 +191,37 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
     MSG("Getting here is a bug");
     return VNL_ERROR;
 }
+
+#ifdef __APPLE__
+// tdestry is a nonstandard extension not present in Apple's libc, but it is easy to redefine
+
+static void tdestroy_recurse(node_t *root, void (*freefct)(void *))
+{
+    if (root->llink != NULL)
+    {
+        tdestroy_recurse(root->llink, freefct);
+    }
+    if (root->rlink != NULL)
+    {
+        tdestroy_recurse(root->rlink, freefct);
+    }
+    // Free the node contents (if necessary)
+    freefct(root->key);
+    // Free the node itself
+    free(root);
+}
+
+void tdestroy(void *root, void (*freefct)(void *))
+{
+    if (root == NULL)
+    {
+        // Tree is already empty
+        return;
+    }
+
+    tdestroy_recurse(root, freefct);
+}
+#endif
 
 static
 int compare_record(const vnlog_keyvalue_t* a, const vnlog_keyvalue_t* b)
