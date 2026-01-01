@@ -1,0 +1,293 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use feature 'say';
+use autodie;
+
+use FindBin '$RealBin';
+use lib "$RealBin/lib";
+
+use POSIX;
+
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command parse_prefixes_suffixes);
+
+
+
+# This comes from the getopt_long() invocation in paste.c in GNU coreutils
+my @specs = ("vnl-tool=s",
+             "help");
+
+@specs = (@specs,
+          "vnl-prefix1=s",
+          "vnl-suffix1=s",
+          "vnl-prefix2=s",
+          "vnl-suffix2=s",
+          "vnl-prefix=s",
+          "vnl-suffix=s",
+          "vnl-autoprefix",
+          "vnl-autosuffix");
+
+
+my ($filenames,$options) = parse_options(\@ARGV, \@specs, 0, <<EOF);
+
+  $0
+           [--vnl-[pre|suf]fix[1|2] xxx]
+           logfile1 logfile2 ...
+
+None of the options from the underlying paste tool make sense in a vnlog
+context. There're only a few vnlog-specific options:
+
+  --vnl-prefix1 xxx
+  --vnl-suffix1 xxx
+  --vnl-prefix2 xxx
+  --vnl-suffix2 xxx
+  --vnl-prefix  xxx,yyy,zzz
+  --vnl-suffix  xxx,yyy,zzz
+  --vnl-autoprefix
+  --vnl-autosuffix
+         Add a suffix/prefix to the output column labels of the nth data
+         file. Very useful if we're pasteing datasets with identically-named
+         fields. These can be specified for files 1 and 2 explicitly, or as
+         comma-separated lists for files 1-N, or these can be inferred from the
+         filenames
+
+  --vnl-tool tool
+       Specifies the path to the tool we're wrapping. By default we wrap 'paste',
+       so most people can omit this
+EOF
+$options->{'vnl-tool'} //= 'paste';
+
+my $Nstdin = scalar grep {$_ eq '-'} @$filenames;
+if($Nstdin > 1)
+{
+    die "At most 1 '-' inputs are allowed";
+}
+
+my ($prefixes, $suffixes) = parse_prefixes_suffixes($filenames, $options);
+
+my $Ndatafiles = scalar(@$filenames);
+if( $Ndatafiles < 2 )
+{
+    die "At least two inputs should have been given";
+}
+
+my $inputs = read_and_preparse_input($filenames);
+
+print  "# ";
+for my $i_input (0..$#$inputs) {
+    my $input = $inputs->[$i_input];
+    for my $i_key (0..$#{$input->{keys}}) {
+        my $key = $input->{keys}[$i_key];
+        print "$prefixes->[$i_input]$key$suffixes->[$i_input] ";
+    }
+}
+print("\n");
+
+my $ARGV_new = reconstruct_substituted_command($inputs, $options, [], \@specs);
+
+exec $options->{'vnl-tool'}, @$ARGV_new;
+
+
+__END__
+
+=head1 NAME
+
+vnl-paste - combine log files record-by-record
+
+=head1 SYNOPSIS
+
+vnl-paste concatenates records from the given data files. Comments are stripped
+to make sure things line up
+
+ $ cat a.vnl
+ ## gathered from sensor model xxx
+ # humidity temperature
+ 90 25
+ 80 20
+ 81 19
+ 82 18
+ 70 15
+
+ $ cat b.vnl
+ # position
+ 10
+ 20
+ ## we moved the sensor
+ 150
+ 160
+ 170
+
+ $ vnl-paste a.vnl b.vnl
+ # humidity temperature position
+ 90 25	10
+ 80 20	20
+ 81 19	150
+ 82 18	160
+ 70 15	170
+
+We can also give it more than 2 files and annotate the field labels
+
+ $ cat c.vnl
+ # position
+ 12
+ 18
+ 155
+ 168
+ 190
+
+ $ vnl-paste --vnl-suffix2 _b a.vnl b.vnl c.vnl | vnl-align
+ # humidity temperature position_b position
+ 90         25           10         12
+ 80         20           20         18
+ 81         19          150        155
+ 82         18          160        168
+ 70         15          170        190
+
+ $ vnl-paste --vnl-suffix ,_b,_c a.vnl b.vnl c.vnl | vnl-align
+ # humidity temperature position_b position_c
+ 90         25           10         12
+ 80         20           20         18
+ 81         19          150        155
+ 82         18          160        168
+ 70         15          170        190
+
+ $ vnl-paste --vnl-autosuffix a.vnl b.vnl c.vnl | vnl-align
+ # humidity_a temperature_a position_b position_c
+ 90           25             10         12
+ 80           20             20         18
+ 81           19            150        155
+ 82           18            160        168
+ 70           15            170        190
+
+=head1 DESCRIPTION
+
+  Usage: vnl-paste
+                  [ --vnl-[pre|suf]fix[1|2] xxx    |
+                    --vnl-[pre|suf]fix xxx,yyy,zzz |
+                    --vnl-autoprefix               |
+                    --vnl-autosuffix ]
+                  logfile1 logfile2 ...
+
+This tool is essentially a join using the line number as the key. This tool
+concatenates the data in the given vnlog files record-by-record. C<vnl-paste> is
+a wrapper around the GNU coreutils C<paste> tool. Since this is a wrapper, the
+behavior of the underlying tool is preserved; consult the L<paste(1)> manpage
+for detail. The differences from GNU coreutils C<paste> are
+
+=over
+
+=item *
+
+The input and output to this tool are vnlog files, complete with a legend
+
+=item *
+
+By default we call the C<paste> tool to do the actual work. If the underlying
+tool has a different name or lives in an odd path, this can be specified by
+passing C<--vnl-tool TOOL>
+
+=item *
+
+None of the C<paste> options make sense in a vnlog context, so this tool has
+only the vnlog-specific C<--vnl-...> options.
+
+=back
+
+Note that all non-legend comments are stripped out, since it's not obvious where
+they should end up.
+
+=head2 Field names in the output
+
+The field name logic works the same way as in C<vnl-join>, with all the suffix
+and prefix options from that tool being available here.
+
+By default, the field names in the output match those in the input. This is what
+you want most of the time. It is possible, however that a column name adjustment
+is needed. One common use case for this is if the files being pasted have
+identically-named columns, which would produce duplicate columns in the output.
+Example: we fixed a bug in a program, and want to compare the results before and
+after the fix. The program produces an x-y trajectory, so both the bugged and
+the bug-fixed programs produce a vnlog with a legend
+
+ # x y
+
+Pasting these will produce a vnlog with a legend
+
+ # x y x y
+
+which is confusing, and I<not> what you want. Instead, we invoke C<vnl-paste> as
+
+ vnl-paste --vnl-suffix1 _buggy --vnl-suffix2 _fixed buggy.vnl fixed.vnl
+
+And in the output we get a legend
+
+ # x_buggy y_buggy x_fixed y_fixed
+
+Much better.
+
+Note that C<vnl-paste> provides several ways of specifying this. The above works
+I<only> for 2-way pastes. An alternate syntax is available for N-way pastes, a
+comma-separated list. The same could be expressed like this:
+
+ vnl-paste --vnl-suffix _buggy,_fixed buggy.vnl fixed.vnl
+
+Finally, if passing in structured filenames, C<vnl-paste> can infer the desired
+syntax from the filenames. The same as above could be expressed even simpler:
+
+ vnl-paste --vnl-autosuffix buggy.vnl fixed.vnl
+
+This works by looking at the set of passed in filenames, and stripping out the
+common leading and trailing strings.
+
+=head1 BUGS AND CAVEATS
+
+If the input data files has a mismatched number of lines, the extra data will be
+output without the null-column markers. I<This will result in mislabeled data>.
+Use this tool only if you're sure you have a matching number of records. For
+instance:
+
+ $ vnl-paste <(echo '# x'; seq 3) <(echo '# y'; seq 5)
+ # x y
+ 1	1
+ 2	2
+ 3	3
+        4
+        5
+
+ $ vnl-paste <(echo '# x'; seq 3) <(echo '# y'; seq 5) | vnl-align
+ # x y
+ 1   1
+ 2   2
+ 3   3
+ 4
+ 5
+
+=head1 COMPATIBILITY
+
+I use GNU/Linux-based systems exclusively, but everything has been tested
+functional on FreeBSD and OSX in addition to Debian, Ubuntu and CentOS. I can
+imagine there's something I missed when testing on non-Linux systems, so please
+let me know if you find any issues.
+
+=head1 SEE ALSO
+
+L<paste(1)>
+
+=head1 REPOSITORY
+
+https://github.com/dkogan/vnlog/
+
+=head1 AUTHOR
+
+Dima Kogan C<< <dima@secretsauce.net> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2018 Dima Kogan C<< <dima@secretsauce.net> >>
+
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option) any
+later version.
+
+=cut

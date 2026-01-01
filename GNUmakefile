@@ -22,6 +22,7 @@ TOOLS :=					\
   vnl-ts					\
   vnl-uniq					\
   vnl-tac					\
+  vnl-paste					\
   vnl-gen-header				\
   vnl-make-matrix
 
@@ -86,6 +87,7 @@ test check:					\
    test/test_vnl-filter.pl.RUN			\
    test/test_vnl-sort.pl.RUN			\
    test/test_vnl-join.pl.RUN			\
+   test/test_vnl-paste.pl.RUN			\
    test/test_vnl-uniq.pl.RUN			\
    test/test_c_api.sh.RUN			\
    test/test_perl_parser.pl.RUN			\
