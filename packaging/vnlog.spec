@@ -94,6 +94,7 @@ make clean
 %{_bindir}/vnl-align
 %{_bindir}/vnl-ts
 %{_bindir}/vnl-tac
+%{_bindir}/vnl-paste
 %doc %{_mandir}/man1/vnl-filter.1.gz
 %doc %{_mandir}/man1/vnl-tail.1.gz
 %doc %{_mandir}/man1/vnl-sort.1.gz
