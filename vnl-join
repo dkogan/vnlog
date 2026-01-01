@@ -634,7 +634,7 @@ __END__
 
 =head1 NAME
 
-vnl-join - joins two log files on a particular field
+vnl-join - joins log files on a particular field
 
 =head1 SYNOPSIS
 
@@ -707,12 +707,12 @@ vnl-join - joins two log files on a particular field
                     --vnl-[pre|suf]fix xxx,yyy,zzz |
                     --vnl-autoprefix               |
                     --vnl-autosuffix ]
-                  logfile1 logfile2
+                  logfile1 logfile2 ...
 
-This tool joins two vnlog files on a given field. C<vnl-join> is a
-wrapper around the GNU coreutils C<join> tool. Since this is a wrapper, most
-commandline options and behaviors of the C<join> tool are present; consult the
-L<join(1)> manpage for detail. The differences from GNU coreutils C<join> are
+This tool joins several vnlog files on a given field. C<vnl-join> is a wrapper
+around the GNU coreutils C<join> tool. Since this is a wrapper, most commandline
+options and behaviors of the C<join> tool are present; consult the L<join(1)>
+manpage for detail. The differences from GNU coreutils C<join> are
 
 =over
 
