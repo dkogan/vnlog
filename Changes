@@ -1,8 +1,8 @@
 vnlog (1.41)
 
-  * Added "vnl-tac" tool
+  * Added "vnl-tac", "vnl-paste" tools
 
- -- Dima Kogan <dkogan@debian.org>  Sun, 21 Dec 2025 20:28:38 -0800
+ -- Dima Kogan <dkogan@debian.org>  Thu, 01 Jan 2026 15:08:35 -0800
 
 vnlog (1.40)
 
