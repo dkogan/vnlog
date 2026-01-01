@@ -12,7 +12,7 @@ use List::MoreUtils 'all';
 use POSIX;
 use Config;
 
-use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index longest_leading_trailing_substring fork_and_filter);
+use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index fork_and_filter parse_prefixes_suffixes);
 
 
 
@@ -114,131 +114,13 @@ EOF
 $options->{'vnl-tool'} //= 'join';
 
 
-my $Ndatafiles = scalar(@$filenames);
-my @prefixes   = ('') x $Ndatafiles;
-my @suffixes   = ('') x $Ndatafiles;
-
 my $Nstdin = scalar grep {$_ eq '-'} @$filenames;
 if($Nstdin > 1)
 {
     die "At most 1 '-' inputs are allowed";
 }
 
-if( defined $options->{'vnl-autoprefix'} &&
-    defined $options->{'vnl-autosuffix'} )
-{
-    die "Either --vnl-autoprefix or --vnl-autosuffix should be passed, not both";
-}
-
-if( defined $options->{'vnl-autoprefix'} ||
-    defined $options->{'vnl-autosuffix'} )
-{
-    if( grep /vnl-(prefix|suffix)/, keys %$options )
-    {
-        die
-          "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
-    }
-
-    for my $i(0..$#$filenames)
-    {
-        if($filenames->[$i] =~
-           m{/dev/fd/  # pipe
-              |        # or
-              ^-$      # STDIN
-            }x)
-        {
-            die "autoprefix/suffix can't work when data is piped in"
-        }
-    }
-
-
-    # OK. autoprefix/autosuffix are valid, so I process them
-
-    sub take
-    {
-        my ($s,$i) = @_;
-        if($options->{'vnl-autoprefix'})
-        {
-            $prefixes[$i] = "${s}_";
-        }
-        else
-        {
-            $suffixes[$i] = "_${s}";
-        }
-    }
-
-
-
-    my ($prefix,$suffix) =
-      longest_leading_trailing_substring( grep { $_ ne '-' } @$filenames );
-
-    for my $i(0..$#$filenames)
-    {
-        take(substr($filenames->[$i],
-                    length($prefix),
-                    length($filenames->[$i]) -
-                    (length($prefix) + length($suffix))
-                   ),
-             $i);
-    }
-}
-else
-{
-    # no --vnl-autoprefix or --vnl-autosuffix
-
-
-    if( (defined $options->{'vnl-prefix1'} ||
-         defined $options->{'vnl-prefix2'}) &&
-        defined $options->{'vnl-prefix'} )
-    {
-        die "--vnl-prefix1/2 are mutually exclusive with --vnl-prefix";
-    }
-    if( (defined $options->{'vnl-suffix1'} ||
-         defined $options->{'vnl-suffix2'}) &&
-        defined $options->{'vnl-suffix'} )
-    {
-        die "--vnl-suffix1/2 are mutually exclusive with --vnl-suffix";
-    }
-
-    if(defined $options->{'vnl-prefix'})
-    {
-        @prefixes = split(',', $options->{'vnl-prefix'});
-        if(@prefixes > $Ndatafiles)
-        {
-            die "too many items in --vnl-prefix";
-        }
-    }
-    else
-    {
-        @prefixes = ($options->{"vnl-prefix1"} // '',
-                     $options->{"vnl-prefix2"} // '');
-    }
-    if (@prefixes < $Ndatafiles)
-    {
-        push @prefixes, ('') x ($Ndatafiles - @prefixes)
-    }
-
-    if(defined $options->{'vnl-suffix'})
-    {
-        @suffixes = split(',', $options->{'vnl-suffix'});
-        if(@suffixes > $Ndatafiles)
-        {
-            die "too many items in --vnl-suffix";
-        }
-    }
-    else
-    {
-        @suffixes = ($options->{"vnl-suffix1"} // '',
-                     $options->{"vnl-suffix2"} // '');
-    }
-    if (@suffixes < $Ndatafiles)
-    {
-        push @suffixes, ('') x ($Ndatafiles - @suffixes)
-    }
-}
-
-# At this point I reduced all the prefix/suffix stuff to @prefixes and @suffixes
-
+my ($prefixes, $suffixes) = parse_prefixes_suffixes($filenames, $options);
 
 
 for my $key(keys %$options)
@@ -250,6 +132,7 @@ for my $key(keys %$options)
     }
 }
 
+my $Ndatafiles = scalar(@$filenames);
 if( $Ndatafiles < 2 )
 {
     die "At least two inputs should have been given";
@@ -428,23 +311,23 @@ if( $Ndatafiles > 2 )
         my $ARGV_new = reconstruct_substituted_command([], \%sub_options, [], \@specs);
 
         # $ARGV_new now has all the arguments except the --vnl-... options The
-        # suffix/prefix options have already been parsed into @prefixes and
+        # suffix/prefix options have already been parsed into @$prefixes and
         # @suffixes, and I apply those
         if( defined $in0->{i_filename} )
         {
             my $i = $in0->{i_filename};
-            push @$ARGV_new, "--vnl-prefix1", $prefixes[$i]
-              if length($prefixes[$i] );
-            push @$ARGV_new, "--vnl-suffix1", $suffixes[$i]
-              if length($suffixes[$i] );
+            push @$ARGV_new, "--vnl-prefix1", $prefixes->[$i]
+              if length($prefixes->[$i] );
+            push @$ARGV_new, "--vnl-suffix1", $suffixes->[$i]
+              if length($suffixes->[$i] );
         }
         if( defined $in1->{i_filename} )
         {
             my $i = $in1->{i_filename};
-            push @$ARGV_new, "--vnl-prefix2", $prefixes[$i]
-              if length($prefixes[$i] );
-            push @$ARGV_new, "--vnl-suffix2", $suffixes[$i]
-              if length($suffixes[$i] );
+            push @$ARGV_new, "--vnl-prefix2", $prefixes->[$i]
+              if length($prefixes->[$i] );
+            push @$ARGV_new, "--vnl-suffix2", $suffixes->[$i]
+              if length($suffixes->[$i] );
         }
 
 
@@ -698,7 +581,7 @@ sub substitute_field_keys
 
                 my $index = get_key_index($inputs->[$file-1],$field);
                 push @format_out, "$file.$index";
-                push @keys_out, $prefixes[$file-1] . $field . $suffixes[$file-1];
+                push @keys_out, $prefixes->[$file-1] . $field . $suffixes->[$file-1];
             }
         }
 
@@ -712,8 +595,8 @@ sub substitute_field_keys
         #   all non-join fields from file2, in order
         push @keys_out, $join_field_name;
 
-        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $prefixes[0], $suffixes[0]);
-        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $prefixes[1], $suffixes[1]);
+        push_nonjoin_keys(\@keys_out, $inputs->[0]{keys}, $join_field_name, $prefixes->[0], $suffixes->[0]);
+        push_nonjoin_keys(\@keys_out, $inputs->[1]{keys}, $join_field_name, $prefixes->[1], $suffixes->[1]);
     }
 
     return \@keys_out;

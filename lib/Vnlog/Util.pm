@@ -7,7 +7,7 @@ use Carp 'confess';
 
 our $VERSION = 1.00;
 use base 'Exporter';
-our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index longest_leading_trailing_substring fork_and_filter);
+our @EXPORT_OK = qw(get_unbuffered_line parse_options read_and_preparse_input ensure_all_legends_equivalent reconstruct_substituted_command close_nondev_inputs get_key_index longest_leading_trailing_substring fork_and_filter parse_prefixes_suffixes);
 
 
 # The bulk of these is for the coreutils wrappers such as sort, join, paste and
@@ -511,6 +511,125 @@ sub longest_leading_trailing_substring
     # removing all trailing digits from the common prefix
     $match_leading =~ s/[0-9]$//;
     return ($match_leading, scalar reverse $match_trailing_reversed);
+}
+
+sub parse_prefixes_suffixes
+{
+    my ($filenames, $options) = @_;
+
+    my $Ndatafiles = scalar(@$filenames);
+    my @prefixes   = ('') x $Ndatafiles;
+    my @suffixes   = ('') x $Ndatafiles;
+
+    if ( defined $options->{'vnl-autoprefix'} &&
+         defined $options->{'vnl-autosuffix'} ) {
+        die "Either --vnl-autoprefix or --vnl-autosuffix should be passed, not both";
+    }
+
+    if ( defined $options->{'vnl-autoprefix'} ||
+         defined $options->{'vnl-autosuffix'} ) {
+        if ( grep /vnl-(prefix|suffix)/, keys %$options )
+        {
+            die
+              "--vnl-autoprefix/suffix is mutually exclusive with the manual --vnl-prefix/suffix options";
+        }
+
+        for my $i(0..$#$filenames)
+        {
+            if ($filenames->[$i] =~
+                m{/dev/fd/  # pipe
+              |        # or
+                  ^-$      # STDIN
+             }x) {
+                die "autoprefix/suffix can't work when data is piped in"
+            }
+        }
+
+
+        # OK. autoprefix/autosuffix are valid, so I process them
+
+        my $take =
+        sub {
+            my ($s,$i) = @_;
+            if ($options->{'vnl-autoprefix'})
+            {
+                $prefixes[$i] = "${s}_";
+            }
+            else
+            {
+                $suffixes[$i] = "_${s}";
+            }
+        };
+
+
+
+        my ($prefix,$suffix) =
+          longest_leading_trailing_substring( grep { $_ ne '-' } @$filenames );
+
+        for my $i(0..$#$filenames)
+        {
+            $take->(substr($filenames->[$i],
+                           length($prefix),
+                           length($filenames->[$i]) -
+                           (length($prefix) + length($suffix))
+                          ),
+                    $i);
+        }
+    }
+    else
+    {
+        # no --vnl-autoprefix or --vnl-autosuffix
+
+
+        if ( (defined $options->{'vnl-prefix1'} ||
+              defined $options->{'vnl-prefix2'}) &&
+             defined $options->{'vnl-prefix'} ) {
+            die "--vnl-prefix1/2 are mutually exclusive with --vnl-prefix";
+        }
+        if ( (defined $options->{'vnl-suffix1'} ||
+              defined $options->{'vnl-suffix2'}) &&
+             defined $options->{'vnl-suffix'} ) {
+            die "--vnl-suffix1/2 are mutually exclusive with --vnl-suffix";
+        }
+
+        if (defined $options->{'vnl-prefix'})
+        {
+            @prefixes = split(',', $options->{'vnl-prefix'});
+            if (@prefixes > $Ndatafiles)
+            {
+                die "too many items in --vnl-prefix";
+            }
+        }
+        else
+        {
+            @prefixes = ($options->{"vnl-prefix1"} // '',
+                         $options->{"vnl-prefix2"} // '');
+        }
+        if (@prefixes < $Ndatafiles)
+        {
+            push @prefixes, ('') x ($Ndatafiles - @prefixes)
+        }
+
+        if (defined $options->{'vnl-suffix'})
+        {
+            @suffixes = split(',', $options->{'vnl-suffix'});
+            if (@suffixes > $Ndatafiles)
+            {
+                die "too many items in --vnl-suffix";
+            }
+        }
+        else
+        {
+            @suffixes = ($options->{"vnl-suffix1"} // '',
+                         $options->{"vnl-suffix2"} // '');
+        }
+        if (@suffixes < $Ndatafiles)
+        {
+            push @suffixes, ('') x ($Ndatafiles - @suffixes)
+        }
+    }
+
+    return (\@prefixes, \@suffixes);
 }
 
 1;
