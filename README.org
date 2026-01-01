@@ -116,7 +116,14 @@ reverse chronological order. Let's fix that:
 The =vnl-sort= tool (and most of the other =vnl-xxx= tools) are wrappers around
 the core tools already available on the system (such as =sort=, in this case).
 With the primary difference being reading/writing vnlog, and referring to
-columns by name.
+columns by name. Since we just strictly reversed the order of the data, =sort=
+was a bit overkill, and we could have equivalently done:
+
+#+BEGIN_SRC sh :results file link :exports both
+< dji.vnl vnl-tac |
+  vnl-filter -p Close |
+  feedgnuplot --lines --unset grid
+#+END_SRC
 
 We now have the data in the correct order, but it'd be nice to see the actual
 dates on the x-axis. While we're at it, let's label the axes too:
@@ -392,17 +399,18 @@ vnl-filter --eval '{s += x} END {print s}'
   you would hope they do: if the input has a column named =x=, this would
   produce the sum of all values in this column.
 
-- =vnl-sort=, =vnl-uniq=, =vnl-join=, =vnl-tail=, =vnl-ts= are wrappers around
-  the corresponding commandline tools. These work exactly as you would expect
-  also: the columns can be referenced by name, and the legend comment is handled
-  properly. These are wrappers, so all the commandline options those tools have
-  "just work" (except options that don't make sense in the context of vnlog). As
-  an example, =vnl-tail -f= will follow a log: data will be read by =vnl-tail=
-  as it is written into the log (just like =tail -f=, but handling the legend
-  properly). And you already know how to use these tools without even reading
-  the manpages! Note: I use the Linux kernel and the tools from GNU Coreutils
-  exclusively, but this all has been successfully tested on FreeBSD and OSX
-  also. Please let me know if something doesn't work.
+- =vnl-sort=, =vnl-uniq=, =vnl-join=, =vnl-tail=, =vnl-ts=, =vnl-tac=,
+  =vnl-paste= are wrappers around the corresponding commandline tools. These
+  work exactly as you would expect also: the columns can be referenced by name,
+  and the legend comment is handled properly. These are wrappers, so all the
+  commandline options those tools have "just work" (except options that don't
+  make sense in the context of vnlog). As an example, =vnl-tail -f= will follow
+  a log: data will be read by =vnl-tail= as it is written into the log (just
+  like =tail -f=, but handling the legend properly). And you already know how to
+  use these tools without even reading the manpages! Note: I use the Linux
+  kernel and the tools from GNU Coreutils exclusively, but this all has been
+  successfully tested on FreeBSD and OSX also. Please let me know if something
+  doesn't work.
 
 - =vnl-align= aligns vnlog columns for easy interpretation by humans. The
   meaning is unaffected
@@ -1892,7 +1900,7 @@ SEE ALSO
 ** vnl-join
 #+BEGIN_EXAMPLE
 NAME
-    vnl-join - joins two log files on a particular field
+    vnl-join - joins log files on a particular field
 
 SYNOPSIS
      $ cat a.vnl
@@ -1963,9 +1971,9 @@ DESCRIPTION
                         --vnl-[pre|suf]fix xxx,yyy,zzz |
                         --vnl-autoprefix               |
                         --vnl-autosuffix ]
-                      logfile1 logfile2
+                      logfile1 logfile2 ...
 
-    This tool joins two vnlog files on a given field. "vnl-join" is a
+    This tool joins several vnlog files on a given field. "vnl-join" is a
     wrapper around the GNU coreutils "join" tool. Since this is a wrapper,
     most commandline options and behaviors of the "join" tool are present;
     consult the join(1) manpage for detail. The differences from GNU
@@ -2394,6 +2402,232 @@ SEE ALSO
 
 
 #+END_EXAMPLE
+
+** vnl-tac
+#+BEGIN_EXAMPLE
+NAME
+    vnl-tac - concatenate and print vnlog data in reverse
+
+SYNOPSIS
+     $ cat tst.vnl
+     # time temperature
+     1.0 29.5
+     2.0 30.4
+     3.5 28.3
+     6.0 22.1
+
+
+     $ vnl-tac tst.vnl
+     # time temperature
+     6.0 22.1
+     3.5 28.3
+     2.0 30.4
+     1.0 29.5
+
+DESCRIPTION
+      Usage: vnl-tac < input.vnl
+             vnl-tac input.vnl
+
+    This tool runs "tac" on given vnlog streams. "vnl-tac" is a wrapper
+    around the GNU coreutils "tac" tool. The commandline options of "tac"
+    don't make sense in the context of vnlog, so only one vnlog-specific
+    option is supported:
+
+    *   By default we call the "tac" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
+
+    See the "tac" manpage for detailed documentation.
+
+COMPATIBILITY
+    I use GNU/Linux-based systems exclusively, but everything has been
+    tested functional on FreeBSD and OSX in addition to Debian, Ubuntu and
+    CentOS. I can imagine there's something I missed when testing on
+    non-Linux systems, so please let me know if you find any issues.
+
+SEE ALSO
+    tac(1)
+
+
+#+END_EXAMPLE
+
+** vnl-paste
+#+BEGIN_EXAMPLE
+NAME
+    vnl-paste - combine log files record-by-record
+
+SYNOPSIS
+    vnl-paste concatenates records from the given data files. Comments are
+    stripped to make sure things line up
+
+     $ cat a.vnl
+     ## gathered from sensor model xxx
+     # humidity temperature
+     90 25
+     80 20
+     81 19
+     82 18
+     70 15
+
+     $ cat b.vnl
+     # position
+     10
+     20
+     ## we moved the sensor
+     150
+     160
+     170
+
+     $ vnl-paste a.vnl b.vnl
+     # humidity temperature position
+     90 25  10
+     80 20  20
+     81 19  150
+     82 18  160
+     70 15  170
+
+    We can also give it more than 2 files and annotate the field labels
+
+     $ cat c.vnl
+     # position
+     12
+     18
+     155
+     168
+     190
+
+     $ vnl-paste --vnl-suffix2 _b a.vnl b.vnl c.vnl | vnl-align
+     # humidity temperature position_b position
+     90         25           10         12
+     80         20           20         18
+     81         19          150        155
+     82         18          160        168
+     70         15          170        190
+
+     $ vnl-paste --vnl-suffix ,_b,_c a.vnl b.vnl c.vnl | vnl-align
+     # humidity temperature position_b position_c
+     90         25           10         12
+     80         20           20         18
+     81         19          150        155
+     82         18          160        168
+     70         15          170        190
+
+     $ vnl-paste --vnl-autosuffix a.vnl b.vnl c.vnl | vnl-align
+     # humidity_a temperature_a position_b position_c
+     90           25             10         12
+     80           20             20         18
+     81           19            150        155
+     82           18            160        168
+     70           15            170        190
+
+DESCRIPTION
+      Usage: vnl-paste
+                      [ --vnl-[pre|suf]fix[1|2] xxx    |
+                        --vnl-[pre|suf]fix xxx,yyy,zzz |
+                        --vnl-autoprefix               |
+                        --vnl-autosuffix ]
+                      logfile1 logfile2 ...
+
+    This tool is essentially a join using the line number as the key. This
+    tool concatenates the data in the given vnlog files record-by-record.
+    "vnl-paste" is a wrapper around the GNU coreutils "paste" tool. Since
+    this is a wrapper, the behavior of the underlying tool is preserved;
+    consult the paste(1) manpage for detail. The differences from GNU
+    coreutils "paste" are
+
+    *   The input and output to this tool are vnlog files, complete with a
+        legend
+
+    *   By default we call the "paste" tool to do the actual work. If the
+        underlying tool has a different name or lives in an odd path, this
+        can be specified by passing "--vnl-tool TOOL"
+
+    *   None of the "paste" options make sense in a vnlog context, so this
+        tool has only the vnlog-specific "--vnl-..." options.
+
+    Note that all non-legend comments are stripped out, since it's not
+    obvious where they should end up.
+
+  Field names in the output
+    The field name logic works the same way as in "vnl-join", with all the
+    suffix and prefix options from that tool being available here.
+
+    By default, the field names in the output match those in the input. This
+    is what you want most of the time. It is possible, however that a column
+    name adjustment is needed. One common use case for this is if the files
+    being pasted have identically-named columns, which would produce
+    duplicate columns in the output. Example: we fixed a bug in a program,
+    and want to compare the results before and after the fix. The program
+    produces an x-y trajectory, so both the bugged and the bug-fixed
+    programs produce a vnlog with a legend
+
+     # x y
+
+    Pasting these will produce a vnlog with a legend
+
+     # x y x y
+
+    which is confusing, and *not* what you want. Instead, we invoke
+    "vnl-paste" as
+
+     vnl-paste --vnl-suffix1 _buggy --vnl-suffix2 _fixed buggy.vnl fixed.vnl
+
+    And in the output we get a legend
+
+     # x_buggy y_buggy x_fixed y_fixed
+
+    Much better.
+
+    Note that "vnl-paste" provides several ways of specifying this. The
+    above works *only* for 2-way pastes. An alternate syntax is available
+    for N-way pastes, a comma-separated list. The same could be expressed
+    like this:
+
+     vnl-paste --vnl-suffix _buggy,_fixed buggy.vnl fixed.vnl
+
+    Finally, if passing in structured filenames, "vnl-paste" can infer the
+    desired syntax from the filenames. The same as above could be expressed
+    even simpler:
+
+     vnl-paste --vnl-autosuffix buggy.vnl fixed.vnl
+
+    This works by looking at the set of passed in filenames, and stripping
+    out the common leading and trailing strings.
+
+BUGS AND CAVEATS
+    If the input data files has a mismatched number of lines, the extra data
+    will be output without the null-column markers. *This will result in
+    mislabeled data*. Use this tool only if you're sure you have a matching
+    number of records. For instance:
+
+     $ vnl-paste <(echo '# x'; seq 3) <(echo '# y'; seq 5)
+     # x y
+     1      1
+     2      2
+     3      3
+            4
+            5
+
+     $ vnl-paste <(echo '# x'; seq 3) <(echo '# y'; seq 5) | vnl-align
+     # x y
+     1   1
+     2   2
+     3   3
+     4
+     5
+
+COMPATIBILITY
+    I use GNU/Linux-based systems exclusively, but everything has been
+    tested functional on FreeBSD and OSX in addition to Debian, Ubuntu and
+    CentOS. I can imagine there's something I missed when testing on
+    non-Linux systems, so please let me know if you find any issues.
+
+SEE ALSO
+    paste(1)
+
+
+#+END_EXAMPLE
+
 
 ** vnl-gen-header
 #+BEGIN_EXAMPLE
