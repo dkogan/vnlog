@@ -5,9 +5,14 @@
 *.d
 *.so
 *.so.*
+*.dylib
+*.dylib.*
 *.pyc
 cscope*
 *_generated.h
 test/test1
+test/test-parser
 test/*.got
 test/vnlog_fields_generated*.h
+mrbuild
+mrbuild/
