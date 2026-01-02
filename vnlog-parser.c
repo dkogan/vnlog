@@ -193,7 +193,7 @@ vnlog_parser_result_t read_line(vnlog_parser_t* ctx, FILE* fp)
 }
 
 #ifdef __APPLE__
-// tdestry is a nonstandard extension not present in Apple's libc, but it is easy to redefine
+// tdestroy is a nonstandard extension not present in Apple's libc, but it is easy to redefine
 
 static void tdestroy_recurse(node_t *root, void (*freefct)(void *))
 {
@@ -211,7 +211,7 @@ static void tdestroy_recurse(node_t *root, void (*freefct)(void *))
     free(root);
 }
 
-void tdestroy(void *root, void (*freefct)(void *))
+static void tdestroy(void *root, void (*freefct)(void *))
 {
     if (root == NULL)
     {
