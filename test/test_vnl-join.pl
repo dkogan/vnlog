@@ -23,20 +23,20 @@ my $have_fancy_join;
 if(run(['join', '--version'], \$in, \$out, \$err))
 {
     # success
-    if($out =~ /GNU/)
+    if($out =~ /GNU|uutils/)
     {
         $have_fancy_join = 1;
-        say "Detected GNU join. Running a full test of vnl-join";
+        say "Detected GNU|uutils join. Running a full test of vnl-join";
     }
     else
     {
-        die "I don't know which 'join' this is. 'join --version' succeeed, but didn't say it was 'GNU' join";
+        die "I don't know which 'join' this is. 'join --version' succeeed, but didn't say it was 'GNU' or 'uutils' join";
     }
 }
 else
 {
     $have_fancy_join = 0;
-    say "Detected non-GNU join ('join --version' failed): Running a limited test of vnl-join";
+    say "Detected non-GNU|uutils join ('join --version' failed): Running a limited test of vnl-join";
 }
 
 

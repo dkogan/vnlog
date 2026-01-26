@@ -24,20 +24,20 @@ my $have_fancy_uniq;
 if(run(['uniq', '--version'], \$in, \$out, \$err))
 {
     # success
-    if($out =~ /GNU/)
+    if($out =~ /GNU|uutils/)
     {
         $have_fancy_uniq = 1;
-        say "Detected GNU uniq. Running a full test of vnl-uniq";
+        say "Detected GNU|uutils uniq. Running a full test of vnl-uniq";
     }
     else
     {
-        die "I don't know which 'uniq' this is. 'uniq --version' succeeed, but didn't say it was 'GNU' uniq";
+        die "I don't know which 'uniq' this is. 'uniq --version' succeeed, but didn't say it was 'GNU' or 'uutils' uniq";
     }
 }
 else
 {
     $have_fancy_uniq = 0;
-    say "Detected non-GNU uniq ('uniq --version' failed): Running a limited test of vnl-uniq";
+    say "Detected non-GNU|uutils uniq ('uniq --version' failed): Running a limited test of vnl-uniq";
 }
 
 my $data1 = <<'EOF';
