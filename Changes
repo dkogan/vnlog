@@ -1,3 +1,10 @@
+vnlog (1.42)
+
+  * Building and running vnlog works fully on macos
+  * The tests run if rust-coreutils is being used
+
+ -- Dima Kogan <dkogan@debian.org>  Mon, 26 Jan 2026 11:12:47 -0800
+
 vnlog (1.41)
 
   * Added "vnl-tac", "vnl-paste" tools
