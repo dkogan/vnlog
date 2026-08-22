@@ -1,5 +1,10 @@
 #pragma once
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // encodes the source buffer into the destination buffer. Dest buffer is
 // '\0'-terminated, and the output (including '\0') will fit into dstlen bytes,
 // or else failure is indicated.
@@ -14,3 +19,8 @@ static inline int vnlog_base64_dstlen_to_encode( int len )
     // + 1 for the trailing '\0'
     return (1 + (len-1)/3) * 4 + 1;
 }
+
+
+#ifdef __cplusplus
+}
+#endif

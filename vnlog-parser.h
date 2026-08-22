@@ -24,6 +24,11 @@ typedef enum
     VNL_OK, VNL_EOF, VNL_ERROR
 } vnlog_parser_result_t;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 vnlog_parser_result_t vnlog_parser_init(vnlog_parser_t* ctx, FILE* fp);
 
 // Call vnlog_parser_free() when done. Even if vnlog_parser_read_record() failed
@@ -35,3 +40,7 @@ vnlog_parser_result_t vnlog_parser_read_record(vnlog_parser_t* ctx, FILE* fp);
 // given key in the most-recently-parsed row. NULL if the given key isn't found
 const char*const* vnlog_parser_record_from_key(vnlog_parser_t* ctx, const char* key);
 
+
+#ifdef __cplusplus
+}
+#endif
