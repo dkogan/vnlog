@@ -1,3 +1,9 @@
+vnlog (1.43)
+
+  * vnlog-parser.h and vnlog-base64.h does extern "C" with C++
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 22 Aug 2026 15:04:29 -0700
+
 vnlog (1.42)
 
   * Building and running vnlog works fully on macos
