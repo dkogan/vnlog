@@ -1,3 +1,9 @@
+vnlog (1.44)
+
+  * New choose_mrbuild.mk; useful primarily for standalone builds on macos
+
+ -- Dima Kogan <dkogan@debian.org>  Thu, 08 Oct 2026 21:16:54 -0700
+
 vnlog (1.43)
 
   * vnlog-parser.h and vnlog-base64.h does extern "C" with C++
