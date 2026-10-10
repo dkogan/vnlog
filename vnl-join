@@ -7,8 +7,19 @@ use autodie;
 use FindBin '$RealBin';
 use lib "$RealBin/lib";
 
-# Non-ancient perls have this in List::Util, but I want to support ancient ones too
-use List::MoreUtils 'all';
+# all() is in List::Util 1.33 and later (perl 5.20 and later). Older
+# perls get it from List::MoreUtils instead
+BEGIN
+{
+    if( eval { require List::Util; List::Util->VERSION(1.33); 1 } )
+    { List::Util->import(qw(all)); }
+    else
+    {
+        eval { require List::MoreUtils; 1 }
+          or die "$0 needs List::Util >= 1.33 or List::MoreUtils\n";
+        List::MoreUtils->import(qw(all));
+    }
+}
 use POSIX;
 use Config;
 

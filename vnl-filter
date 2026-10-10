@@ -3,7 +3,19 @@ use strict;
 use warnings;
 use Getopt::Long qw(:config no_getopt_compat bundling);
 use List::Util 'max';
-use List::MoreUtils qw(any all);
+# any() and all() are in List::Util 1.33 and later (perl 5.20 and later). Older
+# perls get them from List::MoreUtils instead
+BEGIN
+{
+    if( eval { require List::Util; List::Util->VERSION(1.33); 1 } )
+    { List::Util->import(qw(any all)); }
+    else
+    {
+        eval { require List::MoreUtils; 1 }
+          or die "$0 needs List::Util >= 1.33 or List::MoreUtils\n";
+        List::MoreUtils->import(qw(any all));
+    }
+}
 use FindBin '$RealBin';
 use lib "$RealBin/lib";
 use Vnlog::Util 'get_unbuffered_line';
