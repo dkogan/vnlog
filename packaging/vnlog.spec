@@ -11,7 +11,7 @@ BuildRequires: python2-devel
 BuildRequires: perl-IPC-Run
 BuildRequires: perl-Text-Diff
 BuildRequires: perl-String-ShellQuote
-BuildRequires: perl-List-MoreUtils
+BuildRequires: perl(List::Util) >= 1.33
 BuildRequires: mawk
 BuildRequires: make
 BuildRequires: chrpath
@@ -44,7 +44,7 @@ Requires:       %{name}%{_isa} = %{version}-%{release}
 Summary:        Tools for manipulating vnlogs
 Requires:       mawk
 Requires:       perl-Text-Table
-Requires:       perl-List-MoreUtils
+Requires:       perl(List::Util) >= 1.33
 Requires:       perl-autodie
 
 %description tools
