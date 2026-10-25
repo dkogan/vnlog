@@ -7,10 +7,17 @@ use autodie;
 use FindBin '$RealBin';
 use lib "$RealBin/lib";
 
-# Non-ancient perls have this in List::Util, but I want to support ancient ones too
-use List::MoreUtils 'all';
 use POSIX;
 use Config;
+
+# Get all() from List::Util or List::MoreUtils if that isn't possible. Getting
+# it from list::Util is preferable because that is in core perl
+BEGIN {
+    eval { require List::Util; List::Util->import("all"); 1 }
+        or eval { require List::MoreUtils; List::MoreUtils->import("all"); 1 }
+        or die "$0 needs List::Util::all or List::MoreUtils:all\n";
+}
+
 
 use Vnlog::Util qw(parse_options read_and_preparse_input reconstruct_substituted_command get_key_index fork_and_filter parse_prefixes_suffixes);
 

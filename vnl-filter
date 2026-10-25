@@ -3,13 +3,20 @@ use strict;
 use warnings;
 use Getopt::Long qw(:config no_getopt_compat bundling);
 use List::Util 'max';
-use List::MoreUtils qw(all);
 use FindBin '$RealBin';
 use lib "$RealBin/lib";
 use Vnlog::Util 'get_unbuffered_line';
 use Text::Balanced 'extract_bracketed';
 
 use feature qw(say state);
+
+# Get all() from List::Util or List::MoreUtils if that isn't possible. Getting
+# it from list::Util is preferable because that is in core perl
+BEGIN {
+    eval { require List::Util; List::Util->import("all"); 1 }
+        or eval { require List::MoreUtils; List::MoreUtils->import("all"); 1 }
+        or die "$0 needs List::Util::all or List::MoreUtils:all\n";
+}
 
 
 my $usage =  <<EOF;
