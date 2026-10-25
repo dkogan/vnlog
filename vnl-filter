@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long qw(:config no_getopt_compat bundling);
 use List::Util 'max';
-use List::MoreUtils qw(any all);
+use List::MoreUtils qw(all);
 use FindBin '$RealBin';
 use lib "$RealBin/lib";
 use Vnlog::Util 'get_unbuffered_line';
@@ -1159,7 +1159,7 @@ while(<STDIN>)
     next unless $colidx_needed_max <= $#fields;
 
     # skip records that have empty input columns that must be non-empty
-    next if any {!defined $fields[$_]} @must_have_col_indices_input;
+    next if !all {defined $fields[$_]} @must_have_col_indices_input;
 
     compute_reldiff();
 
