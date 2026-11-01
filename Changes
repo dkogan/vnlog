@@ -1,3 +1,10 @@
+vnlog (1.45) unstable; urgency=medium
+
+  * Removed dependency on List::MoreUtils (now only needed on ancient
+    perls)
+
+ -- Dima Kogan <dkogan@debian.org>  Sat, 31 Oct 2026 17:44:24 -0700
+
 vnlog (1.44)
 
   * New choose_mrbuild.mk; useful primarily for standalone builds on macos
